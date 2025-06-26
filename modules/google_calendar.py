@@ -12,9 +12,10 @@ from typing import TYPE_CHECKING
 
 import dateutil.parser
 import httplib2
-from api import settings
 from apiclient.discovery import build
 from oauth2client.client import OAuth2Credentials
+
+from api import settings
 
 from .rfc3339 import datetimetostr
 from .rfc3339 import now as now_rfc3339

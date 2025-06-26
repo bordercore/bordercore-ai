@@ -7,6 +7,7 @@ response to a weather-related question using a language model.
 from typing import TYPE_CHECKING
 
 import requests
+
 from api import settings
 
 if TYPE_CHECKING:

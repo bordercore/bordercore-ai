@@ -16,13 +16,13 @@ from typing import Any, Dict, Generator, List
 
 import torch
 import transformers
-from api import settings
 from qwen_vl_utils import process_vision_info
 from transformers import (AutoModelForCausalLM, AutoProcessor, AutoTokenizer,
                           BitsAndBytesConfig,
                           Qwen2_5_VLForConditionalGeneration,
                           TextIteratorStreamer, pipeline)
 
+from api import settings
 from modules.context import Context
 from modules.util import get_model_info
 

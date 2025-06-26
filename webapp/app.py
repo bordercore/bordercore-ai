@@ -34,12 +34,10 @@ import sounddevice  # Adding this eliminates an annoying warning
 from flask import (Flask, Response, abort, jsonify, render_template, request,
                    session, stream_with_context)
 from flask_session import Session  # type: ignore[attr-defined]
-from modules.chatbot import CONTROL_VALUE, ChatBot
-
-warnings.filterwarnings("ignore", message=".*The 'nopython' keyword.*")
 
 from api import settings
 from modules.audio import Audio
+from modules.chatbot import CONTROL_VALUE, ChatBot
 from modules.rag import RAG
 from modules.vision import Vision
 

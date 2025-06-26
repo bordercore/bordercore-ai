@@ -19,8 +19,8 @@ import gc
 from typing import Any
 
 import torch
-from api import settings
 
+from api import settings
 from modules.inference import Inference
 
 

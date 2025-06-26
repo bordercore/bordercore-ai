@@ -10,6 +10,7 @@ import sys
 from typing import Any
 
 import discord
+
 from api import settings
 
 from .chatbot import ChatBot

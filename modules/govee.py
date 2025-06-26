@@ -10,9 +10,10 @@ import argparse
 from typing import TYPE_CHECKING
 
 import requests
-from api import settings
 from http_constants.status import HttpStatus
 from requests.exceptions import HTTPError
+
+from api import settings
 
 if TYPE_CHECKING:
     from mypackage.chatbot import ChatBot

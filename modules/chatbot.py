@@ -31,10 +31,10 @@ import openai
 import pysbd
 import requests
 import sounddevice  # Adding this eliminates an annoying warning
-from api import settings
 from http_constants.status import HttpStatus
 from requests.exceptions import ConnectionError
 
+from api import settings
 from modules.context import Context
 from modules.google_calendar import get_schedule
 from modules.govee import control_lights
