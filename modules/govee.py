@@ -13,7 +13,7 @@ import requests
 from http_constants.status import HttpStatus
 from requests.exceptions import HTTPError
 
-from api import settings
+import settings
 
 if TYPE_CHECKING:
     from mypackage.chatbot import ChatBot

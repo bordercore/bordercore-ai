@@ -19,10 +19,10 @@ import os
 from typing import Any, Dict, Generator, List, Mapping
 
 from flask import Flask, Response, jsonify, request
+
+import settings
 from modules.inference import Inference
 from modules.model_manager import ModelManager
-
-from api import settings
 
 app = Flask(__name__)
 app.config["model_manager"] = ModelManager()

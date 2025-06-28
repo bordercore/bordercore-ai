@@ -35,7 +35,7 @@ from flask import (Flask, Response, abort, jsonify, render_template, request,
                    session, stream_with_context)
 from flask_session import Session  # type: ignore[attr-defined]
 
-from api import settings
+import settings
 from modules.audio import Audio
 from modules.chatbot import CONTROL_VALUE, ChatBot
 from modules.rag import RAG

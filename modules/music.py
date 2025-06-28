@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import requests
 
-from api import settings
+import settings
 
 if TYPE_CHECKING:
     from mypackage.chatbot import ChatBot

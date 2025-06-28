@@ -8,7 +8,7 @@ webapp/vad.worklet.bundle.min.js
 node_modules/
 *.pyc
 *.wasm
-api/settings.py
+settings.py
 models.yaml
 chromdb/
 voices/

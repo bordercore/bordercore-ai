@@ -7,7 +7,7 @@ import urllib.parse
 
 import requests
 
-from api import settings
+import settings
 from modules.function_calling import FunctionCall
 
 

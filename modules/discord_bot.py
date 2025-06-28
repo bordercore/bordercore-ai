@@ -11,7 +11,7 @@ from typing import Any
 
 import discord
 
-from api import settings
+import settings
 
 from .chatbot import ChatBot
 

@@ -22,7 +22,7 @@ from transformers import (AutoModelForCausalLM, AutoProcessor, AutoTokenizer,
                           Qwen2_5_VLForConditionalGeneration,
                           TextIteratorStreamer, pipeline)
 
-from api import settings
+import settings
 from modules.context import Context
 from modules.util import get_model_info
 

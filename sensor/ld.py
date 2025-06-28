@@ -13,11 +13,12 @@ import logging
 import time
 from typing import Any, Iterator
 
-from api import settings
 from bleak import BleakScanner
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from ld2410_ble import LD2410BLE
+
+import settings
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("ld2410_ble").setLevel(logging.INFO)

@@ -20,7 +20,7 @@ from typing import Any
 
 import torch
 
-from api import settings
+import settings
 from modules.inference import Inference
 
 

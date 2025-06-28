@@ -108,7 +108,7 @@ To install the API, first create and activate a virtual environment. Then:
 pip install requirements/api.txt
 ```
 
-Copy `api/settings_template.py` to `api/settings.py` and set the following:
+Copy `settings_template.py` to `settings.py` and set the following:
 
 **model_name**: default model to load
 **model_dir**: the relative directory containing your models

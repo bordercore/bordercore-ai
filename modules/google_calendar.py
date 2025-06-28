@@ -15,7 +15,7 @@ import httplib2
 from apiclient.discovery import build
 from oauth2client.client import OAuth2Credentials
 
-from api import settings
+import settings
 
 from .rfc3339 import datetimetostr
 from .rfc3339 import now as now_rfc3339
