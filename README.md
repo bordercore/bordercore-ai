@@ -65,7 +65,7 @@ python3 -m modules.chatbot -m chatgpt
 Experimental support for reading real-time sensor data. This can be used, for example, to activate Speech to Text by waving a hand in front of a sensor like the HLK-LD2410B. To install the required Bluetooth packages:
 
 ```bash
-pip install requirements/sensor.txt
+pip install requirements.txt
 ```
 
 To run the sensor webapp:
@@ -83,7 +83,7 @@ The code is divided into two components: a webapp and an API. These can be and o
 To install the webapp, first create and activate a virtual environment. Then:
 
 ```bash
-pip install requirements/webapp.txt
+pip install requirements.txt
 ```
 
 Build the front-end package:
@@ -105,7 +105,7 @@ To access: http://localhost:5000/
 To install the API, first create and activate a virtual environment. Then:
 
 ```bash
-pip install requirements/api.txt
+pip install requirements.txt
 ```
 
 Copy `settings_template.py` to `settings.py` and set the following:
