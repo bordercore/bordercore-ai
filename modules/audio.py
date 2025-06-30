@@ -129,9 +129,9 @@ class Audio:
             model=model,
             tokenizer=processor.tokenizer,
             feature_extractor=processor.feature_extractor,
-            max_new_tokens=128,
             torch_dtype=torch_dtype,
             device=device,
+            generate_kwargs={"max_new_tokens": 128}
         )
 
         result = (
