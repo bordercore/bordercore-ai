@@ -16,7 +16,7 @@ from requests.exceptions import HTTPError
 import settings
 
 if TYPE_CHECKING:
-    from mypackage.chatbot import ChatBot
+    from chatbot import ChatBot
 
 
 URL_BASE = "https://developer-api.govee.com/v1"
@@ -190,15 +190,20 @@ def main() -> None:
         "-m",
         "--model",
         choices=["openai", "llama"],
-        default="llama",
+        default="openai",
         help="The model to use: chatgpt or llama"
     )
     args = parser.parse_args()
 
-    print("Devices available: " + ", ".join([x["deviceName"] for x in args.device_list["data"]["devices"]]))
+    device_list = get_devices()
+    print("Devices available: " + ", ".join([x["deviceName"] for x in device_list["data"]["devices"]]))
+
+    from chatbot import ChatBot
+    chatbot = ChatBot(model_name=args.model)
+
     while True:
         user_command = input(f"{MAGENTA}Command:{END} ")
-        control_lights(args.model, user_command, device_list=args.device_list)
+        control_lights(chatbot, user_command, device_list=device_list)
 
 
 if __name__ == "__main__":
