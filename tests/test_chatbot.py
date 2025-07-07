@@ -4,6 +4,7 @@ Unit tests for the `sanitize_string` method of the ChatBot class.
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from modules.chatbot import ChatBot, Context
 
 
@@ -25,7 +26,7 @@ def test_init_stt_if_enabled_enabled():
 
 
 def test_init_stt_if_enabled_disabled():
-    """Returns WhisperMic instance when STT is enabled."""
+    """Return ``None`` when STT is disabled."""
     instance = ChatBot()
     instance.args = {"stt": False}
     mic = instance.init_stt_if_enabled()
