@@ -14,6 +14,7 @@ import discord
 import settings
 
 from .chatbot import ChatBot
+from .util import get_model_info
 
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
 DISCORD_CHANNEL_ID = settings.discord_channel_id
@@ -65,7 +66,7 @@ class DiscordBot(discord.Client, ChatBot):
         content = self.get_message_content(message.content)
 
         if content == "info":
-            await message.channel.send("Model: " + ChatBot.get_model_info())
+            await message.channel.send("Model: " + str(get_model_info()))
             return
 
         if content == "reset":

@@ -537,7 +537,7 @@ const app = createApp({
 
             const payload = {
                 message: JSON.stringify(messages),
-                model: model.value,
+                model: model.value.name,
                 audio_speed: audioSpeed.value,
                 speak: speak.value,
                 temperature: temperature.value,

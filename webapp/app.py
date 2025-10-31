@@ -23,7 +23,7 @@ All run-time configuration comes from ``api.settings``:
 import base64
 import json
 import os
-import warnings
+# import warnings
 from pathlib import Path
 from typing import Any, Dict, Iterator
 
@@ -33,13 +33,19 @@ import requests
 import sounddevice  # Adding this eliminates an annoying warning
 from flask import (Flask, Response, abort, jsonify, render_template, request,
                    session, stream_with_context)
+from flask.typing import ResponseReturnValue
 from flask_session import Session  # type: ignore[attr-defined]
 
 import settings
 from modules.audio import Audio
 from modules.chatbot import CONTROL_VALUE, ChatBot
+from modules.model_manager import ModelManager
 from modules.rag import RAG
+from modules.util import get_model_info
 from modules.vision import Vision
+
+# warnings.filterwarnings("ignore", message=".*The 'nopython' keyword.*")
+
 
 NUM_STARS = 10
 SENSOR_THRESHOLD_DEFAULT = 100
@@ -48,6 +54,8 @@ app = Flask(__name__)
 app.debug = True
 app.secret_key = settings.flask_secret_key
 app.config["SESSION_TYPE"] = "filesystem"
+app.config["model_manager"] = ModelManager()
+app.config["model_manager"].load(settings.model_name)
 
 Session(app)  # Initialize session management
 
@@ -121,7 +129,7 @@ def rag_upload() -> Response:
 
 
 @app.route("/rag/chat", methods=["POST"])
-def rag_chat() -> str:
+def rag_chat() -> ResponseReturnValue:
     """
     Queries an uploaded document using a Retrieval-Augmented Generation (RAG) model.
 
@@ -158,11 +166,13 @@ def rag_chat() -> str:
 
     chromdb = Path(__file__).resolve().parent.parent / "chromdb"
     rag = RAG(model_name, chromdb=str(chromdb))
+
     try:
         rag.get_collection(sha1sum=sha1sum)
-        return rag.query_document(message)
     except ValueError:
         abort(404, description="Document not found")
+
+    return rag.query_document(message)
 
 
 @app.route("/audio/upload/file", methods=["POST"])
@@ -366,9 +376,7 @@ def generate_stream(chatbot: ChatBot, message: Any) -> Iterator[str]:
         streaming to the client.
     """
     try:
-        yield from chatbot.handle_message(message)
-    except requests.exceptions.ConnectionError:
-        yield "Error connecting to API"
+        yield from chatbot.dispatch_message(message)
     except Exception as error:
         yield f"An error occurred: {error}"
 
@@ -398,6 +406,7 @@ def chat() -> Response:
 
     chatbot = ChatBot(
         model_name=model_name,
+        model=app.config["model_manager"].get_model(),
         temperature=temperature,
         wolfram_alpha=wolfram_alpha,
         url=url,
@@ -415,7 +424,7 @@ def info() -> Response:
         A JSON response containing model details such as size, type, and other
         attributes.
     """
-    model_info = ChatBot.get_model_info()
+    model_info = {"name": settings.model_name}
     return jsonify(model_info)
 
 
@@ -448,7 +457,16 @@ def load() -> Response:
     if model_type == "api":
         response_data: Dict[str, Any] = {"status": "OK"}
     else:
-        response_data = ChatBot.load_model(model_name)
+        try:
+            manager = app.config["model_manager"]
+            manager.unload()
+            manager.load(model_name)
+            status = "OK"
+            message = ""
+        except Exception as e:
+            status = "Error"
+            message = str(e)
+        response_data =  {"status": status, "message": message}
 
     return jsonify(response_data)
 

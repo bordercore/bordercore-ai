@@ -76,11 +76,7 @@ python3 -m sensor
 
 # Installation
 
-The code is divided into two components: a webapp and an API. These can be and often are run on two different systems.
-
-## Webapp
-
-To install the webapp, first create and activate a virtual environment. Then:
+First create and activate a virtual environment. Then:
 
 ```bash
 pip install requirements.txt
@@ -90,22 +86,6 @@ Build the front-end package:
 
 ```bash
 npm run build
-```
-
-To run:
-
-```bash
-python3 -m webapp
-```
-
-To access: http://localhost:5000/
-
-## API
-
-To install the API, first create and activate a virtual environment. Then:
-
-```bash
-pip install requirements.txt
 ```
 
 Copy `settings_template.py` to `settings.py` and set the following:
@@ -137,8 +117,10 @@ Set **add_bos_token: true** to prepend a beginning-of-sequence (BOS) token to th
 To run:
 
 ```bash
-python -m api
+python3 -m webapp
 ```
+
+To access: http://localhost:5000/
 
 ## Command line
 

@@ -14,23 +14,25 @@ for services like Discord bots.
 
 Configuration is handled via command-line arguments and the `api.settings` module.
 """
-
 import argparse
 import json
 import logging
+import os
 import string
 import sys
 import tempfile
 import urllib.parse
 import warnings
-from typing import (Any, Dict, Generator, Iterator, List, Literal, Union,
-                    overload)
+from pathlib import Path
+from typing import (Any, Dict, Generator, Iterator, List, Literal, Mapping,
+                    Union, overload)
 
 import anthropic
 import openai
 import pysbd
 import requests
 import sounddevice  # Adding this eliminates an annoying warning
+import yaml
 from http_constants.status import HttpStatus
 from requests.exceptions import ConnectionError
 
@@ -38,6 +40,7 @@ import settings
 from modules.context import Context
 from modules.google_calendar import get_schedule
 from modules.govee import control_lights
+from modules.inference import Inference
 from modules.music import play_music
 from modules.util import (get_model_info, get_webpage_contents, sort_models,
                           strip_code_fences)
@@ -81,7 +84,7 @@ class ChatBot():
     ASSISTANT_NAME = "Luna"
     temperature = 0.7
 
-    def __init__(self, model_name: str | None = None, **args: Any) -> None:
+    def __init__(self, model_name: str | None = None, model: Any = None, **args: Any) -> None:
         """
         Initialize a ChatBot instance.
 
@@ -91,6 +94,7 @@ class ChatBot():
         """
         self.context = Context()
         self.model_name = model_name
+        self.model = model
         self.args = args
 
         if "temperature" in self.args:
@@ -228,6 +232,22 @@ class ChatBot():
         except KeyboardInterrupt:
             sys.exit(0)
 
+    def get_temperature(self, payload: Mapping[str, Any]) -> float:
+        """
+        Extract the temperature value from the payload or fallback to settings.
+
+        Args:
+            payload: The incoming request JSON payload.
+
+        Returns:
+            A float > 0 representing the model sampling temperature.
+        """
+        temp = payload["temperature"] if "temperature" in payload else settings.temperature
+        # the temperature must be a strictly positive float
+        if temp == 0:
+            temp = 0.1
+        return temp
+
     def handle_response(self, user_input: str, inference: Any | None) -> None:
         """Generate the assistant’s reply and (optionally) speak it aloud.
 
@@ -255,42 +275,68 @@ class ChatBot():
         except ConnectionError:
             print("Error: API refusing connections.")
 
-    def handle_message(self, messages: List[Dict[str, Any]]) -> Any:
+    def get_message_handler(self, category: str, content: str) -> str | None:
+        """Invoke a tool handler for the given category, if appropriate.
+
+        Args:
+            category: The route category (e.g. "lights", "math").
+            content: The user request text.
+
+        Returns:
+            The string output from the tool, or None if no tool ran.
         """
-        Route the last message to the appropriate tool or model.
+        if category == "lights":
+            return control_lights(self, content)
+
+        if category == "music":
+            return play_music(self, content)
+
+        if category == "weather":
+            return get_weather_info(content)
+
+        if category == "calendar":
+            return get_schedule(content)
+
+        if category == "agenda":
+            return self.get_agenda()
+
+        if category == "math":
+            # If enable_thinking is True, we intentionally *don't* use Wolfram.
+            if not self.args.get("enable_thinking", False):
+                return WolframAlphaFunctionCall(self).run(content)
+            # else: let the model solve it itself.
+            return None
+
+        # default / unknown category: let the model handle directly
+        return None
+
+    def dispatch_message(self, messages: List[Dict[str, Any]]) -> Any:
+        """
+        Route the message to the appropriate tool or model.
 
         Args:
             messages: List of message dicts with keys 'role' and 'content'.
         Returns:
             The result from the selected tool or model streaming output.
         """
+        last_message = messages[-1]
+
         if self.args.get("wolfram_alpha", False):
             request_type = {"category": "math"}
         elif self.args.get("url", None):
             request_type = {"category": "other"}
             contents = get_webpage_contents(self.args["url"])
-            messages[-1]["content"] += f": {contents}"
+            last_message["content"] += f": {contents}"
         else:
             request_type = self.get_request_type(messages[-1]["content"])
 
         category = request_type["category"]
-        content = messages[-1]["content"]
+        content = last_message["content"]
 
-        handlers = {
-            "lights": lambda: control_lights(self, content),
-            "music": lambda: play_music(self, content),
-            "weather": lambda: get_weather_info(self, content),
-            "calendar": lambda: get_schedule(self, content),
-            "agenda": self.get_agenda,
-            "math": lambda: WolframAlphaFunctionCall(self).run(content)
-            if not self.args.get("enable_thinking", False) else None
-        }
+        tool_output = self.get_message_handler(category, content)
 
-        result = handlers.get(category)
-        if result:
-            output = result()
-            if output is not None:
-                return output
+        if tool_output is not None:
+            last_message["content"] = tool_output
 
         return self.send_message_to_model(messages, stream=True, replace_context=True)
 
@@ -439,10 +485,10 @@ class ChatBot():
             tool_name: The name of the tool to include in the payload.
             tool_list: The tool's function list or identifier string.
 
-        Yields:
+        Returns:
             The text content of each streamed response chunk as UTF-8 decoded strings.
         """
-        request = {
+        payload = {
             "mode": "instruct",
             "messages": self.context.get(),
             "tool_name": tool_name,
@@ -452,20 +498,18 @@ class ChatBot():
             **args
         }
 
-        endpoints = ChatBot.get_api_endpoints()
-
-        response = requests.post(
-            endpoints["CHAT"],
-            json=request,
-            stream=True,
-            timeout=20
+        model_path = f"{settings.model_dir}/{settings.model_name}"
+        inference = Inference(
+            model_path=model_path,
+            temperature=self.get_temperature(payload),
+            tool_name=payload.get("tool_name", None),
+            tool_list=payload.get("tool_list", None),
+            enable_thinking=payload.get("enable_thinking", False),
+            debug=True,
         )
-        content = ""
-        for chunk in response.iter_content(chunk_size=1024):
-            if chunk:  # Filter out keep-alive new chunks
-                content += chunk.decode("utf-8")
-                yield chunk.decode("utf-8")
-        self.context.add(content, role="assistant")
+
+        inference.model = self.model
+        return inference.generate(payload["messages"])
 
     def get_agenda(self) -> str:
         """
@@ -482,8 +526,8 @@ class ChatBot():
         if self.model_name is None:
             raise RuntimeError("Model must be specified before LLM is called.")
 
-        weather_content = get_weather_info(self, "What's the weather today?")
-        calendar_content = get_schedule(self, "What's on my calendar today?")
+        weather_content = get_weather_info("What's the weather today?")
+        calendar_content = get_schedule("What's on my calendar today?")
 
         return f"{weather_content}\n\n{calendar_content}"
 
@@ -538,21 +582,6 @@ class ChatBot():
         return None
 
     @staticmethod
-    def get_model_info() -> str:
-        """
-        Retrieves the current model name from the model info API.
-
-        Sends a GET request to the local `/model_info` endpoint and extracts
-        the model name from the JSON response.
-
-        Returns:
-            A string representing the current model's name.
-        """
-        endpoints = ChatBot.get_api_endpoints()
-        response = requests.get(endpoints["MODEL_INFO"], timeout=10)
-        return response.json()["model_name"]
-
-    @staticmethod
     def get_model_list() -> List[Dict[str, Any]]:
         """
         Retrieves and returns a sorted list of available models, including both local and API-based ones.
@@ -564,10 +593,17 @@ class ChatBot():
             A sorted list of dictionaries, where each dictionary contains metadata about a model,
             such as "model", "name", "type", and optional "qwen_vision".
         """
-        endpoints = ChatBot.get_api_endpoints()
-        response = requests.get(endpoints["MODEL_LIST"], timeout=10)
+        directory = settings.model_dir
+        if not os.path.isdir(directory):
+            raise ValueError(f"{directory} is not a valid directory.")
 
-        model_names = response.json()["model_names"]
+        directories = []
+        for item in os.listdir(directory):
+            full_path = os.path.join(directory, item)
+            if os.path.isdir(full_path) or full_path.endswith("gguf"):
+                directories.append(item)
+
+        model_names = directories
 
         # Add API-based models
         model_names.extend(
@@ -582,7 +618,7 @@ class ChatBot():
 
         return sort_models(
             model_list,
-            [v.get("name", None) for k, v in model_info.items()]
+            [v.get("name", None) for _, v in model_info.items()]
         )
 
     @staticmethod
@@ -614,32 +650,6 @@ class ChatBot():
             model_list
         ]
         return models
-
-    @staticmethod
-    def load_model(model: str) -> Dict[str, Any]:
-        """
-        Loads the specified model if it is not already active.
-
-        Compares the requested model name to the currently active model.
-        If they differ, sends a request to the backend to load the specified model.
-        Otherwise, returns a success status without reloading.
-
-        Args:
-            model: The name of the model to load.
-
-        Returns:
-            A dictionary representing the JSON response from the backend.
-            If the model is already loaded, returns {"status": "OK"}.
-        """
-        current_model = ChatBot.get_model_info()
-        if current_model == model:
-            return {"status": "OK"}
-        endpoints = ChatBot.get_api_endpoints()
-        return requests.post(
-            endpoints["MODEL_LOAD"],
-            json={"model_name": model},
-            timeout=120
-        ).json()
 
 
 def main() -> None:
