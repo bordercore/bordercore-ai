@@ -1,0 +1,30 @@
+[tool.isort]
+known_first_party = ["api.settings"]
+known_third_party = ["flask_session"]
+
+[tool.mypy]
+ignore_missing_imports = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+explicit_package_bases = true
+exclude = '''(?x)(
+    # Exclude all test files
+    ^tests/
+    |
+    # Exclude all older TTS files
+    ^tts/old/
+    |
+    # Exclude test configuration file
+    conftest\.py
+)'''
+
+[[tool.mypy.overrides]]
+module = ["modules.rfc3339"]
+ignore_errors = true
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+addopts = "--capture=no --tb=line"
+norecursedirs = ["webapp/node_modules"]
+import_mode = "importlib"
+filterwarnings = ["ignore"]
