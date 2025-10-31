@@ -5,8 +5,8 @@ import "bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {library} from "@fortawesome/fontawesome-svg-core";
 import {FontAwesomeIcon} from "@fortawesome/vue-fontawesome";
-import {faBackward, faCheck, faChevronUp, faCopy, faExclamationTriangle, faFileAlt, faForward, faGear, faLink, faPaperclip, faPaste, faPlus, faRotateLeft} from "@fortawesome/free-solid-svg-icons";
-library.add(faBackward, faCheck, faChevronUp, faCopy, faExclamationTriangle, faFileAlt, faForward, faGear, faLink, faPaperclip, faPaste, faPlus, faRotateLeft);
+import {faBackward, faCheck, faChevronUp, faCopy, faCircleStop, faExclamationTriangle, faFileAlt, faForward, faGear, faLink, faPaperclip, faPaste, faPlus, faRotateLeft} from "@fortawesome/free-solid-svg-icons";
+library.add(faBackward, faCheck, faChevronUp, faCopy, faCircleStop, faExclamationTriangle, faFileAlt, faForward, faGear, faLink, faPaperclip, faPaste, faPlus, faRotateLeft);
 import "media-chrome";
 import {Modal} from "bootstrap";
 import Oruga from "@oruga-ui/oruga-next";
@@ -78,6 +78,7 @@ const app = createApp({
         const model = ref({});
         const modelList = ref([]);
         const musicInfo = ref(null);
+        const currentAbortController = ref(null);
         const currentSong = ref({});
         const notice = ref("");
         const prompt = ref("");
@@ -118,6 +119,8 @@ const app = createApp({
         });
 
         const sensorThreshold = settings.sensor_threshold ?? 100;
+
+        const isGenerating = computed(() => currentAbortController.value !== null);
 
         useEvent("ended", handleAudioEnded, {id: "player"});
         useEvent("pause", handleAudioPlayerPause, {id: "player"});
@@ -446,6 +449,16 @@ const app = createApp({
             }
         };
 
+        function handleStopGeneration() {
+            if (!currentAbortController.value) {
+                return;
+            }
+
+            audioElement.pause();
+            audioElement.src = "";
+            currentAbortController.value.abort();
+        };
+
         function handleSwitchMode(modeNew) {
             mode.value = modeNew;
         };
@@ -558,12 +571,20 @@ const app = createApp({
             let buffer = "";
             let revealed = enableThinking.value ? false : true;
 
+            if (currentAbortController.value) {
+                currentAbortController.value.abort();
+            }
+
+            const abortController = new AbortController();
+            currentAbortController.value = abortController;
+
             fetch(chatEndpoint.value, {
                 method: "POST",
                 headers: {
                     Responsetype: "stream",
                 },
                 body: formData,
+                signal: abortController.signal,
             })
                 .then((response) => {
                     if (!response.ok) {
@@ -627,6 +648,10 @@ const app = createApp({
                                         push();
                                     })
                                     .catch((error) => {
+                                        if (error.name === "AbortError") {
+                                            controller.close();
+                                            return;
+                                        }
                                         console.error(error);
                                         controller.error(error);
                                     });
@@ -640,6 +665,7 @@ const app = createApp({
                     return new Response(stream).text();
                 })
                 .then((result) => {
+                    isGenerating.value = false;
                     const elapsed = Date.now() - start;
                     const wordCount = result.trim().split(/\s+/).length;
                     const speed = Math.round(wordCount / (elapsed / 1000));
@@ -667,11 +693,28 @@ const app = createApp({
                     doTTS(result);
                 })
                 .catch((exception) => {
+                    if (exception.name === "AbortError") {
+                        const lastMessage = chatHistory.value[chatHistory.value.length - 1];
+                        if (lastMessage?.role === "assistant") {
+                            if (!lastMessage.content || !lastMessage.content.trim()) {
+                                chatHistory.value.pop();
+                            } else {
+                                lastMessage.content = `${lastMessage.content.trimEnd()}\n\n_Generation stopped._`;
+                            }
+                        }
+                        return;
+                    }
                     error.value = {
                         body: "Error communicating with webapp.",
                         variant: "danger",
                     };
                     console.error("Error:", exception);
+                    })
+                .finally(() => {
+                    waiting.value = false;
+                    if (currentAbortController.value === abortController) {
+                        currentAbortController.value = null;
+                    }
                 });
         };
 
@@ -922,10 +965,12 @@ const app = createApp({
             handleSendMessageRag,
             handleSendMessageVision,
             handleSensorData,
+            handleStopGeneration,
             handleSwitchMode,
             icon,
             inputIsDisabled,
             isDragOver,
+            isGenerating,
             getAudioFileSize,
             getRagFileSize,
             getMarkdown,
