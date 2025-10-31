@@ -16,29 +16,47 @@ from typing import Iterable, Iterator, List, Sequence, Tuple, TypeVar, Union
 import numpy as np
 import openai
 import tiktoken
+from openai import OpenAI
+
+import settings
 
 EMBEDDING_MODEL = "text-embedding-ada-002"
 EMBEDDING_CTX_LENGTH = 8191
 EMBEDDING_ENCODING = "cl100k_base"
 
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+openai.api_key = settings.openai_api_key
+client = OpenAI()
 
 T = TypeVar("T")
 
 
 def get_embedding(text_or_tokens: Union[str, Sequence[int]], model: str = EMBEDDING_MODEL) -> List[float]:
-    """
-    Generate an embedding vector for the supplied text or token sequence.
+    """Generate a text or token embedding vector using the OpenAI client.
+
+    This function calls the modern OpenAI client API to produce a vector
+    representation (embedding) for the given text or sequence of tokens.
 
     Args:
-        text_or_tokens: A string of text to embed, or an iterable of
-            integer token IDs that have already been encoded.
-        model: The name of the embedding model to query.
+        text_or_tokens: The input text or token sequence to embed. A string
+            is tokenized internally by the model.
+        model: The embedding model name to use.
 
     Returns:
-        A list of floating-point numbers that represents the embedding.
+        A list of floats representing the embedding vector for the
+        input text or tokens.
+
+    Raises:
+        openai.APIError: If the OpenAI API returns an error response.
+        openai.APIConnectionError: If a network error occurs when contacting
+            the API.
+        ValueError: If the API response is malformed or missing expected fields.
+
+    Example:
+        >>> get_embedding("Bordercore is building something wild.")
+        [0.0134, -0.0572, 0.0891, ...]
     """
-    return openai.Embedding.create(input=text_or_tokens, model=model)["data"][0]["embedding"]
+    resp = client.embeddings.create(input=text_or_tokens, model=model)
+    return resp.data[0].embedding
 
 
 def batched(iterable: Iterable[T], n: int) -> Iterator[Tuple[T, ...]]:
