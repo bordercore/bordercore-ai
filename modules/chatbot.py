@@ -23,17 +23,17 @@ import sys
 import tempfile
 import urllib.parse
 import warnings
-from pathlib import Path
 from typing import (Any, Dict, Generator, Iterator, List, Literal, Mapping,
-                    Union, overload)
+                    Union, cast, overload)
 
 import anthropic
 import openai
 import pysbd
 import requests
 import sounddevice  # Adding this eliminates an annoying warning
-import yaml
 from http_constants.status import HttpStatus
+from openai import OpenAI
+from openai.types.chat import ChatCompletionMessageParam
 from requests.exceptions import ConnectionError
 
 import settings
@@ -411,16 +411,28 @@ class ChatBot():
         Yields:
             Streamed content chunks from the OpenAI API response.
         """
+        if self.model_name is None:
+            raise ValueError("model_name must be set before calling send_message_to_model_openai")
+        model: str = self.model_name
+
         openai.api_key = settings.openai_api_key
-        response = openai.ChatCompletion.create(
-            model=self.model_name,
-            messages=self.context.get(),
+        client = OpenAI()
+
+        messages = cast(
+            list[ChatCompletionMessageParam],
+            [{"role": m["role"], "content": m["content"]} for m in self.context.get()],
+        )
+
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
             stream=True,
             **args
         )
+
         for chunk in response:
-            content = chunk["choices"][0]["delta"].get("content", "")
-            yield content
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
 
     def send_message_to_model_anthropic(self, args: Dict[str, Any]) -> Generator[str, None, None]:
         """
