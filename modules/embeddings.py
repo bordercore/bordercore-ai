@@ -14,18 +14,16 @@ from itertools import islice
 from typing import Iterable, Iterator, List, Sequence, Tuple, TypeVar, Union
 
 import numpy as np
-import openai
 import tiktoken
 from openai import OpenAI
 
 import settings
 
-EMBEDDING_MODEL = "text-embedding-ada-002"
+EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_CTX_LENGTH = 8191
 EMBEDDING_ENCODING = "cl100k_base"
 
-openai.api_key = settings.openai_api_key
-client = OpenAI()
+client = OpenAI(api_key=getattr(settings, "openai_api_key", None))
 
 T = TypeVar("T")
 
