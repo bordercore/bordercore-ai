@@ -11,7 +11,7 @@ import base64
 import importlib
 import json
 from pathlib import Path
-from threading import Thread
+from threading import Event, Thread
 from typing import Any, Dict, Generator, List
 
 import torch
@@ -20,6 +20,7 @@ from qwen_vl_utils import process_vision_info
 from transformers import (AutoModelForCausalLM, AutoProcessor, AutoTokenizer,
                           BitsAndBytesConfig,
                           Qwen2_5_VLForConditionalGeneration,
+                          StoppingCriteria, StoppingCriteriaList,
                           TextIteratorStreamer, pipeline)
 
 import settings
@@ -32,6 +33,16 @@ transformers.logging.set_verbosity_error()
 COLOR_GREEN = "\033[32m"
 COLOR_BLUE = "\033[34m"
 COLOR_RESET = "\033[0m"
+
+
+class EventStoppingCriteria(StoppingCriteria):
+    """Stop generation when a threading.Event is set."""
+
+    def __init__(self, stop_event: Event) -> None:
+        self.stop_event = stop_event
+
+    def __call__(self, input_ids: Any, scores: Any, **kwargs: Any) -> bool:
+        return self.stop_event.is_set()
 
 
 class Inference:
@@ -60,6 +71,7 @@ class Inference:
         tool_list: str | None = None,
         enable_thinking: bool = False,
         debug: bool = False,
+        stop_event: Event | None = None,
     ) -> None:
         """
         Initializes the Inference class.
@@ -89,6 +101,7 @@ class Inference:
 
         self.tokenizer = self.load_tokenizer()
         self.model: Any | None = None
+        self.stop_event = stop_event
 
     def load_model(self) -> None:
         """
@@ -148,6 +161,9 @@ class Inference:
         Yields:
             A generator that produces chunks of the response text.
         """
+        if self.stop_event and self.stop_event.is_set():
+            return
+
         if self.model is None:
             raise RuntimeError("Model must be loaded before calling generate().")
 
@@ -375,6 +391,11 @@ class Inference:
             "streamer": streamer,
         }
 
+        if self.stop_event is not None:
+            pipeline_args["stopping_criteria"] = StoppingCriteriaList(
+                [EventStoppingCriteria(self.stop_event)]
+            )
+
         if pipeline_args["do_sample"]:
             pipeline_args.update({
                 "temperature": self.temperature,
@@ -398,7 +419,11 @@ class Inference:
         )
         thread.start()
 
-        yield from streamer
+        for text in streamer:
+            if self.stop_event and self.stop_event.is_set():
+                break
+            yield text
+
         thread.join()
 
     def generate_with_vision_model(
@@ -444,7 +469,10 @@ class Inference:
             trimmed_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False
         )
 
-        yield from output_text
+        for text in output_text:
+            if self.stop_event and self.stop_event.is_set():
+                break
+            yield text
 
     def prepare_image_prompt(self, image_path: str, text: str) -> List[Dict[str, Any]]:
         """

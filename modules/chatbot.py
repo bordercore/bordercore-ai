@@ -23,6 +23,7 @@ import sys
 import tempfile
 import urllib.parse
 import warnings
+from threading import Event
 from typing import (Any, Dict, Generator, Iterator, List, Literal, Mapping,
                     Union, cast, overload)
 
@@ -84,7 +85,11 @@ class ChatBot():
     ASSISTANT_NAME = "Luna"
     temperature = 0.7
 
-    def __init__(self, model_name: str | None = None, model: Any = None, **args: Any) -> None:
+    def __init__(self,
+                 model_name: str | None = None,
+                 model: Any = None,
+                 stop_event: Event | None = None,
+                 **args: Any) -> None:
         """
         Initialize a ChatBot instance.
 
@@ -96,6 +101,7 @@ class ChatBot():
         self.model_name = model_name
         self.model = model
         self.args = args
+        self.stop_event = stop_event
 
         if "temperature" in self.args:
             self.temperature = self.args["temperature"]
@@ -431,6 +437,11 @@ class ChatBot():
         )
 
         for chunk in response:
+            if self.stop_event and self.stop_event.is_set():
+                close_stream = getattr(response, "close", None)
+                if callable(close_stream):
+                    close_stream()
+                break
             if chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content
 
@@ -476,6 +487,11 @@ class ChatBot():
             **args
         )
         for chunk in response:
+            if self.stop_event and self.stop_event.is_set():
+                close_stream = getattr(response, "close", None)
+                if callable(close_stream):
+                    close_stream()
+                break
             if chunk.type == "content_block_delta":
                 yield chunk.delta.text
 
@@ -518,6 +534,7 @@ class ChatBot():
             tool_list=payload.get("tool_list", None),
             enable_thinking=payload.get("enable_thinking", False),
             debug=True,
+            stop_event=self.stop_event,
         )
 
         inference.model = self.model

@@ -25,6 +25,7 @@ import json
 import os
 # import warnings
 from pathlib import Path
+from threading import Event
 from typing import Any, Dict, Iterator
 
 import ffmpeg
@@ -360,7 +361,7 @@ except ModuleNotFoundError:
     pass
 
 
-def generate_stream(chatbot: ChatBot, message: Any) -> Iterator[str]:
+def generate_stream(chatbot: ChatBot, message: Any, stop_event: Event) -> Iterator[str]:
     """
     Streams response chunks produced by the chatbot.
 
@@ -376,9 +377,14 @@ def generate_stream(chatbot: ChatBot, message: Any) -> Iterator[str]:
         streaming to the client.
     """
     try:
-        yield from chatbot.dispatch_message(message)
+        for chunk in chatbot.dispatch_message(message):
+            if stop_event.is_set():
+                break
+            yield chunk
     except Exception as error:
         yield f"An error occurred: {error}"
+    finally:
+        stop_event.set()
 
 
 @app.route("/chat", methods=["POST"])
@@ -404,15 +410,23 @@ def chat() -> Response:
 
     store_params_in_session(speak, audio_speed, temperature, enable_thinking)
 
+    stop_event = Event()
+
     chatbot = ChatBot(
         model_name=model_name,
         model=app.config["model_manager"].get_model(),
+        stop_event=stop_event,
         temperature=temperature,
         wolfram_alpha=wolfram_alpha,
         url=url,
         enable_thinking=enable_thinking
     )
-    return Response(stream_with_context(generate_stream(chatbot, message)), mimetype="text/plain")
+    response = Response(
+        stream_with_context(generate_stream(chatbot, message, stop_event)),
+        mimetype="text/plain",
+    )
+    response.call_on_close(stop_event.set)
+    return response
 
 
 @app.route("/info")
