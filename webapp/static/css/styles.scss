@@ -64,6 +64,37 @@ body {
   overflow-y: auto;
 }
 
+.code-block-with-copy {
+  position: relative;
+}
+
+.code-copy-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  color: #f8f9fa;
+  background-color: rgba(33, 37, 41, 0.85);
+  border: 1px solid rgba(248, 249, 250, 0.2);
+  border-radius: 0.25rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.code-copy-button:hover,
+.code-copy-button:focus-visible {
+  background-color: rgba(13, 110, 253, 0.85);
+  border-color: rgba(13, 110, 253, 0.9);
+}
+
+.code-block-with-copy:hover .code-copy-button,
+.code-block-with-copy:focus-within .code-copy-button {
+  opacity: 1;
+}
+
 #image-preview {
   border: 1px solid #73adff;
   border-radius: 5px;
