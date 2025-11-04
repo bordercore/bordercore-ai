@@ -333,6 +333,9 @@ class ChatBot():
             request_type = {"category": "other"}
             contents = get_webpage_contents(self.args["url"])
             last_message["content"] += f": {contents}"
+        elif type(last_message["content"]) == list:
+            # image payload for vision model
+            request_type = {"category": "other"}
         else:
             request_type = self.get_request_type(messages[-1]["content"])
 

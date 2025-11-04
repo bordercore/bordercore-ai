@@ -265,8 +265,6 @@ const app = createApp({
             switch (mode.value) {
             case "Audio":
                 return "/audio/chat";
-            case "Vision":
-                return "/vision/chat";
             case "RAG":
                 return "/rag/chat";
             default:

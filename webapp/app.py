@@ -41,7 +41,6 @@ from modules.audio import Audio
 from modules.chatbot import CONTROL_VALUE, ChatBot
 from modules.model_manager import ModelManager
 from modules.rag import RAG
-from modules.vision import Vision
 
 # warnings.filterwarnings("ignore", message=".*The 'nopython' keyword.*")
 
@@ -285,44 +284,6 @@ def audio_chat() -> str:
     return audio.query_transcription(model_name, message, transcript)
 
 
-@app.route("/vision/chat", methods=["POST"])
-def audio_vision() -> str:
-    """
-    Generates a multimodal response from an image-aware language model.
-
-    This endpoint receives chat context and an image reference, then invokes a
-    Vision-capable model to produce a response that can incorporate details
-    extracted from the image. Optional parameters control speech synthesis
-    settings and model creativity, and are persisted in the user session.
-
-    Args:
-        None explicitly. Expects a `application/x-www-form-urlencoded`
-        or `multipart/form-data` request with fields:
-            - message: JSON-encoded chat history.
-            - image: Base64 string or URL identifying the image to analyze.
-            - model: Name of the Vision model to use.
-            - speak (optional): "true"/"false" to enable TTS output.
-            - audio_speed (optional): Float multiplier for speech rate.
-            - temperature (optional): Float controlling response randomness.
-            - enable_thinking (optional): "true"/"false" to simulate delays.
-
-    Returns:
-        A string containing the model-generated reply.
-    """
-    message = json.loads(request.form["message"])
-    image = request.form["image"]
-    model_name: str = request.form["model"]
-    speak: str = request.form.get("speak", "false")
-    audio_speed = float(request.form.get("audio_speed", 1.0))
-    temperature = float(request.form.get("temperature", 0.7))
-    enable_thinking = request.form.get("enable_thinking", "false").lower() == "true"
-
-    store_params_in_session(speak, audio_speed, temperature, enable_thinking)
-
-    vision = Vision(model_name, message, image)
-    return vision()
-
-
 @app.route("/speech2text", methods=["POST"])
 def speech2text() -> Response:
     """
@@ -368,6 +329,9 @@ def generate_stream(chatbot: ChatBot, message: Any, stop_event: Event) -> Iterat
             request and generate output.
         message: The incoming chat payload (typically a list of message
             dictionaries with ``role`` and ``content`` keys).
+        stop_event: A threading event used to cooperatively stop streaming.
+            If set, the generator breaks and finalizes cleanly.
+
 
     Yields:
         str: Successive text chunks from the chatbot’s response—suitable for
@@ -409,6 +373,16 @@ def chat() -> Response:
     store_params_in_session(speak, audio_speed, temperature, enable_thinking)
 
     stop_event = Event()
+
+    if "image" in request.form:
+        prompt = message[-1]["content"]
+        message[-1]["content"] = [
+            {
+                "type": "image",
+                "image": request.form["image"],
+            },
+            {"type": "text", "text": prompt},
+        ]
 
     chatbot = ChatBot(
         model_name=model_name,
