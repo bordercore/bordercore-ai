@@ -31,8 +31,8 @@ from typing import Any, Dict, Iterator
 import ffmpeg
 import numpy as np
 import sounddevice  # Adding this eliminates an annoying warning
-from flask import (Flask, Response, abort, jsonify, render_template, request,
-                   session, stream_with_context)
+from flask import (Flask, Request, Response, abort, jsonify, render_template,
+                   request, session, stream_with_context)
 from flask.typing import ResponseReturnValue
 from flask_session import Session  # type: ignore[attr-defined]
 
@@ -48,10 +48,26 @@ from modules.rag import RAG
 NUM_STARS = 10
 SENSOR_THRESHOLD_DEFAULT = 100
 
+class LargeRequest(Request):
+    """Werkzeug/Flask request subclass that bumps upload limits.
+
+    Attributes:
+        max_content_length: Total request size cap in bytes (default 200 MB).
+        max_form_memory_size: Max memory used for form/urlencoded parsing (default 20 MB).
+
+    Notes:
+        These attributes are read by Werkzeug during request parsing to enforce
+        larger upload limits for file and form data.
+    """
+    # These are read by Werkzeug's parsing layer.
+    max_content_length = 200 * 1024 * 1024     # 200 MB total cap
+    max_form_memory_size = 20 * 1024 * 1024    # 20 MB for form/urlencoded
+
 app = Flask(__name__)
 app.debug = True
 app.secret_key = settings.flask_secret_key
 app.config["SESSION_TYPE"] = "filesystem"
+app.request_class = LargeRequest
 app.config["model_manager"] = ModelManager()
 app.config["model_manager"].load(settings.model_name)
 
