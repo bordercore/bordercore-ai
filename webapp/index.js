@@ -37,6 +37,8 @@ import Nav from "./vue/Nav.vue";
 window.MyNav = Nav;
 import StreamMessages from "./vue/StreamMessages.vue";
 window.StreamMessages = StreamMessages;
+import Thinking from "./vue/Thinking.vue";
+window.Thinking = Thinking;
 import ThinkingMessage from "./vue/ThinkingMessage.vue";
 window.ThinkingMessage = ThinkingMessage;
 
@@ -48,6 +50,7 @@ const app = createApp({
         MyNav,
         Slider,
         StreamMessages,
+        Thinking,
         ThinkingMessage,
     },
     setup() {
@@ -784,7 +787,6 @@ const app = createApp({
                     return new Response(stream).text();
                 })
                 .then((result) => {
-                    isGenerating.value = false;
                     const elapsed = Date.now() - start;
                     const wordCount = result.trim().split(/\s+/).length;
                     const speed = Math.round(wordCount / (elapsed / 1000));

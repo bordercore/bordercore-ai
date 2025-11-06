@@ -159,35 +159,40 @@
                             </option>
                         </select>
                     </div>
-                    <div class="text-info">
-                        Features
-                    </div>
-                    <div class="switches d-flex flex-wrap">
-                        <div class="text-nowrap w-100 mt-3 me-5 mb-2">
-                            <o-switch v-model="microPhoneOn" @click="handleListen()">
-                                Speech to Text
-                            </o-switch>
+                    <div class="d-flex">
+                        <div>
+                            <div class="text-info">
+                                Features
+                            </div>
+                            <div class="switches d-flex flex-wrap">
+                                <div class="text-nowrap w-100 mt-3 me-5 mb-2">
+                                    <o-switch v-model="microPhoneOn" @click="handleListen()">
+                                        Speech to Text
+                                    </o-switch>
+                                </div>
+                                <div class="text-nowrap w-100 mt-3 me-5 mb-2">
+                                    <o-switch id="speakSwitch" v-model="speak">
+                                        Text to Speech
+                                    </o-switch>
+                                </div>
+                                <div class="text-nowrap w-100 mt-3 me-5 mb-2">
+                                    <o-switch v-model="microPhoneVADOn" @click="handleListenVAD">
+                                        Speech Detection (VAD)
+                                    </o-switch>
+                                </div>
+                                <div class="text-nowrap w-100 mt-3 me-5 mb-2">
+                                    <o-switch v-model="wolframAlpha">
+                                        Wolfram Alpha
+                                    </o-switch>
+                                </div>
+                                <div class="text-nowrap w-100 mt-3 me-5 mb-2">
+                                    <o-switch v-model="enableThinking">
+                                        Enable Thinking
+                                    </o-switch>
+                                </div>
+                            </div>
                         </div>
-                        <div class="text-nowrap w-100 mt-3 me-5 mb-2">
-                            <o-switch id="speakSwitch" v-model="speak">
-                                Text to Speech
-                            </o-switch>
-                        </div>
-                        <div class="text-nowrap w-100 mt-3 me-5 mb-2">
-                            <o-switch v-model="microPhoneVADOn" @click="handleListenVAD">
-                                Speech Detection (VAD)
-                            </o-switch>
-                        </div>
-                        <div class="text-nowrap w-100 mt-3 me-5 mb-2">
-                            <o-switch v-model="wolframAlpha">
-                                Wolfram Alpha
-                            </o-switch>
-                        </div>
-                        <div class="text-nowrap w-100 mt-3 me-5 mb-2">
-                            <o-switch v-model="enableThinking">
-                                Enable Thinking
-                            </o-switch>
-                        </div>
+                        <thinking class="ms-auto" :active="isGenerating" :size="200" title="AI thinking"></thinking>
                     </div>
                     <stream-messages
                         :sensor-uri="settings.sensor_uri"
