@@ -90,7 +90,7 @@ const app = createApp({
         const sha1sum = ref("");
         const showMenu = ref(false);
         let sensorDetectMode = true;
-        const speak = ref(session.speak !== undefined ? session.speak : true);
+        const speak = ref(session.speak !== undefined ? session.speak : false);
         const temperature = ref(session.temperature || 0.7);
         const visionImage = ref(null);
         const waiting = ref(false);
