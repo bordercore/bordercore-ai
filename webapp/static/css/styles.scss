@@ -49,6 +49,10 @@ body {
   flex: 1;
 }
 
+#prompt {
+  width: 85%;
+}
+
 // Expand the message-container to 100% if the artifact-container isn't present
 .container:not(:has(#artifact-container)) #message-container {
   flex: 1 0 100%;
