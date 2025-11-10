@@ -12,7 +12,7 @@ import {Modal} from "bootstrap";
 import Oruga from "@oruga-ui/oruga-next";
 import "@oruga-ui/oruga-next/dist/oruga-full.css";
 import "@oruga-ui/oruga-next/dist/oruga-full-vars.css";
-import {computed, createApp, nextTick, onBeforeUnmount, onMounted, ref, watch} from "vue";
+import {computed, createApp, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch} from "vue";
 import Slider from "./src/components/Slider.vue";
 
 import AudioMotionAnalyzer from "audiomotion-analyzer";
@@ -37,6 +37,8 @@ import Nav from "./vue/Nav.vue";
 window.MyNav = Nav;
 import StreamMessages from "./vue/StreamMessages.vue";
 window.StreamMessages = StreamMessages;
+import Options from "./vue/Options.vue";
+window.Options = Options;
 import Thinking from "./vue/Thinking.vue";
 window.Thinking = Thinking;
 import ThinkingMessage from "./vue/ThinkingMessage.vue";
@@ -48,6 +50,7 @@ const app = createApp({
     components: {
         FontAwesomeIcon,
         MyNav,
+        Options,
         Slider,
         StreamMessages,
         Thinking,
@@ -91,6 +94,7 @@ const app = createApp({
         const showMenu = ref(false);
         let sensorDetectMode = true;
         const speak = ref(session.speak !== undefined ? session.speak : false);
+        const switches = ref({ text2speech: false });
         const temperature = ref(session.temperature || 0.7);
         const visionImage = ref(null);
         const waiting = ref(false);
@@ -229,6 +233,30 @@ const app = createApp({
                 subtree: true,
             });
         };
+
+        watch(switches, (newValue, oldValue) => {
+            if ("text2speech" in newValue) {
+                speak.value = newValue.text2speech;
+            };
+
+            if ("speech2text" in newValue) {
+                handleListen();
+            };
+
+            if ("wolframAlpha" in newValue) {
+                wolframAlpha.value = newValue.wolframAlpha;
+            };
+
+            if ("enableThinking" in newValue) {
+                enableThinking.value = newValue.enableThinking;
+            };
+
+            if ("vad" in newValue) {
+                microPhoneVADOn.value = newValue.vad;
+                handleListenVAD();
+            };
+
+        });
 
         watch(thinkingMessage, (newValue, oldValue) => {
             if (newValue) {
@@ -1121,6 +1149,7 @@ const app = createApp({
             sliderTemperature,
             songIndex,
             speak,
+            switches,
             temperature,
             thinkingMessage,
             ttsHost,
