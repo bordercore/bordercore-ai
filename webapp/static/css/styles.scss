@@ -25,6 +25,11 @@ body {
   border-radius: 10px;
 }
 
+hr.divider {
+  border: 3px solid #1496cd;
+  margin: 20px 0;
+}
+
 #message-container {
   flex: 1;
   position: relative;

@@ -12,7 +12,7 @@
 
 <script>
 export default {
-    name: "StreamMessages",
+    name: "Sensor",
     props: {
         sensorUri: {
             type: String,

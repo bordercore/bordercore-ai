@@ -164,14 +164,15 @@
                     <div class="d-flex justify-content-center">
                         <thinking :active="isGenerating" :size="200" title="AI thinking"></thinking>
                     </div>
-                    <stream-messages
-                        :sensor-uri="settings.sensor_uri"
-                        @sensor-data="handleSensorData"
-                    ></stream-messages>
                     <div v-if="notice" class="notice animate__animated animate__pulse animate__slower animate__infinite d-flex align-items-center fw-bold ms-3 mt-5 px-3">
                         <span v-cloak>[[ notice ]]</span>
                     </div>
-                    <options v-model="switches"></options>
+                    <hr class="divider" />
+                    <options
+                        v-model="switches"
+                        :sensor-uri="settings.sensor_uri"
+                        @sensor-data="handleSensorData"
+                    ></options>
                 </div>
             </div>
             <div id="audioPlayer" class="d-none">

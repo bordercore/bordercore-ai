@@ -35,8 +35,6 @@ window.ref = ref;
 
 import Nav from "./vue/Nav.vue";
 window.MyNav = Nav;
-import StreamMessages from "./vue/StreamMessages.vue";
-window.StreamMessages = StreamMessages;
 import Options from "./vue/Options.vue";
 window.Options = Options;
 import Thinking from "./vue/Thinking.vue";
@@ -52,7 +50,6 @@ const app = createApp({
         MyNav,
         Options,
         Slider,
-        StreamMessages,
         Thinking,
         ThinkingMessage,
     },

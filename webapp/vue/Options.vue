@@ -1,5 +1,5 @@
 <template>
-    <section class="grid" aria-label="Control Panels">
+    <section class="grid mt-0" aria-label="Control Panels">
 
       <!-- Voice Features -->
       <article class="panel" aria-labelledby="voice-title">
@@ -100,7 +100,7 @@
                 <!-- <div class="muted">Device & env. inputs</div> -->
             </div>
             <label class="toggle">
-              <input type="checkbox" aria-label="Enable Sensor">
+              <input type="checkbox" @click="handleSensor()" aria-label="Enable Sensor">
               <span class="rail"></span><span class="thumb"></span>
             </label>
           </div>
@@ -117,10 +117,69 @@
     export default {
         name: "Options",
         props: {
-            modelValue: { type: Object, default: () => ({}) },
+            modelValue: {
+                type: Object,
+                default: () => ({})
+            },
+            sensorUri: {
+                type: String,
+                default: "",
+            },
         },
-        emits: ["update:modelValue"],
+        emits: ["update:modelValue", "sensor-data"],
         setup(props, ctx) {
+            const connectionStatus = ref(null);
+            const enableSensor = ref(false);
+            let eventSource;
+            const messages = ref([]);
+
+            function closeConnection() {
+                if (eventSource) {
+                    eventSource.close();
+                    eventSource = null;
+                    connectionStatus.value = "";
+                }
+            };
+
+            function initEventSource() {
+                eventSource = new EventSource(props.sensorUri);
+                eventSource.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    ctx.emit("sensor-data", data);
+                    messages.value.unshift(data); // Add new messages at the start
+
+                    // Optional: Limit number of displayed messages
+                    if (messages.value.length > 100) {
+                        messages.value.pop();
+                    }
+
+                    if (debug.value) {
+                        console.log(data);
+                    }
+                };
+
+                eventSource.onopen = () => {
+                    connectionStatus.value = "Connected";
+                };
+
+                eventSource.onerror = (error) => {
+                    if (eventSource.readyState === EventSource.CLOSED) {
+                        connectionStatus.value = "";
+                    } else {
+                        connectionStatus.value = "Error";
+                        console.error("SSE error:", error);
+                    }
+                };
+            };
+
+            function handleSensor() {
+                if (enableSensor.value) {
+                    closeConnection();
+                } else {
+                    initEventSource();
+                }
+            }
+
             function handleToggle(key) {
                 // Clone to ensure new reference for reactivity
                 const next = { ...props.modelValue, [key]: !props.modelValue[key] };
@@ -128,6 +187,7 @@
             }
 
             return {
+                handleSensor,
                 handleToggle,
             };
         },
@@ -263,8 +323,8 @@
     box-shadow: 0 0 12px rgba(0,255,255,.7);
     transition: transform .25s ease;
   }
-  .toggle input:checked + .rail{
-    background: linear-gradient(180deg, rgba(0,255,255,.25), rgba(0,255,255,.08));
+    .toggle input:checked + .rail{
+    background: linear-gradient(180deg, rgb(7 232 255 / 99%), rgba(0, 255, 255, .08));
     border-color: var(--line);
     box-shadow: 0 0 18px rgba(0,255,255,.6), inset 0 0 12px rgba(0,255,255,.45);
   }
