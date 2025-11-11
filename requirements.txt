@@ -6,6 +6,7 @@ autoawq==0.2.9
 bitsandbytes==0.46.0
 bleak==0.22.3
 chromadb==0.5.13
+cryptography==46.0.3
 discord==2.3.1
 ffmpeg-python==0.2.0
 Flask==3.0.0
