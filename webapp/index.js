@@ -237,6 +237,7 @@ const app = createApp({
             };
 
             if ("speech2text" in newValue) {
+                microPhoneOn.value = newValue.speech2text;
                 handleListen();
             };
 
@@ -865,7 +866,7 @@ const app = createApp({
         };
 
         async function handleListen(chatHandler) {
-            if (microPhoneOn.value) {
+            if (!microPhoneOn.value) {
                 // disconnect and release microphone stream
                 audioMotion.disconnectInput( micStream, true );
                 return;
@@ -911,7 +912,7 @@ const app = createApp({
         };
 
         async function handleListenVAD() {
-            if (microPhoneVADOn.value) {
+            if (!microPhoneVADOn.value) {
                 // disconnect and release microphone stream
                 audioMotion.disconnectInput( micStream, true );
                 myvad.pause();

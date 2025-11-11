@@ -150,7 +150,7 @@
                 </div>
                 <div class="chatbot-sidepanel ps-2" v-cloak>
                     <div class="d-flex align-items-center">
-                        <div class="text-info fw-bold pe-3 pb-1">
+                        <div class="text-info text-nowrap fw-bold pe-3 pb-1">
                             Selected Model
                         </div>
                         <div class="flex-grow-1 mt-3 mb-4">
@@ -162,10 +162,12 @@
                         </div>
                     </div>
                     <div class="d-flex justify-content-center">
-                        <thinking :active="isGenerating" :size="200" title="AI thinking"></thinking>
+                        <thinking :active="isGenerating" :size="180" title="AI thinking"></thinking>
                     </div>
-                    <div v-if="notice" class="notice animate__animated animate__pulse animate__slower animate__infinite d-flex align-items-center fw-bold ms-3 mt-5 px-3">
+                    <div style="height: 20px">
+                    <div v-if="notice" class="notice animate__animated animate__pulse animate__slower animate__infinite d-flex justify-content-center fw-bold px-3">
                         <span v-cloak>[[ notice ]]</span>
+                    </div>
                     </div>
                     <hr class="divider" />
                     <options
