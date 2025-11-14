@@ -247,8 +247,11 @@
     grid-template-columns: repeat(2, minmax(280px, 1fr));
     gap:24px;
   }
-  @media (max-width: 820px){
-    .grid{grid-template-columns: 1fr}
+  /* Stack columns on narrow screens where there isn't enough room */
+  @media (max-width: 1200px){
+    .grid{
+      grid-template-columns: 1fr;
+    }
   }
 
   /* Hex panel */
