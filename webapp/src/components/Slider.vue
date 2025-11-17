@@ -1,10 +1,8 @@
 <!-- ./src/components/Slider.vue -->
-<!-- https://blog.openreplay.com/create-a-custom-range-slider-with-vue/ -->
 <script setup>
-    import {ref, watchEffect} from "vue";
+    import { computed, ref, watch } from "vue";
 
-    // define component props for the slider component
-    const {min, max, step, modelValue} = defineProps({
+    const props = defineProps({
         min: {
             type: Number,
             default: 0,
@@ -27,126 +25,243 @@
         },
     });
 
-    // define emits for the slider component
     const emit = defineEmits(["update:modelValue"]);
 
-    // define refs for the slider component
-    const sliderValue = ref(modelValue);
-    const slider = ref(null);
+    /**
+     * rawSliderValue
+     *   = the actual thumb position (continuous, smooth).
+     * snappedValue
+     *   = the discrete value exposed to the outside world.
+     */
+    const rawSliderValue = ref(props.modelValue ?? props.min);
 
-    // function to get the progress of the slider
-    const getProgress = (value, min, max) => {
-        return ((value - min) / (max - min)) * 100;
-    };
-
-    // function to set the css variable for the progress
-    const setCSSProgress = (progress) => {
-        slider.value.style.setProperty("--ProgressPercent", `${progress}%`);
-    };
-
-    // watchEffect to update the css variable when the slider value changes
-    watchEffect(() => {
-        if (slider.value) {
-            // emit the updated value to the parent component
-            emit("update:modelValue", sliderValue.value);
-
-            // update the slider progress
-            const progress = getProgress(
-                sliderValue.value,
-                slider.value.min,
-                slider.value.max,
-            );
-
-            // define extrawidth to ensure that the end of progress is always under the slider thumb.
-            const extraWidth = (100 - progress) / 10;
-
-            // set the css variable
-            setCSSProgress(progress + extraWidth);
-        }
+    const stepDecimals = computed(() => {
+        const step = props.step || 1;
+        const stepStr = String(step);
+        const dotIndex = stepStr.indexOf(".");
+        return dotIndex === -1 ? 0 : stepStr.length - dotIndex - 1;
     });
+
+    function roundToStepPrecision(value) {
+        const decimals = stepDecimals.value;
+        const factor = 10 ** decimals;
+        return Math.round(value * factor) / factor;
+    }
+
+    const snappedValue = computed(() => {
+        const min = props.min;
+        const max = props.max;
+        const step = props.step || 1;
+
+        const raw = rawSliderValue.value ?? min;
+        const clampedRaw = Math.min(max, Math.max(min, raw));
+
+        const stepsFromMin = Math.round((clampedRaw - min) / step);
+        const snapped = min + stepsFromMin * step;
+
+        // Re-clamp and round to avoid 1.7000000000000002
+        const clampedSnapped = Math.min(max, Math.max(min, snapped));
+        return roundToStepPrecision(clampedSnapped);
+    });
+
+    // Keep local state in sync when parent changes v-model
+    watch(
+        () => props.modelValue,
+        (value) => {
+            const fallback = props.min;
+            const next = value ?? fallback;
+
+            // Only update if we're out of sync to avoid loops
+            if (next !== snappedValue.value) {
+                rawSliderValue.value = next;
+            }
+        }
+    );
+
+    // Emit discrete value whenever snappedValue changes
+    watch(
+        snappedValue,
+        (value) => {
+            emit("update:modelValue", value);
+        }
+    );
+
+    // Map current slider position (continuous) to 0-100 for the CSS --val variable
+    const sliderValPercent = computed(() => {
+        const range = props.max - props.min;
+        if (!range) {
+            return 0;
+        }
+
+        const raw = rawSliderValue.value ?? props.min;
+        const clamped = Math.min(props.max, Math.max(props.min, raw));
+
+        return ((clamped - props.min) / range) * 100;
+    });
+
+    function onRangeInput(event) {
+        rawSliderValue.value = Number(event.target.value);
+    }
+
+    function onNumberInput(event) {
+        const value = Number(event.target.value);
+        if (Number.isFinite(value)) {
+            rawSliderValue.value = value;
+        }
+    }
 </script>
+
 <template>
     <div class="custom-slider">
         <input
             ref="slider"
-            :value="sliderValue"
             type="range"
             :min="min"
             :max="max"
-            :step="step"
-            class="slider"
-            @input="({ target }) => (sliderValue = parseFloat(target.value))"
-        >
+            step="any"
+            :value="rawSliderValue"
+            :style="{ '--val': sliderValPercent }"
+            class="slider-glow"
+            @input="onRangeInput"
+        />
+
         <input
             v-if="showInput"
-            :value="sliderValue"
             type="number"
+            class="slider-value-input input ms-3"
             :min="min"
             :max="max"
             :step="step"
-            class="input ms-3"
-            @input="({ target }) => (sliderValue = parseFloat(target.value))"
-        >
-        <span v-else class="ms-2">
-            <strong>{{ modelValue }}</strong>
+            :value="snappedValue"
+            @input="onNumberInput"
+        />
+        <span v-else class="slider-value ms-2">
+            <strong>{{ snappedValue }}</strong>
         </span>
     </div>
 </template>
+
 <style scoped>
 .custom-slider {
-  --trackHeight: 0.5rem;
-  --thumbRadius: 1rem;
+  display: flex;
+  align-items: center;
 }
 
-/* style the input element with type "range" */
-.custom-slider input[type="range"] {
-  position: relative;
+.custom-slider {
+  display: flex;
+  align-items: center;
+}
+
+/* Fixed-width span for the value */
+.slider-value {
+  display: inline-block;
+  min-width: 3ch;         /* adjust as needed for your longest value */
+  text-align: right;
+  font-variant-numeric: tabular-nums; /* keeps digits visually consistent */
+}
+
+/* Fixed-width for the numeric input version too */
+.slider-value-input {
+  width: 3ch;             /* same width as .slider-value for consistency */
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Glow slider styles wired to --val ---------- */
+.slider-glow {
+  /* --val is provided by Vue inline style */
+  --c: hsl(160deg 80% 50% / calc(0.25 + var(--val) / 125));
+  -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
-  /* pointer-events: none; */
-  border-radius: 999px;
-  z-index: 0;
+  background: transparent;
+  cursor: pointer;
+  width: 15rem;
+  position: relative;
 }
 
-/* ::before element to replace the slider track */
-.custom-slider input[type="range"]::before {
+/* Filled glowing portion behind the track */
+.slider-glow::before {
   content: "";
   position: absolute;
-  width: var(--ProgressPercent, 100%);
+  top: 0;
+  left: 0;
+  width: calc((var(--val) - 1) * 1%);
+  min-width: 0.5em;
   height: 100%;
-  background: #00865a;
-  /* z-index: -1; */
-  pointer-events: none;
-  border-radius: 999px;
+  background: var(--c);
+  box-shadow:
+    0 0 0.2em 0 hsl(0 0% 0%) inset,
+    -0.1em 0.1em 0.1em -0.1em hsl(0 0% 100% / 0.5),
+    0 0 calc(1em + 0.001em * var(--val))
+      calc(0.1em + 0.00025em * var(--val)) var(--c);
+  border-radius: 1em 0 0 1em;
+  opacity: calc(0.2 + var(--val) * 0.01);
 }
 
-/* `::-webkit-slider-runnable-track` targets the track (background) of a range slider in chrome and safari browsers. */
-.custom-slider input[type="range"]::-webkit-slider-runnable-track {
-  appearance: none;
-  background: #005a3c;
-  height: var(--trackHeight);
-  border-radius: 999px;
+/***** Track Styles *****/
+/* Chrome, Safari, Opera, Edge Chromium */
+.slider-glow::-webkit-slider-runnable-track {
+  box-shadow:
+    0 0 0.2em 0 hsl(0 0% 0%) inset,
+    -0.1em 0.1em 0.1em -0.1em hsl(0 0% 100% / 0.5);
+  background:
+    linear-gradient(to bottom right, #0001, #0000),
+    #343133;
+  border-radius: 1em;
+  height: 1em;
 }
 
-/* `::-moz-range-track` targets the track (background) of a range slider in Mozilla Firefox. */
-.custom-slider input[type="range"]::-moz-range-track {
-  appearance: none;
-  background: #005a3c;
-  height: var(--trackHeight);
-  border-radius: 999px;
+/* Firefox track */
+.slider-glow::-moz-range-track {
+  box-shadow:
+    0 0 2px 0 hsl(0 0% 0%) inset,
+    -1px 1px 1px -1px hsl(0 0% 100% / 0.5);
+  background:
+    linear-gradient(var(--c) 0 0) 0 0 / calc(var(--val) * 1%) 100% no-repeat,
+    linear-gradient(to bottom right, #0001, #0000),
+    #343133;
+  border-radius: 1em;
+  height: 1em;
 }
 
-.custom-slider input[type="range"]::-webkit-slider-thumb {
-  position: relative;
-  /* top: 50%;
-  transform: translate(0, -50%);
-  */
-  width: var(--thumbRadius);
-  height: var(--thumbRadius);
-  margin-top: calc((var(--trackHeight) - var(--thumbRadius)) / 2);
-  background: #00bd7e;
-  border-radius: 999px;
-  pointer-events: all;
+/* Chrome, Safari, Opera, Edge Chromium */
+.slider-glow::-webkit-slider-thumb {
+  --d: rgb(from var(--c) r g b / calc(0.35 * var(--val) * 1%));
+  -webkit-appearance: none;
   appearance: none;
-  z-index: 1;
+  transform: translateY(calc(-50% + 0.5em));
+  width: 2em;
+  aspect-ratio: 1;
+  border-radius: 50%;
+
+  /* Make the thumb more understated */
+  background:
+    radial-gradient(#0000 40%, #343133 41%, #545153 55%),
+    #545153;
+
+  /* Only keep subtle internal shading, no external glow */
+  box-shadow:
+    inset -0.15em -0.15em 0.2em #0008,
+    inset 0.15em 0.15em 0.2em #ffffff22;
+}
+
+/* Firefox thumb */
+.slider-glow::-moz-range-thumb {
+  border: none;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 2em;
+  height: 2em;
+  aspect-ratio: 1;
+  border-radius: 50%;
+
+  background:
+    radial-gradient(#0000 40%, #343133 41%, #545153 55%),
+    #545153;
+
+  box-shadow:
+    inset -0.15em -0.15em 0.2em #0008,
+    inset 0.15em 0.15em 0.2em #ffffff22;
 }
 </style>
