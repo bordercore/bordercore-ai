@@ -326,8 +326,23 @@ class ChatBot():
             if category == "math":
                 # If enable_thinking is True, we intentionally *don't* use Wolfram.
                 if not self.args.get("enable_thinking", False):
-                    chatbot_logger.debug("Invoking Wolfram Alpha handler")
-                    return WolframAlphaFunctionCall(self).run(content)
+                    chatbot_logger.info(f"Invoking Wolfram Alpha handler for query: {content[:200]}")
+                    try:
+                        result = WolframAlphaFunctionCall(self).run(content)
+                        chatbot_logger.info(f"Wolfram Alpha handler returned result (length: {len(result)} chars): {result[:200]}")
+                        return result
+                    except Exception as e:
+                        chatbot_logger.warning(f"Function calling failed, attempting direct calculate() call: {e}")
+                        # Fallback: call calculate() directly if function calling fails
+                        try:
+                            from modules.wolfram_alpha import calculate
+                            direct_result = calculate(content)
+                            chatbot_logger.info(f"Direct calculate() call successful, result: {direct_result[:200]}")
+                            # Include the original question in the response so the model has context
+                            return f"For the question '{content}', the answer is {direct_result}"
+                        except Exception as fallback_error:
+                            chatbot_logger.error(f"Both function calling and direct calculate() failed: {fallback_error}", exc_info=True)
+                            raise
                 # else: let the model solve it itself.
                 chatbot_logger.debug("Math category but enable_thinking is True, skipping Wolfram")
                 return None
@@ -391,7 +406,26 @@ class ChatBot():
                         yield tool_output
                     return direct_yield()
 
-                last_message["content"] = tool_output
+                # Preserve context: ensure the model sees both the original question and the tool result
+                # This prevents confusion when the model receives just the answer without the question
+                original_question = content
+
+                # Check if this is a Wolfram Alpha response that needs context preservation
+                if category == "math" and ("Using Wolfram Alpha" in tool_output or "For the question" in tool_output):
+                    # Extract the answer from the tool output
+                    if "the answer is" in tool_output.lower():
+                        # Extract just the answer part
+                        if "For the question" in tool_output:
+                            answer = tool_output.split("the answer is", 1)[-1].strip()
+                        else:
+                            answer = tool_output.split("answer is", 1)[-1].strip() if "answer is" in tool_output.lower() else tool_output
+                        # Format as a clear message to the model
+                        last_message["content"] = f"The user asked: \"{original_question}\"\n\nI calculated the answer using Wolfram Alpha: {answer}\n\nPlease respond naturally to the user with the answer."
+                    else:
+                        last_message["content"] = f"The user asked: \"{original_question}\"\n\nI got this result: {tool_output}\n\nPlease respond naturally to the user."
+                else:
+                    # For other tools, use tool output as-is
+                    last_message["content"] = tool_output
             else:
                 chatbot_logger.debug("No tool output, passing message directly to model")
 

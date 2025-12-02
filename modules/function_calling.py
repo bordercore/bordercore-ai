@@ -7,12 +7,15 @@ and integrates the results back into the chat context for further inference.
 
 import importlib
 import json
+import logging
 import random
 import re
 import string
 from typing import TYPE_CHECKING, Any, Dict, List
 
 from modules.exceptions import JsonParsingError, LLMResponseError
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from mypackage.chatbot import ChatBot
@@ -75,19 +78,67 @@ class FunctionCall():
         Returns:
             The final content string returned from the model after invoking the tool.
         """
+        logger.info(f"Parsing function call from model response (length: {len(model_response)} chars)")
+        logger.debug(f"Full model response: {model_response}")
+
         json_match = re.search(r"<\|python_tag\|>(.*?)<\|eom_id\|>", model_response)
 
         if not json_match:
-            raise LLMResponseError(f"No JSON found in the LLM response: {model_response}")
+            logger.warning(f"No JSON function call found in the LLM response. Response: {model_response[:500]}")
+            # Fallback: The model might have returned a direct answer instead of a function call.
+            # Try to call the function directly with the original query.
+            logger.info("Attempting fallback: calling function directly with original query")
+
+            # Extract the original user query from messages
+            original_query = ""
+            for msg in messages:
+                if msg.get("role") == "user":
+                    query = msg.get("content", "")
+                    # Remove the appended instruction if present
+                    query = query.replace(" Please don't tell me how you got the answer, I only want the answer.", "")
+                    if query:
+                        original_query = query
+                        break
+
+            if not original_query:
+                logger.error("Could not extract original query from messages for fallback")
+                raise LLMResponseError(f"No JSON found in the LLM response and could not extract original query: {model_response}")
+
+            if self.tool_list is None:
+                raise LLMResponseError(f"No tool_list specified for fallback function call: {model_response}")
+            if self.tool_name is None:
+                raise LLMResponseError(f"No tool_name specified for fallback function call: {model_response}")
+
+            logger.info(f"Calling function '{self.tool_list}' directly with query: {original_query[:200]}")
+
+            # Import and call the function directly
+            try:
+                main_module = importlib.import_module(f"modules.{self.tool_name}")
+                func = getattr(main_module, self.tool_list)
+                if not callable(func):
+                    raise TypeError(f"'{self.tool_list}' is not callable")
+
+                result = func(original_query)
+                logger.info(f"Fallback function call successful, returning result with context")
+                # Include the original query in the response so the model has context
+                return f"For the question '{original_query}', the answer is {result}"
+            except Exception as e:
+                logger.error(f"Fallback function call failed: {e}", exc_info=True)
+                raise LLMResponseError(f"No JSON found in the LLM response and fallback failed: {model_response}") from e
 
         tool_call = None
         json_string = json_match.group(1)
+        logger.debug(f"Extracted JSON string: {json_string}")
+
         try:
             tool_call = json.loads(json_string)
+            logger.info(f"Successfully parsed JSON tool call: {tool_call}")
         except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON: {e}, JSON string: {json_string}")
             raise JsonParsingError(f"Error decoding JSON: {e}") from e
 
         tool_call_id = self.generate_random_id()
+        logger.debug(f"Generated tool call ID: {tool_call_id}")
 
         messages.append(
             {
@@ -107,20 +158,30 @@ class FunctionCall():
         #  TypeError: Object of type Undefined is not JSON serializable
         self.rename_key(messages[-1]["tool_calls"][0]["function"], "parameters", "arguments")
 
-        func_name = tool_call["name"]
-        parameters = tool_call["arguments"]
+        func_name = tool_call.get("name", "")
+        parameters = tool_call.get("arguments", {})
+        logger.info(f"Calling function '{func_name}' with parameters: {parameters}")
 
         main_module = importlib.import_module(f"modules.{self.tool_name}")
+        logger.debug(f"Imported module: modules.{self.tool_name}")
 
         if not hasattr(main_module, func_name):
+            logger.error(f"Function '{func_name}' not found in module '{self.tool_name}'")
             raise AttributeError(f"Function '{func_name}' not found in module '{self.tool_name}'")
 
         func = getattr(main_module, func_name)
 
         if not callable(func):
+            logger.error(f"'{func_name}' is not callable")
             raise TypeError(f"'{func_name}' is not callable")
 
-        result = func(**parameters)
+        logger.debug(f"Invoking function '{func_name}'")
+        try:
+            result = func(**parameters)
+            logger.info(f"Function '{func_name}' returned result (length: {len(str(result))} chars): {str(result)[:200]}")
+        except Exception as e:
+            logger.error(f"Error calling function '{func_name}': {e}", exc_info=True)
+            raise
 
         messages.append(
             {
@@ -131,13 +192,16 @@ class FunctionCall():
             }
         )
 
+        logger.info(f"Sending function result back to model for final response formatting")
         content = self.chatbot.send_message_to_model(messages, replace_context=True, tool_name=self.tool_name, tool_list=self.tool_list)
 
         # Remove trailing <|eot_id|> token.
         eot_id = "<|eot_id|>"
         if content.endswith(eot_id):
             content = content[:-len(eot_id)]
+            logger.debug("Removed trailing <|eot_id|> token")
 
+        logger.info(f"Final model response after function call (length: {len(content)} chars)")
         return content
 
     def choose_function(self, messages: List[Dict[str, Any]]) -> str:
@@ -150,7 +214,11 @@ class FunctionCall():
         Returns:
             A string response containing the model's tool function decision.
         """
-        return self.chatbot.send_message_to_model(messages, replace_context=True, tool_name=self.tool_name, tool_list=self.tool_list)
+        logger.info(f"Choosing function with tool_name='{self.tool_name}', tool_list='{self.tool_list}'")
+        logger.debug(f"Messages for function selection: {len(messages)} messages")
+        response = self.chatbot.send_message_to_model(messages, replace_context=True, tool_name=self.tool_name, tool_list=self.tool_list)
+        logger.info(f"Model chose function (response length: {len(response)} chars)")
+        return response
 
     def run(self, prompt: str) -> str:
         """
@@ -162,11 +230,43 @@ class FunctionCall():
         Returns:
             A string containing the final model-generated response after function invocation.
         """
-        prompt += f"{prompt} Please don't tell me how you got the answer, I only want the answer."
+        logger.info(f"FunctionCall.run() called with prompt: {prompt[:200]}")
+
+        # Fix bug: Don't duplicate the prompt, just append the instruction
+        prompt += " Please don't tell me how you got the answer, I only want the answer."
+
         messages = [
             {"role": "system", "content": "You are a helpful assistant that can use functions when necessary. When you receive a tool call response, use the output to format an answer to the orginal user question."},
             {"role": "user", "content": prompt}
         ]
 
+        logger.info("Choosing function to call")
         target_function = self.choose_function(messages)
-        return "Using Wolfram Alpha. " + self.call_function_from_json(messages, target_function)
+        logger.info(f"Function chosen, model response (length: {len(target_function)} chars): {target_function[:500]}")
+        logger.info("Invoking function call from JSON")
+        try:
+            function_result = self.call_function_from_json(messages, target_function)
+            result = "Using Wolfram Alpha. " + function_result
+            logger.info(f"FunctionCall.run() completed, returning result (length: {len(result)} chars)")
+            return result
+        except LLMResponseError as e:
+            logger.error(f"LLMResponseError in call_function_from_json: {e}")
+            # The fallback should have handled this, but if it still fails, let's try one more time
+            logger.info("Attempting direct calculate() call as last resort")
+            if self.tool_list is None:
+                raise LLMResponseError(f"No tool_list specified for direct function call")
+            if self.tool_name is None:
+                raise LLMResponseError(f"No tool_name specified for direct function call")
+            try:
+                import importlib
+                main_module = importlib.import_module(f"modules.{self.tool_name}")
+                func = getattr(main_module, self.tool_list)
+                # Extract original query from prompt (before we added the instruction)
+                original_query = prompt.replace(" Please don't tell me how you got the answer, I only want the answer.", "")
+                logger.info(f"Calling {self.tool_list} directly with: {original_query[:200]}")
+                direct_result = func(original_query)
+                logger.info(f"Direct call successful: {direct_result[:200]}")
+                return f"Using Wolfram Alpha. The answer is {direct_result}"
+            except Exception as fallback_error:
+                logger.error(f"Direct call fallback also failed: {fallback_error}", exc_info=True)
+                raise
