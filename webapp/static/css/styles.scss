@@ -220,6 +220,54 @@ hr.divider {
   color: #fff !important;
 }
 
+// Legacy styles for old select element (kept for backwards compatibility)
+.model-select {
+  text-align: left;
+  font-family: monospace; // Use monospace for consistent spacing
+
+  option {
+    text-align: left;
+    font-family: monospace;
+  }
+}
+
+// Styles for custom ModelSelect component
+.model-select-wrapper {
+  width: 100%;
+}
+
+// Force dark background and white text for Oruga dropdown menu
+.model-select-wrapper :deep(.o-dropdown__menu),
+.model-select-wrapper .o-dropdown__menu {
+  background-color: #0d0926 !important;
+  background: #0d0926 !important;
+  color: #fff !important;
+}
+
+.model-select-wrapper .o-dropdown__menu *:not(:hover),
+.model-select-wrapper .o-dropdown__item:not(:hover),
+.model-select-wrapper .o-dropdown__item:not(:hover) *,
+.model-select-wrapper .o-dropdown__item:not(:hover) span,
+.model-select-wrapper .o-dropdown__item:not(:hover) div {
+  color: #fff !important;
+}
+
+/* Dark purple text on hover - very aggressive */
+.model-select-wrapper .o-dropdown__item:hover,
+.model-select-wrapper .o-dropdown__item:hover *,
+.model-select-wrapper .o-dropdown__item:hover span,
+.model-select-wrapper .o-dropdown__item:hover div,
+.model-select-wrapper .o-dropdown__item:hover .model-option-content,
+.model-select-wrapper .o-dropdown__item:hover .model-option-content *,
+.model-select-wrapper .o-dropdown__item:hover .model-option-name,
+.model-select-wrapper .o-dropdown__item:hover .model-option-icon,
+.model-select-wrapper [class*="dropdown__item"]:hover,
+.model-select-wrapper [class*="dropdown__item"]:hover *,
+.model-select-wrapper [role="option"]:hover,
+.model-select-wrapper [role="option"]:hover * {
+  color: #3c1679 !important;
+}
+
 /* Used to hide mustached content before Vue has loaded */
 [v-cloak] {
   display: none;

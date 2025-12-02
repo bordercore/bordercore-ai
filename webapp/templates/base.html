@@ -155,11 +155,12 @@
                             Selected Model
                         </div>
                         <div class="flex-grow-1 mt-3 mb-4">
-                            <select v-model="model.name" class="form-select" @change="handleChangeModel">
-                                <option v-for="model in modelList" :value="model.model">
-                                    [[ model.name ]]
-                                </option>
-                            </select>
+                            <model-select
+                                v-model="model.name"
+                                :model-list="modelList"
+                                :get-model-icon="getModelIcon"
+                                @change="handleChangeModel"
+                            ></model-select>
                         </div>
                     </div>
                     <div class="d-flex justify-content-center">

@@ -749,7 +749,7 @@ class ChatBot():
         Maps a list of model names to detailed model metadata dictionaries.
 
         For each model in the input list, looks up details in the `model_info` dictionary
-        and constructs a standardized representation.
+        and constructs a standardized representation. Includes all attributes from models.yaml.
 
         Args:
             model_list: A list of model identifier strings.
@@ -758,19 +758,20 @@ class ChatBot():
             A list of dictionaries, each containing keys:
                 - "model": the model identifier
                 - "name": the display name
-                - "type": the model's type (e.g., "local", "api")
-                - "qwen_vision": vision support flag (optional)
+                - All other attributes from models.yaml (e.g., "type", "qwen_vision", "thinking", "vendor", etc.)
         """
-        models = [
-            {
-                "model": x,
-                "name": model_info.get(x, {"name": x}).get("name", x),
-                "type": model_info.get(x, {"type": x}).get("type", None),
-                "qwen_vision": model_info.get(x, {"qwen_vision": x}).get("qwen_vision", None),
-            }
-            for x in
-            model_list
-        ]
+        models = []
+        for x in model_list:
+            model_data = model_info.get(x, {})
+            # Start with the model identifier
+            model_dict = {"model": x}
+            # Add the name, defaulting to the model identifier if not specified
+            model_dict["name"] = model_data.get("name", x)
+            # Include all other attributes from models.yaml
+            for key, value in model_data.items():
+                if key != "name":  # name is already set above
+                    model_dict[key] = value
+            models.append(model_dict)
         return models
 
 

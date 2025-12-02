@@ -14,6 +14,7 @@ import "@oruga-ui/oruga-next/dist/oruga-full.css";
 import "@oruga-ui/oruga-next/dist/oruga-full-vars.css";
 import {computed, createApp, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch} from "vue";
 import Slider from "./src/components/Slider.vue";
+import ModelSelect from "./src/components/ModelSelect.vue";
 
 import AudioMotionAnalyzer from "audiomotion-analyzer";
 
@@ -47,6 +48,7 @@ const app = createApp({
     delimiters: ["[[", "]]"],
     components: {
         FontAwesomeIcon,
+        ModelSelect,
         MyNav,
         Options,
         Slider,
@@ -357,6 +359,42 @@ const app = createApp({
         function getModelAttribute(modelName, attribute) {
             const result = modelList.value.find((obj) => obj.model === modelName);
             return result ? result[attribute] : "";
+        };
+
+        function getModelIcon(model) {
+            // Return icon based on model attributes
+            if (model.thinking) return "🧠"; // Brain icon for thinking models
+            if (model.qwen_vision) return "👁️"; // Eye icon for vision models
+            if (model.type === "api") {
+                return "☁️"; // Cloud for all API models
+            }
+            return ""; // No icon for regular local models
+        };
+
+        function getFormattedModelOption(model) {
+            const icon = getModelIcon(model);
+            if (!icon) {
+                return model.name;
+            }
+            // Use a conservative fixed spacing approach that works on narrow screens
+            // Cap the maximum spacing to ensure icons are visible on narrow monitors
+            const maxSpacing = 25; // Maximum characters of spacing (works on narrow screens)
+            const minSpacing = 3; // Minimum spacing for readability
+
+            // Find the longest model name, but cap it for narrow screen compatibility
+            const longestName = Math.min(
+                Math.max(...modelList.value.map(m => m.name.length), 0),
+                30 // Cap at 30 characters to ensure icons are visible on narrow screens
+            );
+
+            const spacingNeeded = Math.min(
+                longestName - model.name.length + minSpacing,
+                maxSpacing
+            );
+
+            // Use non-breaking spaces to push icon to the right
+            const spacing = '\u00A0'.repeat(Math.max(minSpacing, spacingNeeded));
+            return model.name + spacing + icon;
         };
 
         function handleChangeModel(event) {
@@ -1136,6 +1174,8 @@ const app = createApp({
             isDragOver,
             isGenerating,
             getAudioFileSize,
+            getFormattedModelOption,
+            getModelIcon,
             getRagFileSize,
             getMarkdown,
             getVisionFileSize,
