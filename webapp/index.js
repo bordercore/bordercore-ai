@@ -348,7 +348,10 @@ const app = createApp({
         };
 
         function getMarkdown(content) {
-            return markdown.render(content);
+            // Normalize math delimiters: remove spaces around dollar signs for KaTeX
+            // Converts "$ 4 $" to "$4$" which KaTeX expects
+            const normalizedContent = content.replace(/\$\s+([^$]+?)\s+\$/g, (match, mathContent) => `$${mathContent.trim()}$`);
+            return markdown.render(normalizedContent);
         };
 
         function getModelAttribute(modelName, attribute) {
@@ -1173,7 +1176,10 @@ import "animate.css";
 import emitter from "tiny-emitter/instance";
 
 import hljs from "highlight.js";
-const markdown = require("markdown-it")({
+import { katex } from "@mdit/plugin-katex";
+const MarkdownIt = require("markdown-it");
+
+const markdown = MarkdownIt({
     highlight: function(str) {
         try {
             return hljs.highlightAuto(str).value;
@@ -1181,6 +1187,10 @@ const markdown = require("markdown-it")({
 
         return "";
     },
+});
+markdown.use(katex, {
+    throwOnError: false,
+    errorColor: '#cc0000',
 });
 window.markdown = markdown;
 import "highlight.js/styles/dracula.css";
