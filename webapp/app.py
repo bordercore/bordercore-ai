@@ -22,6 +22,7 @@ All run-time configuration comes from ``api.settings``:
 
 import base64
 import json
+import logging
 import os
 # import warnings
 from pathlib import Path
@@ -37,9 +38,12 @@ from flask.typing import ResponseReturnValue
 from flask_session import Session  # type: ignore[attr-defined]
 
 import settings
+
+logger = logging.getLogger(__name__)
 from modules.audio import Audio
 from modules.chatbot import CONTROL_VALUE, ChatBot
 from modules.model_manager import ModelManager
+from modules.music import MusicServiceError
 from modules.rag import RAG
 
 # warnings.filterwarnings("ignore", message=".*The 'nopython' keyword.*")
@@ -350,19 +354,35 @@ def generate_stream(chatbot: ChatBot, message: Any, stop_event: Event) -> Iterat
 
 
     Yields:
-        str: Successive text chunks from the chatbot’s response—suitable for
+        str: Successive text chunks from the chatbot's response—suitable for
         wrapping in ``flask.Response(stream_with_context(...))`` for real-time
         streaming to the client.
     """
     try:
+        logger.info(f"Starting stream generation for message with {len(message) if isinstance(message, list) else 'non-list'} messages")
+        last_message_content = message[-1].get("content", "") if isinstance(message, list) and message else ""
+        logger.debug(f"Last message content (first 200 chars): {str(last_message_content)[:200]}")
+
+        chunk_count = 0
         for chunk in chatbot.dispatch_message(message):
             if stop_event.is_set():
+                logger.info("Stream stopped by stop_event")
                 break
+            chunk_count += 1
             yield chunk
+
+        logger.info(f"Stream completed successfully after {chunk_count} chunks")
+    except MusicServiceError as error:
+        # User-friendly errors from music service - display as-is
+        logger.warning(f"Music service error: {error}")
+        yield str(error)
     except Exception as error:
-        yield f"An error occurred: {error}"
+        # Generic errors - log details but show friendly message to user
+        logger.error(f"Error in generate_stream: {error}", exc_info=True)
+        yield "Sorry, something went wrong. Please try again."
     finally:
         stop_event.set()
+        logger.debug("Stop event set in generate_stream finally block")
 
 
 @app.route("/chat", methods=["POST"])

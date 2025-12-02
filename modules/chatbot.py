@@ -73,6 +73,9 @@ logger.setLevel(logging.WARNING)
 null_handler = logging.NullHandler()
 logger.addHandler(null_handler)
 
+# Logger for chatbot module
+chatbot_logger = logging.getLogger(__name__)
+
 model_info = get_model_info()
 
 
@@ -291,30 +294,50 @@ class ChatBot():
         Returns:
             The string output from the tool, or None if no tool ran.
         """
-        if category == "lights":
-            return control_lights(self, content)
+        chatbot_logger.info(f"Handling message with category: {category}, content length: {len(content)}")
 
-        if category == "music":
-            return play_music(self, content)
+        try:
+            if category == "lights":
+                chatbot_logger.debug("Invoking lights handler")
+                return control_lights(self, content)
 
-        if category == "weather":
-            return get_weather_info(content)
+            if category == "music":
+                chatbot_logger.info(f"Invoking music handler for command: {content[:100]}")
+                try:
+                    result = play_music(self, content)
+                    chatbot_logger.info(f"Music handler returned result (length: {len(result)} chars, starts with CONTROL_VALUE: {result.startswith(CONTROL_VALUE)})")
+                    return result
+                except Exception as e:
+                    chatbot_logger.error(f"Error in music handler: {e}", exc_info=True)
+                    raise
 
-        if category == "calendar":
-            return get_schedule(content)
+            if category == "weather":
+                chatbot_logger.debug("Invoking weather handler")
+                return get_weather_info(content)
 
-        if category == "agenda":
-            return self.get_agenda()
+            if category == "calendar":
+                chatbot_logger.debug("Invoking calendar handler")
+                return get_schedule(content)
 
-        if category == "math":
-            # If enable_thinking is True, we intentionally *don't* use Wolfram.
-            if not self.args.get("enable_thinking", False):
-                return WolframAlphaFunctionCall(self).run(content)
-            # else: let the model solve it itself.
+            if category == "agenda":
+                chatbot_logger.debug("Invoking agenda handler")
+                return self.get_agenda()
+
+            if category == "math":
+                # If enable_thinking is True, we intentionally *don't* use Wolfram.
+                if not self.args.get("enable_thinking", False):
+                    chatbot_logger.debug("Invoking Wolfram Alpha handler")
+                    return WolframAlphaFunctionCall(self).run(content)
+                # else: let the model solve it itself.
+                chatbot_logger.debug("Math category but enable_thinking is True, skipping Wolfram")
+                return None
+
+            # default / unknown category: let the model handle directly
+            chatbot_logger.debug(f"Unknown category '{category}', passing to model")
             return None
-
-        # default / unknown category: let the model handle directly
-        return None
+        except Exception as e:
+            chatbot_logger.error(f"Unexpected error in get_message_handler for category '{category}': {e}", exc_info=True)
+            raise
 
     def dispatch_message(self, messages: List[Dict[str, Any]]) -> Any:
         """
@@ -326,28 +349,57 @@ class ChatBot():
             The result from the selected tool or model streaming output.
         """
         last_message = messages[-1]
+        chatbot_logger.info(f"Dispatching message (role: {last_message.get('role')}, content type: {type(last_message.get('content'))})")
 
-        if self.args.get("wolfram_alpha", False):
-            request_type = {"category": "math"}
-        elif self.args.get("url", None):
-            request_type = {"category": "other"}
-            contents = get_webpage_contents(self.args["url"])
-            last_message["content"] += f": {contents}"
-        elif type(last_message["content"]) == list:
-            # image payload for vision model
-            request_type = {"category": "other"}
-        else:
-            request_type = self.get_request_type(messages[-1]["content"])
+        try:
+            if self.args.get("wolfram_alpha", False):
+                request_type = {"category": "math"}
+                chatbot_logger.debug("Using 'math' category due to wolfram_alpha flag")
+            elif self.args.get("url", None):
+                request_type = {"category": "other"}
+                chatbot_logger.debug("Using 'other' category due to URL flag")
+                contents = get_webpage_contents(self.args["url"])
+                last_message["content"] += f": {contents}"
+            elif type(last_message["content"]) == list:
+                # image payload for vision model
+                request_type = {"category": "other"}
+                chatbot_logger.debug("Using 'other' category due to image payload")
+            else:
+                chatbot_logger.debug(f"Determining request type from content: {str(last_message['content'])[:200]}")
+                try:
+                    request_type = self.get_request_type(messages[-1]["content"])
+                    chatbot_logger.info(f"Request type determined: {request_type}")
+                except Exception as e:
+                    chatbot_logger.error(f"Error determining request type: {e}", exc_info=True)
+                    # Fall back to "other" category
+                    request_type = {"category": "other"}
+                    chatbot_logger.warning("Falling back to 'other' category due to error")
 
-        category = request_type["category"]
-        content = last_message["content"]
+            category = request_type["category"]
+            content = last_message["content"]
+            chatbot_logger.info(f"Routing to category: {category}")
 
-        tool_output = self.get_message_handler(category, content)
+            tool_output = self.get_message_handler(category, content)
 
-        if tool_output is not None:
-            last_message["content"] = tool_output
+            if tool_output is not None:
+                chatbot_logger.debug(f"Tool output received (length: {len(tool_output)} chars), updating message content")
 
-        return self.send_message_to_model(messages, stream=True, replace_context=True)
+                # Check if tool output starts with CONTROL_VALUE - if so, return directly without AI model processing
+                if tool_output.startswith(CONTROL_VALUE):
+                    chatbot_logger.info(f"Tool output starts with CONTROL_VALUE, bypassing AI model and returning directly")
+                    def direct_yield() -> Iterator[str]:
+                        yield tool_output
+                    return direct_yield()
+
+                last_message["content"] = tool_output
+            else:
+                chatbot_logger.debug("No tool output, passing message directly to model")
+
+            chatbot_logger.debug("Sending message to model with streaming enabled")
+            return self.send_message_to_model(messages, stream=True, replace_context=True)
+        except Exception as e:
+            chatbot_logger.error(f"Error in dispatch_message: {e}", exc_info=True)
+            raise
 
     # These overloads allow mypy to correctly infer the return type depending on the `stream` argument.
     @overload
@@ -588,8 +640,12 @@ class ChatBot():
 
         response_json = None
         try:
-            response_json = json.loads(strip_code_fences(content))
+            cleaned_content = strip_code_fences(content)
+            chatbot_logger.debug(f"Parsing request type JSON (cleaned, first 200 chars): {cleaned_content[:200]}")
+            response_json = json.loads(cleaned_content)
+            chatbot_logger.debug(f"Successfully parsed request type: {response_json}")
         except ValueError as e:
+            chatbot_logger.error(f"Content generating invalid JSON: {content[:500]}, Error: {e}", exc_info=True)
             print(f"Content generating invalid JSON: {content}")
             raise ValueError("Request type response is not proper JSON.") from e
 

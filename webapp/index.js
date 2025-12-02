@@ -834,6 +834,11 @@ const app = createApp({
                                     chatHistory.value.length - 1
                                 ].content = "No music found.";
                             }
+                        } else if (jsonObject?.content && jsonObject?.lights) {
+                            // Handle lights control response
+                            chatHistory.value[
+                                chatHistory.value.length - 1
+                            ].content = jsonObject.content;
                         }
                     }
 

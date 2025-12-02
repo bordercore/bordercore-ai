@@ -7,6 +7,7 @@ Inspired by https://medium.com/@richardhayes777/using-chatgpt-to-control-hue-lig
 """
 
 import argparse
+import json
 from typing import TYPE_CHECKING
 
 import requests
@@ -173,7 +174,12 @@ def control_lights(chatbot: "ChatBot", command: str, device_list: dict | None = 
     content = balance_braces(content)
     control_device(content)
 
-    return "Done"
+    from modules.chatbot import CONTROL_VALUE
+
+    return CONTROL_VALUE + json.dumps({
+        "content": "Done",
+        "lights": "controlled"
+    })
 
 
 def main() -> None:
