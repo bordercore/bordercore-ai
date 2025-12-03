@@ -93,7 +93,13 @@ const app = createApp({
         const showMenu = ref(false);
         let sensorDetectMode = true;
         const speak = ref(session.speak !== undefined ? session.speak : false);
-        const switches = ref({ text2speech: false });
+        const switches = ref({
+            text2speech: session.speak !== undefined ? session.speak : false,
+            speech2text: false,
+            vad: false,
+            wolframAlpha: false,
+            enableThinking: session.enable_thinking !== undefined ? session.enable_thinking : false
+        });
         const temperature = ref(session.temperature || 0.7);
         const visionImage = ref(null);
         const waiting = ref(false);
@@ -233,30 +239,35 @@ const app = createApp({
             });
         };
 
+        // Watch switches.text2speech specifically to keep speak.value in sync
+        watch(() => switches.value.text2speech, (newValue) => {
+            speak.value = newValue;
+        });
+
         watch(switches, (newValue, oldValue) => {
-            if ("text2speech" in newValue) {
-                speak.value = newValue.text2speech;
-            };
-
-            if ("speech2text" in newValue) {
+            if (oldValue === undefined || newValue.speech2text !== oldValue.speech2text) {
                 microPhoneOn.value = newValue.speech2text;
-                handleListen();
+                if (newValue.speech2text) {
+                    handleListen();
+                }
             };
 
-            if ("wolframAlpha" in newValue) {
+            if (oldValue === undefined || newValue.wolframAlpha !== oldValue.wolframAlpha) {
                 wolframAlpha.value = newValue.wolframAlpha;
             };
 
-            if ("enableThinking" in newValue) {
+            if (oldValue === undefined || newValue.enableThinking !== oldValue.enableThinking) {
                 enableThinking.value = newValue.enableThinking;
             };
 
-            if ("vad" in newValue) {
+            if (oldValue === undefined || newValue.vad !== oldValue.vad) {
                 microPhoneVADOn.value = newValue.vad;
-                handleListenVAD();
+                if (newValue.vad) {
+                    handleListenVAD();
+                }
             };
 
-        });
+        }, { deep: true });
 
         watch(thinkingMessage, (newValue, oldValue) => {
             if (newValue) {

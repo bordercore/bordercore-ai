@@ -15,7 +15,7 @@
                 <!-- <div class="muted">Neural voice output</div> -->
             </div>
             <label class="toggle">
-              <input type="checkbox" @click="handleToggle('text2speech')" aria-label="Enable Text to Speech">
+              <input type="checkbox" :checked="modelValue.text2speech" @click="handleToggle('text2speech')" aria-label="Enable Text to Speech">
               <span class="rail"></span><span class="thumb"></span>
             </label>
           </div>
@@ -29,7 +29,7 @@
                 <!-- <div class="muted">Transcribe mic input</div> -->
             </div>
             <label class="toggle">
-              <input type="checkbox" @click="handleToggle('speech2text')" aria-label="Enable Speech to Text">
+              <input type="checkbox" :checked="modelValue.speech2text" @click="handleToggle('speech2text')" aria-label="Enable Speech to Text">
               <span class="rail"></span><span class="thumb"></span>
             </label>
           </div>
@@ -43,7 +43,7 @@
                 <!-- <div class="muted">Auto start/stop listening</div> -->
             </div>
             <label class="toggle">
-              <input @click="handleToggle('vad')" type="checkbox" aria-label="Enable Speech Detection">
+              <input type="checkbox" :checked="modelValue.vad" @click="handleToggle('vad')" aria-label="Enable Speech Detection">
               <span class="rail"></span><span class="thumb"></span>
             </label>
           </div>
@@ -64,7 +64,7 @@
                 <!-- <div class="muted">Symbolic math & facts</div> -->
             </div>
             <label class="toggle">
-              <input type="checkbox" @click="handleToggle('wolframAlpha')" aria-label="Enable Wolfram Alpha">
+              <input type="checkbox" :checked="modelValue.wolframAlpha" @click="handleToggle('wolframAlpha')" aria-label="Enable Wolfram Alpha">
               <span class="rail"></span><span class="thumb"></span>
             </label>
           </div>
@@ -79,7 +79,7 @@
                 <!-- <div class="muted">Deliberative reasoning mode</div> -->
             </div>
             <label class="toggle">
-              <input type="checkbox" @click="handleToggle('enableThinking')" aria-label="Enable Thinking">
+              <input type="checkbox" :checked="modelValue.enableThinking" @click="handleToggle('enableThinking')" aria-label="Enable Thinking">
               <span class="rail"></span><span class="thumb"></span>
             </label>
           </div>
