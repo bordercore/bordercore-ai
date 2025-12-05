@@ -394,7 +394,18 @@ class ChatBot():
             content = last_message["content"]
             chatbot_logger.info(f"Routing to category: {category}")
 
-            tool_output = self.get_message_handler(category, content)
+            # Extract text from list content if needed for message handlers
+            content_for_handler = content
+            if isinstance(content, list):
+                # Extract text parts from list content for handlers that expect strings
+                text_parts = [
+                    item.get("text", "")
+                    for item in content
+                    if isinstance(item, dict) and item.get("type") == "text"
+                ]
+                content_for_handler = " ".join(text_parts) if text_parts else ""
+
+            tool_output = self.get_message_handler(category, content_for_handler)
 
             if tool_output is not None:
                 chatbot_logger.debug(f"Tool output received (length: {len(tool_output)} chars), updating message content")

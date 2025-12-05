@@ -167,11 +167,21 @@ class Inference:
             raise RuntimeError("Model must be loaded before calling generate().")
 
         prepared_messages = self.prepare_messages_for_generation(messages)
-        prompt = self.apply_chat_template(prepared_messages)
 
         if self._is_vision_model():
+            # For vision models with list content, skip template application here
+            # It will be handled in generate_with_vision_model
+            has_list_content = any(
+                isinstance(msg.get("content"), list) for msg in prepared_messages
+            )
+            if has_list_content:
+                # Skip template application - will be done in generate_with_vision_model
+                prompt = ""
+            else:
+                prompt = self.apply_chat_template(prepared_messages)
             yield from self.generate_with_vision_model(prompt, prepared_messages)
         else:
+            prompt = self.apply_chat_template(prepared_messages)
             yield from self.generate_with_text_model(prompt)
 
     def load_tokenizer(self) -> Any:
@@ -328,15 +338,66 @@ class Inference:
         Returns:
             str: A single string prompt suitable for passing to the model.
         """
+        # For vision models, the tokenizer can handle list content directly
+        # For non-vision models, extract text from list content for template application
+        has_list_content = any(
+            isinstance(msg.get("content"), list) for msg in messages
+        )
+        if has_list_content and not self._is_vision_model():
+            # Extract text from list content for template application
+            # (only needed for non-vision models)
+            text_messages = []
+            for msg in messages:
+                content = msg.get("content", "")
+                if isinstance(content, list):
+                    # Extract text parts from the list
+                    text_parts = [
+                        item.get("text", "")
+                        for item in content
+                        if isinstance(item, dict) and item.get("type") == "text"
+                    ]
+                    text_content = " ".join(text_parts)
+                    text_messages.append({"role": msg["role"], "content": text_content})
+                else:
+                    text_messages.append(msg)
+            messages = text_messages
+
         # Prefer the tokenizer's built-in template
         if hasattr(self.tokenizer, "chat_template") and self.tokenizer.chat_template:
-            prompt = self.tokenizer.apply_chat_template(
-                messages,
-                tokenize=False,
-                add_generation_prompt=True,
-                tools=self.tools,
-                enable_thinking=self.enable_thinking,
-            )
+            try:
+                prompt = self.tokenizer.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=True,
+                    tools=self.tools,
+                    enable_thinking=self.enable_thinking,
+                )
+            except (AttributeError, TypeError, ValueError) as e:
+                # If template application fails (e.g., with list content),
+                # extract text and try again
+                if any(isinstance(msg.get("content"), list) for msg in messages):
+                    text_messages = []
+                    for msg in messages:
+                        content = msg.get("content", "")
+                        if isinstance(content, list):
+                            text_parts = [
+                                item.get("text", "")
+                                for item in content
+                                if isinstance(item, dict) and item.get("type") == "text"
+                            ]
+                            text_content = " ".join(text_parts)
+                            text_messages.append({"role": msg["role"], "content": text_content})
+                        else:
+                            text_messages.append(msg)
+                    prompt = self.tokenizer.apply_chat_template(
+                        text_messages,
+                        tokenize=False,
+                        add_generation_prompt=True,
+                        tools=self.tools,
+                        enable_thinking=self.enable_thinking,
+                    )
+                else:
+                    raise
         else:
             # Fallback to manual templating
             template_type = self.get_config_option("template", "llama2")
@@ -345,14 +406,38 @@ class Inference:
                 prompt_template = "<|im_start|>system\n{system}<|im_end|>\n<|im_start|>user\n{user}<|im_end|>\n<|im_start|>assistant\n"
                 user_content = next((m["content"] for m in messages if m["role"] == "user"), "")
                 system_content = next((m["content"] for m in messages if m["role"] == "system"), "")
+                # Handle list content in fallback template
+                if isinstance(user_content, list):
+                    text_parts = [
+                        item.get("text", "")
+                        for item in user_content
+                        if isinstance(item, dict) and item.get("type") == "text"
+                    ]
+                    user_content = " ".join(text_parts)
+                if isinstance(system_content, list):
+                    text_parts = [
+                        item.get("text", "")
+                        for item in system_content
+                        if isinstance(item, dict) and item.get("type") == "text"
+                    ]
+                    system_content = " ".join(text_parts)
                 prompt = prompt_template.format(system=system_content, user=user_content)
             else:  # Default to LLaMA2-style template
                 template = ""
                 for msg in messages:
+                    content = msg.get("content", "")
+                    # Handle list content in fallback template
+                    if isinstance(content, list):
+                        text_parts = [
+                            item.get("text", "")
+                            for item in content
+                            if isinstance(item, dict) and item.get("type") == "text"
+                        ]
+                        content = " ".join(text_parts)
                     if msg["role"] == "user":
-                        template += f"[INST]{msg['content']}[/INST]"
+                        template += f"[INST]{content}[/INST]"
                     elif msg["role"] == "assistant":
-                        template += f"{msg['content']}</s>"
+                        template += f"{content}</s>"
                 prompt = template
 
         # Add beginning-of-sequence token if required by the model
@@ -446,14 +531,59 @@ class Inference:
         if self.model is None:
             raise RuntimeError("Model must be loaded before generation.")
 
+        # Check if messages have list content or if prompt is empty
+        has_list_content = any(
+            isinstance(msg.get("content"), list) for msg in messages
+        )
+
         image_inputs, video_inputs = process_vision_info(messages)
-        inputs = self.tokenizer(
-            text=[prompt],
-            images=image_inputs,
-            videos=video_inputs,
-            padding=True,
-            return_tensors="pt",
-        ).to("cuda")
+
+        if has_list_content or not prompt:
+            # For messages with list content, use tokenizer's apply_chat_template directly
+            # This should properly insert image tokens like <|vision_start|><|image_pad|><|vision_end|>
+            try:
+                # Use tokenizer's apply_chat_template to get proper formatting with image tokens
+                formatted_prompt = self.tokenizer.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+                inputs = self.tokenizer(
+                    text=[formatted_prompt],
+                    images=image_inputs,
+                    videos=video_inputs,
+                    padding=True,
+                    return_tensors="pt",
+                ).to("cuda")
+            except (AttributeError, TypeError, ValueError) as e:
+                # If template application fails, extract text and create a simple prompt
+                # This is a fallback - the images will still be processed
+                text_parts = []
+                for msg in messages:
+                    if msg.get("role") == "user":
+                        content = msg.get("content", "")
+                        if isinstance(content, list):
+                            for item in content:
+                                if isinstance(item, dict) and item.get("type") == "text":
+                                    text_parts.append(item.get("text", ""))
+                        elif isinstance(content, str):
+                            text_parts.append(content)
+                fallback_prompt = " ".join(text_parts) if text_parts else prompt
+                inputs = self.tokenizer(
+                    text=[fallback_prompt],
+                    images=image_inputs,
+                    videos=video_inputs,
+                    padding=True,
+                    return_tensors="pt",
+                ).to("cuda")
+        else:
+            inputs = self.tokenizer(
+                text=[prompt],
+                images=image_inputs,
+                videos=video_inputs,
+                padding=True,
+                return_tensors="pt",
+            ).to("cuda")
 
         # Qwen2 Vision does not yet support the pipeline streamer
         generated_ids = self.model.generate(**inputs, max_new_tokens=128)
