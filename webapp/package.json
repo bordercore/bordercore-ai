@@ -16,7 +16,7 @@
     "axios": "^0.21.4",
     "bootstrap": "^5.2.3",
     "eslint-config-google": "^0.14.0",
-    "eslint-plugin-vue": "^9.26.0",
+    "eslint-plugin-vue": "^9.33.0",
     "highlight.js": "^11.9.0",
     "katex": "^0.16.25",
     "markdown-it": "^14.1.0",
