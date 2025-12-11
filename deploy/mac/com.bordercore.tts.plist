@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!-- Unique label for this service -->
+    <key>Label</key>
+    <string>com.bordercore.tts</string>
+
+    <!-- Command to run -->
+    <key>ProgramArguments</key>
+    <array>
+      <string>/Users/jerrell/dev/bordercoreai/run_tts.sh</string>
+    </array>
+
+    <!-- Start when you log in -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Restart if it crashes -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Where stdout/stderr go -->
+    <key>StandardOutPath</key>
+    <string>/Users/jerrell/Library/Logs/tts.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/jerrell/Library/Logs/tts.err.log</string>
+
+    <!-- (Optional) set working directory explicitly -->
+    <key>WorkingDirectory</key>
+    <string>/Users/jerrell/dev/bordercoreai</string>
+  </dict>
+</plist>
