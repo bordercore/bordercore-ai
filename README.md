@@ -122,6 +122,30 @@ python3 -m webapp
 
 To access: http://localhost:5000/
 
+## PostgreSQL MCP server (pg-mcp-server)
+
+Use your existing virtualenv (no uv required).
+
+1. Configure `pg_mcp_server.toml` with your local Postgres connection string. Leave `allow_writes = false` to keep sessions read-only.
+2. With your venv active, install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Start the MCP server (defaults to HTTP transport on `127.0.0.1:8000/mcp`):
+   ```bash
+   python run_pg_mcp_server.py
+   ```
+4. Point the app to the MCP server by adding to `settings.py`:
+   ```python
+   MCP_SERVERS = {
+       "postgres": {
+           "url": "http://127.0.0.1:8000/mcp",
+           "transport": "http",
+       },
+       # ...other servers...
+   }
+   ```
+
 ## Command line
 
 You can interact with the API via the command-line:

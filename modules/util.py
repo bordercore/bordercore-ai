@@ -89,3 +89,71 @@ def strip_code_fences(text: str) -> str:
     if lines and lines[0].startswith("```") and lines[-1].startswith("```"):
         return "\n".join(lines[1:-1])
     return text
+
+
+def clean_model_response(text: str) -> str:
+    """
+    Clean model response by removing special tokens and code fences.
+
+    Removes:
+    - Markdown code fences (triple backticks)
+    - Common special tokens like <|im_end|>, <|eot_id|>, <|eom_id|>, etc.
+    - Trailing whitespace
+
+    Also attempts to extract valid JSON if the response contains JSON followed by tokens.
+
+    Args:
+        text: The raw model response text.
+
+    Returns:
+        str: The cleaned text.
+    """
+    import json
+    import re
+
+    # First strip code fences
+    cleaned = strip_code_fences(text.strip())
+
+    # Try to extract JSON if the response looks like it contains JSON
+    # This handles cases where the model appends tokens after JSON
+    # Look for the first { and try to find the matching }
+    brace_start = cleaned.find("{")
+    if brace_start != -1:
+        # Count braces to find the matching closing brace
+        brace_count = 0
+        for i in range(brace_start, len(cleaned)):
+            if cleaned[i] == "{":
+                brace_count += 1
+            elif cleaned[i] == "}":
+                brace_count -= 1
+                if brace_count == 0:
+                    # Found complete JSON object
+                    json_candidate = cleaned[brace_start:i + 1]
+                    # Validate it's actually JSON
+                    try:
+                        json.loads(json_candidate)
+                        cleaned = json_candidate
+                        break
+                    except json.JSONDecodeError:
+                        pass
+
+    # Remove common special tokens that models append
+    special_tokens = [
+        "<|im_end|>",
+        "<|im_start|>",
+        "<|eot_id|>",
+        "<|eom_id|>",
+        "<|endoftext|>",
+        "<|end|>",
+    ]
+
+    for token in special_tokens:
+        # Remove token from anywhere in the string (handle multiple occurrences)
+        while token in cleaned:
+            cleaned = cleaned.replace(token, "")
+        # Also remove if it's at the end (common case) - double check
+        if cleaned.endswith(token):
+            cleaned = cleaned[:-len(token)]
+
+    # Strip whitespace again after token removal
+    return cleaned.strip()

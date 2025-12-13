@@ -14,6 +14,8 @@ import string
 from typing import TYPE_CHECKING, Any, Dict, List
 
 from modules.exceptions import JsonParsingError, LLMResponseError
+from modules.mcp_exceptions import MCPError, MCPToolNotFoundError
+from modules.tool_registry import ToolRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -27,18 +29,20 @@ class FunctionCall():
     JSON parsing, argument translation, and integration with chatbot messaging flow.
     """
 
-    def __init__(self, chatbot: "ChatBot", **args: Any) -> None:
+    def __init__(self, chatbot: "ChatBot", tool_registry: ToolRegistry | None = None, **args: Any) -> None:
         """
         Initialize FunctionCall with a model name and additional configuration.
 
         Args:
             chatbot: ChatBot instance providing LLM access
+            tool_registry: Optional tool registry for unified tool access (local and MCP).
             **args: Additional attributes, such as tool_name and tool_list.
         """
         self.chatbot = chatbot
         self.args = args
         self.tool_name: str | None = args.get("tool_name")
         self.tool_list: str | None = args.get("tool_list")
+        self.tool_registry: ToolRegistry | None = tool_registry
 
     def generate_random_id(self, length: int = 6) -> str:
         """
@@ -162,26 +166,21 @@ class FunctionCall():
         parameters = tool_call.get("arguments", {})
         logger.info(f"Calling function '{func_name}' with parameters: {parameters}")
 
-        main_module = importlib.import_module(f"modules.{self.tool_name}")
-        logger.debug(f"Imported module: modules.{self.tool_name}")
-
-        if not hasattr(main_module, func_name):
-            logger.error(f"Function '{func_name}' not found in module '{self.tool_name}'")
-            raise AttributeError(f"Function '{func_name}' not found in module '{self.tool_name}'")
-
-        func = getattr(main_module, func_name)
-
-        if not callable(func):
-            logger.error(f"'{func_name}' is not callable")
-            raise TypeError(f"'{func_name}' is not callable")
-
-        logger.debug(f"Invoking function '{func_name}'")
-        try:
-            result = func(**parameters)
-            logger.info(f"Function '{func_name}' returned result (length: {len(str(result))} chars): {str(result)[:200]}")
-        except Exception as e:
-            logger.error(f"Error calling function '{func_name}': {e}", exc_info=True)
-            raise
+        # Try tool registry first (supports both local and MCP tools)
+        if self.tool_registry:
+            try:
+                result = self.tool_registry.call_tool(func_name, parameters)
+                logger.info(f"Tool '{func_name}' returned result (length: {len(str(result))} chars): {str(result)[:200]}")
+            except (ValueError, MCPToolNotFoundError) as e:
+                logger.warning(f"Tool '{func_name}' not found in registry, falling back to module import: {e}")
+                # Fall back to old behavior
+                result = self._call_local_function(func_name, parameters)
+            except MCPError as e:
+                logger.error(f"Error calling tool '{func_name}' via registry: {e}", exc_info=True)
+                raise
+        else:
+            # Fall back to old behavior if no tool registry
+            result = self._call_local_function(func_name, parameters)
 
         messages.append(
             {
@@ -203,6 +202,46 @@ class FunctionCall():
 
         logger.info(f"Final model response after function call (length: {len(content)} chars)")
         return content
+
+    def _call_local_function(self, func_name: str, parameters: Dict[str, Any]) -> Any:
+        """
+        Call a local function using the old module import method.
+
+        Args:
+            func_name: Name of the function to call.
+            parameters: Parameters to pass to the function.
+
+        Returns:
+            The result from the function.
+
+        Raises:
+            AttributeError: If the function is not found.
+            TypeError: If the function is not callable.
+        """
+        if not self.tool_name:
+            raise ValueError("tool_name is required for local function calls")
+
+        main_module = importlib.import_module(f"modules.{self.tool_name}")
+        logger.debug(f"Imported module: modules.{self.tool_name}")
+
+        if not hasattr(main_module, func_name):
+            logger.error(f"Function '{func_name}' not found in module '{self.tool_name}'")
+            raise AttributeError(f"Function '{func_name}' not found in module '{self.tool_name}'")
+
+        func = getattr(main_module, func_name)
+
+        if not callable(func):
+            logger.error(f"'{func_name}' is not callable")
+            raise TypeError(f"'{func_name}' is not callable")
+
+        logger.debug(f"Invoking function '{func_name}'")
+        try:
+            result = func(**parameters)
+            logger.info(f"Function '{func_name}' returned result (length: {len(str(result))} chars): {str(result)[:200]}")
+            return result
+        except Exception as e:
+            logger.error(f"Error calling function '{func_name}': {e}", exc_info=True)
+            raise
 
     def choose_function(self, messages: List[Dict[str, Any]]) -> str:
         """

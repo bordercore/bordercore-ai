@@ -10,6 +10,7 @@ import argparse
 import base64
 import importlib
 import json
+import logging
 from pathlib import Path
 from threading import Event, Thread
 from typing import Any, Dict, Generator, List
@@ -24,10 +25,15 @@ from transformers import (AutoModelForCausalLM, AutoProcessor, AutoTokenizer,
 
 import settings
 from modules.context import Context
+from modules.mcp_client import MCPClient
+from modules.mcp_exceptions import MCPConnectionError, MCPServerError
+from modules.tool_registry import ToolRegistry
 from modules.util import get_model_info
 
 # Suppress the "Special tokens have been added in the vocabulary..." warning
 transformers.logging.set_verbosity_error()
+
+logger = logging.getLogger(__name__)
 
 COLOR_GREEN = "\033[32m"
 COLOR_BLUE = "\033[34m"
@@ -71,6 +77,7 @@ class Inference:
         enable_thinking: bool = False,
         debug: bool = False,
         stop_event: Event | None = None,
+        tool_registry: ToolRegistry | None = None,
     ) -> None:
         """
         Initializes the Inference class.
@@ -96,6 +103,8 @@ class Inference:
         self.tool_name = tool_name
         self.tool_list = tool_list
         self.enable_thinking = enable_thinking
+        # Use provided tool_registry or create a new one
+        self.tool_registry: ToolRegistry | None = tool_registry
         self.tools = self.load_tools()
 
         self.tokenizer = self.load_tokenizer()
@@ -213,25 +222,87 @@ class Inference:
 
     def load_tools(self) -> List[Any] | None:
         """
-        Dynamically import a callable tool function from a specified module.
+        Load tools from both local modules and MCP servers.
 
-        This method attempts to import a function (or callable) named by `self.tool_list`
-        from a module path `modules.<tool_name>`. If successful, the function is returned
-        as a single-item list to be used as a tool by the model's chat template or agent.
-
-        If either `tool_name` or `tool_list` is not set, or if the import fails, the method
-        returns None and logs a warning.
+        This method creates a unified tool registry that includes:
+        - Local tools specified via tool_name/tool_list
+        - MCP tools from configured MCP servers
 
         Returns:
-            A list containing the imported function if successful, or None otherwise.
+            A list of tool schemas in the format expected by the model's chat template,
+            or None if no tools are available.
         """
+        # Initialize tool registry if not provided
+        if self.tool_registry is None:
+            self.tool_registry = ToolRegistry()
+
+        # Load local tool if specified
         if self.tool_name and self.tool_list:
             try:
                 module = importlib.import_module(f"modules.{self.tool_name}")
                 func = getattr(module, self.tool_list)
-                return [func]
+                # Register the local tool
+                self.tool_registry.register_local_tool(
+                    tool_name=self.tool_list,
+                    function=func,
+                    description=f"Tool from {self.tool_name} module",
+                )
             except (ImportError, AttributeError) as e:
                 print(f"Warning: Could not load tool '{self.tool_list}' from '{self.tool_name}': {e}")
+
+        # Load MCP tools from configured servers
+        mcp_servers = getattr(settings, "MCP_SERVERS", {})
+        for server_name, server_config in mcp_servers.items():
+            try:
+                transport = server_config.get("transport", "stdio")
+                if transport == "stdio":
+                    command = server_config.get("command")
+                    args = server_config.get("args", [])
+                    env = server_config.get("env", {})
+                    if not command:
+                        print(f"Warning: MCP server '{server_name}' missing 'command' for stdio transport")
+                        continue
+
+                    client = MCPClient(
+                        server_name=server_name,
+                        command=command if isinstance(command, list) else [command],
+                        args=args,
+                        env=env,
+                        transport="stdio",
+                    )
+                elif transport == "http":
+                    url = server_config.get("url")
+                    if not url:
+                        print(f"Warning: MCP server '{server_name}' missing 'url' for http transport")
+                        continue
+
+                    client = MCPClient(
+                        server_name=server_name,
+                        url=url,
+                        transport="http",
+                    )
+                else:
+                    print(f"Warning: MCP server '{server_name}' has unsupported transport '{transport}'")
+                    continue
+
+                # Connect and register MCP client
+                client.connect()
+                # Extract allowed path from args for filesystem servers
+                allowed_path = None
+                if server_name == "filesystem" and args:
+                    # The last argument is typically the allowed directory
+                    allowed_path = args[-1] if args else None
+                self.tool_registry.register_mcp_client(server_name, client, allowed_path=allowed_path)
+                print(f"Successfully connected to MCP server: {server_name}")
+            except (MCPConnectionError, MCPServerError) as e:
+                print(f"Warning: Failed to connect to MCP server '{server_name}': {e}")
+            except Exception as e:
+                print(f"Warning: Error setting up MCP server '{server_name}': {e}")
+
+        # Get tool schemas for the model
+        tool_schemas = self.tool_registry.get_tool_schema_for_model()
+        if tool_schemas:
+            return tool_schemas
         return None
 
     def get_model_loading_args(self) -> Dict[str, Any]:
@@ -291,6 +362,7 @@ class Inference:
           - Ensures a system message is included if tools are not being used.
           - Replaces or inserts the system message using the value from settings.
           - Removes the system message entirely for models (e.g. Gemma) that do not support it.
+          - Handles tool call messages by ensuring they have proper content fields.
 
         Args:
             messages: A list of dictionaries representing role-based chat messages.
@@ -300,6 +372,23 @@ class Inference:
         """
         # Make a copy to avoid modifying the original list
         processed_messages = list(messages)
+
+        # Fix tool call messages - ensure they have content field
+        # Use empty string instead of None to avoid template iteration errors
+        for msg in processed_messages:
+            if "tool_calls" in msg:
+                # For assistant messages with tool_calls, use empty string if content is missing
+                if "content" not in msg:
+                    msg["content"] = ""
+                # If content is None, convert to empty string
+                elif msg.get("content") is None:
+                    msg["content"] = ""
+            # Ensure tool messages have content
+            if msg.get("role") == "tool" and "content" not in msg:
+                msg["content"] = ""
+            # Ensure all messages have content (not None)
+            if "content" in msg and msg["content"] is None:
+                msg["content"] = ""
 
         # Inject the system message if tools are not being used
         if not self.tools:
@@ -675,6 +764,18 @@ class Inference:
             return {}
         with open(config_path, "r", encoding="utf-8") as f:
             return json.load(f)
+
+    def cleanup(self) -> None:
+        """
+        Clean up resources, including disconnecting MCP servers.
+
+        This method should be called when the Inference instance is no longer needed.
+        """
+        if self.tool_registry:
+            try:
+                self.tool_registry.disconnect_all_mcp_servers()
+            except Exception as e:
+                logger.warning(f"Error cleaning up MCP servers: {e}")
 
 
 def main() -> None:

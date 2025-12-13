@@ -18,6 +18,8 @@ import argparse
 import json
 import logging
 import os
+import random
+import re
 import string
 import sys
 import tempfile
@@ -43,7 +45,8 @@ from modules.google_calendar import get_schedule
 from modules.govee import control_lights
 from modules.inference import Inference
 from modules.music import play_music
-from modules.util import (get_model_info, get_webpage_contents, sort_models,
+from modules.tool_registry import ToolRegistry
+from modules.util import (clean_model_response, get_model_info, get_webpage_contents, sort_models,
                           strip_code_fences)
 from modules.weather import get_weather_info
 from modules.wolfram_alpha import WolframAlphaFunctionCall
@@ -105,6 +108,12 @@ class ChatBot():
         self.model = model
         self.args = args
         self.stop_event = stop_event
+        # Create a shared tool registry for this ChatBot instance
+        self.tool_registry: ToolRegistry | None = None
+        self.mcp_server_url = self.args.get("mcp_server_url") or getattr(settings, "mcp_server_url", "")
+        self.mcp_server_name = self.args.get("mcp_server_name") or getattr(settings, "mcp_server_name", "django_mcp")
+        self.mcp_token = self.args.get("mcp_token") or getattr(settings, "mcp_token", "")
+        self.mcp_endpoint = self.args.get("mcp_endpoint") or getattr(settings, "mcp_endpoint", "mcp")
 
         if "temperature" in self.args:
             self.temperature = self.args["temperature"]
@@ -328,7 +337,10 @@ class ChatBot():
                 if not self.args.get("enable_thinking", False):
                     chatbot_logger.info(f"Invoking Wolfram Alpha handler for query: {content[:200]}")
                     try:
-                        result = WolframAlphaFunctionCall(self).run(content)
+                        # Initialize tool registry if not already done
+                        if self.tool_registry is None:
+                            self._initialize_tool_registry()
+                        result = WolframAlphaFunctionCall(self, tool_registry=self.tool_registry).run(content)
                         chatbot_logger.info(f"Wolfram Alpha handler returned result (length: {len(result)} chars): {result[:200]}")
                         return result
                     except Exception as e:
@@ -354,6 +366,72 @@ class ChatBot():
             chatbot_logger.error(f"Unexpected error in get_message_handler for category '{category}': {e}", exc_info=True)
             raise
 
+    def _maybe_handle_direct_mcp_command(self, content: Any) -> str | None:
+        """
+        Allow direct MCP tool invocation with a simple command pattern.
+
+        Expected formats:
+            mcp:tool_name {"arg": "value"}
+            /mcp tool_name {"arg": "value"}
+        """
+        if not isinstance(content, str):
+            return None
+
+        match = re.match(r"^(?:/)?mcp\s*:?\s*([^\s]+)(?:\s+(.*))?$", content.strip(), re.IGNORECASE)
+        if not match:
+            return None
+
+        tool_name = match.group(1)
+        args_text = match.group(2) or ""
+        arguments: Dict[str, Any] = {}
+
+        if args_text:
+            try:
+                arguments = json.loads(args_text)
+            except Exception:
+                chatbot_logger.warning(
+                    f"Could not parse MCP arguments as JSON, passing raw text under 'input': {args_text}"
+                )
+                arguments = {"input": args_text}
+
+        if self.tool_registry is None:
+            self._initialize_tool_registry()
+
+        if self.tool_registry is None:
+            return "MCP tool registry is not available."
+
+        if "::" not in tool_name:
+            available_servers = list(self.tool_registry.mcp_clients.keys())
+            if len(available_servers) == 1:
+                tool_name = f"{available_servers[0]}::{tool_name}"
+
+        try:
+            result = self.tool_registry.call_tool(tool_name, arguments)
+            if isinstance(result, str):
+                return result
+            try:
+                return json.dumps(result)
+            except TypeError:
+                return str(result)
+        except Exception as e:
+            chatbot_logger.error(f"Error calling MCP tool '{tool_name}': {e}", exc_info=True)
+            return f"Error calling MCP tool '{tool_name}': {e}"
+
+    def list_mcp_tools(self) -> List[str]:
+        """
+        Return a list of available MCP tool names.
+        """
+        if self.tool_registry is None:
+            self._initialize_tool_registry()
+        if self.tool_registry is None:
+            return []
+
+        return [
+            tool["name"]
+            for tool in self.tool_registry.list_tools()
+            if tool.get("type") == "mcp"
+        ]
+
     def dispatch_message(self, messages: List[Dict[str, Any]]) -> Any:
         """
         Route the message to the appropriate tool or model.
@@ -367,6 +445,16 @@ class ChatBot():
         chatbot_logger.info(f"Dispatching message (role: {last_message.get('role')}, content type: {type(last_message.get('content'))})")
 
         try:
+            direct_mcp_result = self._maybe_handle_direct_mcp_command(last_message.get("content"))
+            if direct_mcp_result is not None:
+                chatbot_logger.info("Direct MCP command detected, returning tool output")
+                print(f"[ChatBot] Direct MCP command output: {direct_mcp_result}")
+
+                def yield_direct_mcp() -> Iterator[str]:
+                    yield direct_mcp_result
+
+                return yield_direct_mcp()
+
             if self.args.get("wolfram_alpha", False):
                 request_type = {"category": "math"}
                 chatbot_logger.debug("Using 'math' category due to wolfram_alpha flag")
@@ -441,7 +529,48 @@ class ChatBot():
                 chatbot_logger.debug("No tool output, passing message directly to model")
 
             chatbot_logger.debug("Sending message to model with streaming enabled")
-            return self.send_message_to_model(messages, stream=True, replace_context=True)
+            response = self.send_message_to_model(messages, stream=True, replace_context=True)
+
+            # For streaming responses, collect chunks first (don't yield yet) to check for tool calls
+            if hasattr(response, "__iter__") and not isinstance(response, str):
+                response_chunks = []
+                for chunk in response:
+                    response_chunks.append(chunk)
+
+                # After collecting all chunks, check for tool calls
+                full_response = "".join(response_chunks)
+                chatbot_logger.debug(f"Checking for tool calls in response (length: {len(full_response)}): {full_response[:500]}")
+                print(f"[ChatBot] Checking for tool calls in response (length: {len(full_response)}): {full_response[:500]}")
+                tool_call_result = self._handle_tool_calls_in_response(messages, full_response)
+                if tool_call_result:
+                    chatbot_logger.info("Tool call detected and executed, returning final response")
+                    print(f"[ChatBot] Tool call detected and executed, returning final response")
+                    # Tool was called, yield only the final result (hide the tool call JSON)
+                    final_chunks = []
+                    chunk_count = 0
+                    for chunk in tool_call_result:
+                        final_chunks.append(chunk)
+                        chunk_count += 1
+                    chatbot_logger.info(f"Collected {chunk_count} chunks from tool call result, total length: {len(''.join(final_chunks))}")
+                    print(f"[ChatBot] Collected {chunk_count} chunks from tool call result, total length: {len(''.join(final_chunks))}")
+                    # Clean the final response (already cleaned in _handle_tool_calls_in_response, but clean again to be safe)
+                    cleaned_final = clean_model_response("".join(final_chunks))
+                    chatbot_logger.info(f"Yielding cleaned final response (length: {len(cleaned_final)})")
+                    print(f"[ChatBot] Yielding cleaned final response (length: {len(cleaned_final)})")
+                    yield cleaned_final
+                else:
+                    # No tool call, clean and yield the original response
+                    chatbot_logger.info("No tool call detected, yielding original response")
+                    print(f"[ChatBot] No tool call detected, yielding original response")
+                    cleaned_response = clean_model_response(full_response)
+                    yield cleaned_response
+            else:
+                # Non-streaming response
+                full_response = response if isinstance(response, str) else "".join(response)
+                tool_call_result = self._handle_tool_calls_in_response(messages, full_response)
+                if tool_call_result:
+                    return tool_call_result
+                return response
         except Exception as e:
             chatbot_logger.error(f"Error in dispatch_message: {e}", exc_info=True)
             raise
@@ -626,6 +755,10 @@ class ChatBot():
             **args
         }
 
+        # Initialize tool registry if not already done
+        if self.tool_registry is None:
+            self._initialize_tool_registry()
+
         model_path = f"{settings.model_dir}/{settings.model_name}"
         inference = Inference(
             model_path=model_path,
@@ -634,7 +767,8 @@ class ChatBot():
             tool_list=payload.get("tool_list", None),
             enable_thinking=payload.get("enable_thinking", False),
             debug=True,
-            stop_event=self.stop_event
+            stop_event=self.stop_event,
+            tool_registry=self.tool_registry
         )
 
         inference.model = self.model
@@ -685,7 +819,7 @@ class ChatBot():
 
         response_json = None
         try:
-            cleaned_content = strip_code_fences(content)
+            cleaned_content = clean_model_response(content)
             chatbot_logger.debug(f"Parsing request type JSON (cleaned, first 200 chars): {cleaned_content[:200]}")
             response_json = json.loads(cleaned_content)
             chatbot_logger.debug(f"Successfully parsed request type: {response_json}")
@@ -695,6 +829,288 @@ class ChatBot():
             raise ValueError("Request type response is not proper JSON.") from e
 
         return response_json
+
+    def _handle_tool_calls_in_response(self, messages: List[Dict[str, Any]], response: str) -> Iterator[str] | None:
+        """
+        Check if the model response contains tool calls and execute them.
+
+        Args:
+            messages: The current conversation messages.
+            response: The model's response text.
+
+        Returns:
+            An iterator yielding the final response after tool execution, or None if no tool calls found.
+        """
+        # Look for <tool_call> tags or bare JSON that looks like a tool call
+        # First try to find <tool_call> tags
+        tool_call_start = response.find("<tool_call>")
+        json_start = -1
+
+        if tool_call_start != -1:
+            # Find the start of JSON (first { after <tool_call>)
+            json_start = response.find("{", tool_call_start)
+        else:
+            # No tags, look for JSON that looks like a tool call
+            # Try to find JSON objects - start from the beginning
+            json_start = response.find("{")
+            if json_start == -1:
+                return None
+
+        if json_start == -1:
+            return None
+
+        # Find the matching closing brace by counting braces
+        brace_count = 0
+        json_end = -1
+        for i in range(json_start, len(response)):
+            if response[i] == "{":
+                brace_count += 1
+            elif response[i] == "}":
+                brace_count -= 1
+                if brace_count == 0:
+                    json_end = i + 1
+                    break
+
+        if json_end == -1:
+            chatbot_logger.warning("Could not find matching closing brace for tool call JSON")
+            return None
+
+        json_str = response[json_start:json_end].strip()
+        chatbot_logger.info(f"Found potential tool call in model response, extracted JSON: {json_str}")
+        print(f"[ChatBot] Found potential tool call JSON: {json_str}")  # Fallback for visibility
+
+        try:
+            tool_call = json.loads(json_str)
+            tool_name = tool_call.get("name")
+            arguments = tool_call.get("arguments", {})
+
+            # Validate this is actually a tool call (has name and arguments)
+            if not tool_name:
+                chatbot_logger.debug("JSON found but missing 'name' field, not a tool call")
+                return None
+
+            if "arguments" not in tool_call:
+                chatbot_logger.debug("JSON found but missing 'arguments' field, not a tool call")
+                return None
+
+            # Initialize tool registry if needed (before checking if tool exists)
+            if self.tool_registry is None:
+                self._initialize_tool_registry()
+
+            if self.tool_registry is None:
+                chatbot_logger.error("Tool registry not available")
+                return None
+
+            # Initialize tool registry if needed (before checking if tool exists)
+            if self.tool_registry is None:
+                self._initialize_tool_registry()
+
+            if self.tool_registry is None:
+                chatbot_logger.error("Tool registry not available")
+                return None
+
+            # Check if tool exists in registry
+            if not self.tool_registry.get_tool(tool_name):
+                chatbot_logger.debug(f"Tool '{tool_name}' not found in registry, not executing")
+                return None
+
+            chatbot_logger.info(f"Executing tool call: {tool_name} with arguments: {arguments}")
+            print(f"[ChatBot] Executing tool call: {tool_name} with arguments: {arguments}")  # Fallback for visibility
+
+            # Execute the tool
+            try:
+                tool_result = self.tool_registry.call_tool(tool_name, arguments)
+                chatbot_logger.info(f"Tool {tool_name} returned result (length: {len(str(tool_result))} chars): {str(tool_result)[:500]}")
+                print(f"[ChatBot] Tool {tool_name} returned result (length: {len(str(tool_result))} chars): {str(tool_result)[:500]}")
+            except Exception as e:
+                chatbot_logger.error(f"Error executing tool {tool_name}: {e}", exc_info=True)
+                print(f"[ChatBot] ERROR executing tool {tool_name}: {e}")  # Fallback for visibility
+                import traceback
+                print(f"[ChatBot] Traceback: {traceback.format_exc()}")  # Full traceback
+                # Return error message
+                error_msg = f"Error executing tool {tool_name}: {str(e)}"
+                def yield_error() -> Iterator[str]:
+                    yield error_msg
+                return yield_error()
+
+            # Add tool call and result to messages
+            # Format must match what the chat template expects
+            tool_call_id = "".join(random.choices(string.ascii_letters + string.digits, k=6))
+            chatbot_logger.info(f"Adding tool call to messages with ID: {tool_call_id}")
+            print(f"[ChatBot] Adding tool call to messages with ID: {tool_call_id}")
+            messages.append({
+                "role": "assistant",
+                "content": "",  # Use empty string instead of None to avoid template errors
+                "tool_calls": [{
+                    "id": tool_call_id,
+                    "type": "function",
+                    "function": {
+                        "name": tool_name,
+                        "arguments": json.dumps(arguments) if isinstance(arguments, dict) else str(arguments)
+                    }
+                }]
+            })
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call_id,
+                "name": tool_name,
+                "content": str(tool_result)
+            })
+            chatbot_logger.info(f"Messages after adding tool call/result: {len(messages)} messages")
+            print(f"[ChatBot] Messages after adding tool call/result: {len(messages)} messages")
+
+            # Send back to model for final response
+            chatbot_logger.info("Sending tool result back to model for final response")
+            print(f"[ChatBot] Sending tool result back to model for final response")
+            try:
+                final_response = self.send_message_to_model(messages, stream=True, replace_context=True)
+                chatbot_logger.info(f"Got final response from model (type: {type(final_response)})")
+                print(f"[ChatBot] Got final response from model (type: {type(final_response)})")
+            except Exception as e:
+                chatbot_logger.error(f"Error sending tool result back to model: {e}", exc_info=True)
+                print(f"[ChatBot] ERROR sending tool result back to model: {e}")
+                import traceback
+                print(f"[ChatBot] Traceback: {traceback.format_exc()}")
+                raise
+
+            chatbot_logger.info(f"Processing final response (hasattr __iter__: {hasattr(final_response, '__iter__')}, is str: {isinstance(final_response, str)})")
+            print(f"[ChatBot] Processing final response (hasattr __iter__: {hasattr(final_response, '__iter__')}, is str: {isinstance(final_response, str)})")
+            if hasattr(final_response, "__iter__") and not isinstance(final_response, str):
+                # Clean streaming response
+                chatbot_logger.info("Final response is iterable, collecting chunks")
+                print(f"[ChatBot] Final response is iterable, collecting chunks")
+                def yield_cleaned_response() -> Iterator[str]:
+                    chunks = []
+                    chunk_count = 0
+                    for chunk in final_response:
+                        chunks.append(chunk)
+                        chunk_count += 1
+                    chatbot_logger.info(f"Collected {chunk_count} chunks, total length: {len(''.join(chunks))}")
+                    print(f"[ChatBot] Collected {chunk_count} chunks, total length: {len(''.join(chunks))}")
+                    cleaned = clean_model_response("".join(chunks))
+                    chatbot_logger.info(f"Cleaned response length: {len(cleaned)}")
+                    print(f"[ChatBot] Cleaned response length: {len(cleaned)}")
+                    yield cleaned
+                return yield_cleaned_response()
+            else:
+                chatbot_logger.info("Final response is not iterable or is string")
+                print(f"[ChatBot] Final response is not iterable or is string")
+                def yield_response() -> Iterator[str]:
+                    if isinstance(final_response, str):
+                        yield clean_model_response(final_response)
+                    else:
+                        chunks = []
+                        for chunk in final_response:
+                            chunks.append(chunk)
+                        cleaned = clean_model_response("".join(chunks))
+                        yield cleaned
+                return yield_response()
+
+        except json.JSONDecodeError as e:
+            chatbot_logger.error(f"Failed to parse tool call JSON: {e}, JSON: {json_str}")
+            return None
+
+    def _build_mcp_server_configs(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Merge static MCP server config with optional CLI-provided HTTP server details.
+        """
+        configured_servers = dict(getattr(settings, "MCP_SERVERS", {}))
+        url = self.mcp_server_url
+
+        if url:
+            name = self.mcp_server_name or "django_mcp"
+            token = self.mcp_token or ""
+            endpoint = self.mcp_endpoint or "mcp"
+            configured_servers[name] = {
+                "url": url.rstrip("/"),
+                "transport": "http",
+                "token": token,
+                "endpoint": endpoint,
+            }
+
+        return configured_servers
+
+    def _initialize_tool_registry(self) -> None:
+        """
+        Initialize the tool registry with MCP servers from settings.
+
+        This method creates a ToolRegistry and connects to configured MCP servers.
+        """
+        from modules.mcp_client import MCPClient
+        from modules.mcp_exceptions import MCPConnectionError, MCPServerError
+
+        self.tool_registry = ToolRegistry()
+
+        # Load MCP tools from configured servers
+        mcp_servers = self._build_mcp_server_configs()
+        for server_name, server_config in mcp_servers.items():
+            try:
+                transport = server_config.get("transport", "stdio")
+                chatbot_logger.info(f"[MCP Setup] Server '{server_name}': transport='{transport}', config={server_config}")
+                if transport == "stdio":
+                    command = server_config.get("command")
+                    args = server_config.get("args", [])
+                    env = server_config.get("env", {})
+                    if not command:
+                        chatbot_logger.warning(f"MCP server '{server_name}' missing 'command' for stdio transport")
+                        continue
+
+                    client = MCPClient(
+                        server_name=server_name,
+                        command=command if isinstance(command, list) else [command],
+                        args=args,
+                        env=env,
+                        transport="stdio",
+                    )
+                elif transport == "http":
+                    url = server_config.get("url")
+                    if not url:
+                        chatbot_logger.warning(f"MCP server '{server_name}' missing 'url' for http transport")
+                        continue
+                    token = server_config.get("token")
+                    endpoint = server_config.get("endpoint", "mcp")
+                    headers = server_config.get("headers", {})
+
+                    client = MCPClient(
+                        server_name=server_name,
+                        url=url,
+                        transport="http",
+                        auth_token=token,
+                        endpoint_path=endpoint,
+                        headers=headers,
+                    )
+                else:
+                    chatbot_logger.warning(f"MCP server '{server_name}' has unsupported transport '{transport}'")
+                    continue
+
+                # Connect and register MCP client
+                client.connect()
+                # Extract allowed path from args for filesystem servers
+                allowed_path = None
+                if server_name == "filesystem":
+                    server_config = mcp_servers[server_name]
+                    args = server_config.get("args", [])
+                    if args:
+                        # The last argument is typically the allowed directory
+                        allowed_path = args[-1]
+                self.tool_registry.register_mcp_client(server_name, client, allowed_path=allowed_path)
+                chatbot_logger.info(f"Successfully connected to MCP server: {server_name}")
+            except (MCPConnectionError, MCPServerError) as e:
+                chatbot_logger.warning(f"Failed to connect to MCP server '{server_name}': {e}")
+            except Exception as e:
+                chatbot_logger.warning(f"Error setting up MCP server '{server_name}': {e}")
+
+    def cleanup(self) -> None:
+        """
+        Clean up resources, including disconnecting MCP servers.
+
+        This method should be called when the ChatBot instance is no longer needed.
+        """
+        if self.tool_registry:
+            try:
+                self.tool_registry.disconnect_all_mcp_servers()
+            except Exception as e:
+                chatbot_logger.warning(f"Error cleaning up MCP servers: {e}")
 
     @staticmethod
     def get_model_attribute(model_name: str | None, attribute: str) -> Any | None:
@@ -841,10 +1257,39 @@ def main() -> None:
         help="STT (Speech to Text)",
         action="store_true"
     )
+    parser.add_argument(
+        "--mcp-server-url",
+        help="HTTP base URL for an MCP server (without trailing /mcp).",
+        default=None
+    )
+    parser.add_argument(
+        "--mcp-server-name",
+        help="Name to register the MCP server under (default: django_mcp).",
+        default=None
+    )
+    parser.add_argument(
+        "--mcp-token",
+        help="Bearer token for the MCP server (if required).",
+        default=None
+    )
+    parser.add_argument(
+        "--mcp-endpoint",
+        help="Endpoint path for MCP requests (default: mcp).",
+        default=None
+    )
     args = parser.parse_args()
 
     if args.mode == "interactive":
-        chatbot = ChatBot(assistant=args.assistant, debug=args.debug, stt=args.stt, tts=args.tts)
+        chatbot = ChatBot(
+            assistant=args.assistant,
+            debug=args.debug,
+            stt=args.stt,
+            tts=args.tts,
+            mcp_server_url=args.mcp_server_url,
+            mcp_server_name=args.mcp_server_name,
+            mcp_token=args.mcp_token,
+            mcp_endpoint=args.mcp_endpoint,
+        )
         chatbot.interactive()
     elif args.mode == "chatgpt":
         from modules.discord_bot import DiscordBot
