@@ -120,7 +120,6 @@ const app = createApp({
 
         const sliderSpeed = ref(null);
         const sliderTemperature = ref(null);
-        const thinkingMessage = ref(null);
         let thinkingStarted = null;
         let codeCopyObserver = null;
 
@@ -268,13 +267,6 @@ const app = createApp({
             };
 
         }, { deep: true });
-
-        watch(thinkingMessage, (newValue, oldValue) => {
-            if (newValue) {
-                thinkingStarted = Date.now();
-                newValue[0].startSpinning();
-            }
-        });
 
         const sensorThreshold = settings.sensor_threshold ?? 100;
 
@@ -769,7 +761,7 @@ const app = createApp({
 
             let start = null;
             let buffer = "";
-            let revealed = enableThinking.value ? false : true;
+            let hasLoggedThinking = false;
 
             if (currentAbortController.value) {
                 currentAbortController.value.abort();
@@ -815,33 +807,32 @@ const app = createApp({
                                         buffer += content;
 
                                         // Handle JSON control payloads if any
-                                        if (
-                                            buffer.slice(0, controlValue.length) ===
-                                                controlValue
-                                        ) {
+                                        if (buffer.startsWith(controlValue)) {
                                             // Do nothing here; will be handled in final .then()
-                                        } else if (!revealed) {
-                                            const thinkCompleteMatch = buffer.match(
-                                                /^<think>(.*?)<\/think>([\s\S]*)/s,
-                                            );
-                                            if (thinkCompleteMatch) {
-                                                const realContent = thinkCompleteMatch[2];
-                                                chatHistory.value[
-                                                    chatHistory.value.length - 1
-                                                ].content += realContent;
-                                                chatHistory.value[
-                                                    chatHistory.value.length - 1
-                                                ].thinking = thinkCompleteMatch[1];
-                                                revealed = true;
-                                                if (thinkingMessage.value) {
-                                                    thinkingMessage.value[0].setTitle(`Thought for ${Math.floor((Date.now() - thinkingStarted) / 1000)} seconds`);
-                                                    thinkingMessage.value[0].stopSpinning();
+                                        } else {
+                                            const lastMessage = chatHistory.value[chatHistory.value.length - 1];
+
+                                            // Strip thinking blocks from visible output
+                                            // Handle various possible tags: <think>, <thought>, <thought_process>
+                                            let cleanedContent = buffer;
+
+                                            // Remove complete blocks
+                                            cleanedContent = cleanedContent.replace(/<(?:think|thought|thought_process|redacted_reasoning)\s*>[\s\S]*?<\/(?:think|thought|thought_process|redacted_reasoning)\s*>/gi, "");
+
+                                            // Remove partial streaming blocks
+                                            cleanedContent = cleanedContent.replace(/<(?:think|thought|thought_process|redacted_reasoning)\s*>[\s\S]*$/gi, "");
+
+                                            lastMessage.content = cleanedContent;
+
+                                            // Log thinking to console once completed
+                                            if (!hasLoggedThinking) {
+                                                const thinkMatch = buffer.match(/<(?:think|thought|thought_process|redacted_reasoning)\s*>([\s\S]*?)<\/(?:think|thought|thought_process|redacted_reasoning)\s*>/i);
+                                                if (thinkMatch) {
+                                                    console.log("%cAI Thought Process:", "color: #888; font-style: italic; font-weight: bold;");
+                                                    console.log(thinkMatch[1].trim());
+                                                    hasLoggedThinking = true;
                                                 }
                                             }
-                                        } else {
-                                            chatHistory.value[
-                                                chatHistory.value.length - 1
-                                            ].content += content;
                                         }
 
                                         controller.enqueue(value);
@@ -1208,7 +1199,6 @@ const app = createApp({
             speak,
             switches,
             temperature,
-            thinkingMessage,
             ttsHost,
             uploadedFilename,
             url,

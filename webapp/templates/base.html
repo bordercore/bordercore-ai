@@ -127,12 +127,6 @@
                                     AI
                                 </div>
                                 <div>
-                                    <div v-if="message.role === 'assistant' && enableThinking">
-                                        <thinking-message
-                                            ref="thinkingMessage"
-                                            :text="message.thinking"
-                                        ></thinking-message>
-                                    </div>
                                     <div v-html="getMarkdown(message.content)">
                                     </div>
                                 </div>

@@ -623,6 +623,36 @@ class ChatBot():
         args = args or {}
         if not isinstance(messages, list):
             messages = [{"role": "user", "content": messages}]
+
+        # Handle Qwen thinking mode control
+        if self._is_qwen_model():
+            enable_thinking = self.args.get("enable_thinking", False)
+            # Find the last user message and append /no_think if thinking is disabled
+            # (thinking is enabled by default in Qwen models)
+            for msg in reversed(messages):
+                if msg.get("role") == "user":
+                    content = msg.get("content")
+                    if not enable_thinking:
+                        # Append /no_think token to disable thinking
+                        if isinstance(content, str):
+                            # String content: append to the string
+                            msg["content"] = content.rstrip() + " /no_think"
+                        elif isinstance(content, list):
+                            # List content (vision models): find last text item and append
+                            text_item = None
+                            for item in reversed(content):
+                                if isinstance(item, dict) and item.get("type") == "text":
+                                    text_item = item
+                                    break
+                            if text_item:
+                                text_content = text_item.get("text", "")
+                                text_item["text"] = text_content.rstrip() + " /no_think"
+                            else:
+                                # No text item found, append a new text item
+                                content.append({"type": "text", "text": " /no_think"})
+                    # Only modify the first (last in reversed order) user message
+                    break
+
         self.context.add(messages, prune, "user", replace_context)
 
         model_vendor = ChatBot.get_model_attribute(self.model_name, "vendor")
