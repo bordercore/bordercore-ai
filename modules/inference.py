@@ -11,12 +11,18 @@ import base64
 import importlib
 import json
 import logging
+import platform
 from pathlib import Path
 from threading import Event, Thread
 from typing import Any, Dict, Generator, List
 
 import torch
 import transformers
+
+try:
+    import llama_cpp
+except ImportError:
+    llama_cpp = None
 from qwen_vl_utils import process_vision_info
 from transformers import (AutoModelForCausalLM, AutoProcessor, AutoTokenizer,
                           BitsAndBytesConfig,
@@ -118,17 +124,68 @@ class Inference:
         This method determines the type of model to load based on the configuration
         and model name, then initializes it using the Hugging Face `from_pretrained()`
         interface. It supports standard causal language models, Qwen2-VL vision models,
-        and 4-bit AWQ quantized models.
+        4-bit AWQ quantized models, and GGUF models.
 
         Behavior:
+          - For GGUF models: uses `AutoModelForCausalLM` with `gguf_file` parameter.
           - For Qwen2-VL models: uses `Qwen2_5_VLForConditionalGeneration`.
           - For models containing 'awq' in their name: dynamically imports and loads
             `AutoAWQForCausalLM` with quantization-specific arguments.
           - For all other models: uses `AutoModelForCausalLM`.
         """
-        model_config_args = self.get_model_loading_args()
+        print(f"load_model() called for model_path: {self.model_path}", flush=True)
+        logger.info(f"load_model() called for model_path: {self.model_path}")
 
-        if self._is_vision_model():
+        # Check path status
+        model_path_obj = Path(self.model_path)
+        print(f"  Path exists: {model_path_obj.exists()}, is_file: {model_path_obj.is_file()}, is_dir: {model_path_obj.is_dir()}", flush=True)
+        logger.info(f"Path exists: {model_path_obj.exists()}, is_file: {model_path_obj.is_file()}, is_dir: {model_path_obj.is_dir()}")
+
+        print("  Calling get_model_loading_args()...", flush=True)
+        model_config_args = self.get_model_loading_args()
+        print(f"  ✓ Got model_config_args: { {k:v for k,v in model_config_args.items() if k != 'gguf_file'} }", flush=True)
+
+        is_gguf = self._is_gguf_model()
+
+        if is_gguf:
+            if llama_cpp is None:
+                raise ImportError(
+                    "The 'llama-cpp-python' package is required for GGUF models. "
+                    "Please install it with: pip install llama-cpp-python"
+                )
+
+            # For GGUF models, determine if model_path is a file or directory
+            model_path_obj = Path(self.model_path)
+
+            # If it's a directory, find the .gguf file inside it
+            if model_path_obj.is_dir():
+                gguf_files = list(model_path_obj.glob("*.gguf"))
+                if not gguf_files:
+                    raise ValueError(
+                        f"Directory {self.model_path} does not contain any .gguf files"
+                    )
+                # Use the first .gguf file found (or prefer Q8_0 if multiple)
+                gguf_file_obj = gguf_files[0]
+                for gf in gguf_files:
+                    if "Q8_0" in gf.name or "q8_0" in gf.name:
+                        gguf_file_obj = gf
+                        break
+                self.model_path = str(gguf_file_obj)
+
+            try:
+                # Load with llama-cpp-python for high performance (Metal on Mac, CUDA on Linux)
+                # n_gpu_layers=-1 offloads all layers to the GPU
+                self.model = llama_cpp.Llama(
+                    model_path=self.model_path,
+                    n_gpu_layers=-1,
+                    n_ctx=self.max_new_tokens,
+                    verbose=self.debug
+                )
+                logger.info("GGUF model loaded successfully with llama-cpp-python")
+            except Exception as e:
+                logger.error(f"Error loading GGUF model with llama-cpp-python: {e}")
+                raise RuntimeError(f"Failed to load GGUF model: {e}") from e
+        elif self._is_vision_model():
             self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
                 self.model_path, **model_config_args
             )
@@ -177,7 +234,10 @@ class Inference:
 
         prepared_messages = self.prepare_messages_for_generation(messages)
 
-        if self._is_vision_model():
+        # Dispatch to the correct engine based on the model type
+        if llama_cpp is not None and isinstance(self.model, llama_cpp.Llama):
+            yield from self.generate_with_gguf_model(prepared_messages)
+        elif self._is_vision_model():
             # For vision models with list content, skip template application here
             # It will be handled in generate_with_vision_model
             has_list_content = any(
@@ -202,6 +262,9 @@ class Inference:
         model-specific tokenizer adjustments, such as setting padding behavior or
         adding special tokens required by certain model variants.
 
+        For GGUF models, tokenizers are not embedded in the `.gguf` file, so this
+        method loads the tokenizer from the parent directory or HuggingFace.
+
         Returns:
             A tokenizer or processor instance compatible with the target model.
         """
@@ -209,7 +272,63 @@ class Inference:
             processor = AutoProcessor.from_pretrained(self.model_path)
             return processor
 
-        tokenizer = AutoTokenizer.from_pretrained(self.model_path)
+        # Handle GGUF models - tokenizers need to be loaded from parent directory or HuggingFace
+        if self._is_gguf_model():
+            model_path_obj = Path(self.model_path)
+
+            # Determine parent_dir: if model_path is a directory, use it; if it's a file, use its parent
+            if model_path_obj.is_dir():
+                parent_dir = model_path_obj
+            else:
+                parent_dir = model_path_obj.parent
+
+            model_dir_name = parent_dir.name
+            base_name = model_dir_name.replace("-GGUF", "").replace("_GGUF", "")
+
+            # Try to load tokenizer from parent directory first (if tokenizer files exist)
+            tokenizer = None
+            tokenizer_path = parent_dir / "tokenizer.json"
+            config_path = parent_dir / "tokenizer_config.json"
+
+            if tokenizer_path.exists() or config_path.exists():
+                try:
+                    tokenizer = AutoTokenizer.from_pretrained(
+                        str(parent_dir), trust_remote_code=True
+                    )
+                except Exception:
+                    pass  # Continue to HuggingFace fallback
+
+            # If not found in parent directory, try HuggingFace with simple defaults
+            if tokenizer is None:
+                default_model_ids = [f"Qwen/{base_name}", "Qwen/Qwen2.5-8B-Instruct"]
+
+                print(f"Loading tokenizer from HuggingFace (model files not found locally)...")
+                logger.info(f"Attempting to load tokenizer from HuggingFace for {base_name}")
+                for model_id in default_model_ids:
+                    try:
+                        tokenizer = AutoTokenizer.from_pretrained(
+                            model_id, trust_remote_code=True
+                        )
+                        print(f"✓ Successfully loaded tokenizer from {model_id}")
+                        logger.info(f"Successfully loaded tokenizer from {model_id}")
+                        break
+                    except Exception as e:
+                        print(f"✗ Failed to load tokenizer from {model_id}: {e}")
+                        logger.warning(f"Failed to load tokenizer from {model_id}: {e}")
+                        continue
+
+                if tokenizer is None:
+                    error_msg = (
+                        f"Could not load tokenizer for GGUF model {self.model_path}.\n"
+                        f"Please ensure tokenizer files exist in {parent_dir} or "
+                        f"provide a valid HuggingFace model ID."
+                    )
+                    print(f"\n❌ ERROR: {error_msg}")
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+        else:
+            tokenizer = AutoTokenizer.from_pretrained(self.model_path)
+
         tokenizer.padding_side = "right"
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
@@ -319,8 +438,16 @@ class Inference:
         Returns:
             A dictionary of keyword arguments to pass to the model loader.
         """
-        args = {"device_map": {"": 0}, "trust_remote_code": True}
+        # Use CPU device map for Mac, CUDA for Linux
+        device_map: str | Dict[str, int]
+        if platform.system() == "Darwin":  # Mac
+            device_map = "cpu"
+        else:
+            device_map = {"": 0}  # CUDA for Linux
 
+        args: Dict[str, Any] = {"device_map": device_map, "trust_remote_code": True}
+
+        # Handle Transformers-based models (GGUF is now handled by llama-cpp-python in load_model)
         model_config = self._get_model_config_from_file()
         if "quantization_config" not in model_config:
             args["quantization_config"] = self.get_quantization_config()
@@ -582,7 +709,11 @@ class Inference:
                 self.tokenizer.convert_tokens_to_ids("<|eot_id|>"),  # Llama3 EOT token
             ]
 
-        generator = pipeline("text-generation", **pipeline_args)
+        try:
+            generator = pipeline("text-generation", **pipeline_args)
+        except Exception as e:
+            logger.error(f"Error creating pipeline: {e}", exc_info=True)
+            raise
 
         # Run generation in a separate thread to enable streaming
         thread = Thread(
@@ -592,12 +723,56 @@ class Inference:
         )
         thread.start()
 
-        for text in streamer:
-            if self.stop_event and self.stop_event.is_set():
-                break
-            yield text
+        try:
+            for text in streamer:
+                if self.stop_event and self.stop_event.is_set():
+                    break
+                yield text
+        except Exception as e:
+            logger.error(f"Error in streamer loop: {e}", exc_info=True)
+            raise
+        finally:
+            thread.join()
 
-        thread.join()
+    def generate_with_gguf_model(self, messages: List[Dict[str, Any]]) -> Generator[str, None, None]:
+        """
+        Generate text using a GGUF model via llama-cpp-python.
+
+        This method handles the specific message formatting and streaming API
+        of llama-cpp-python, ensuring high performance on Mac (Metal) and Linux (CUDA).
+
+        Args:
+            messages: A list of chat messages.
+
+        Yields:
+            Segments of the model's decoded response as strings.
+        """
+        if self.model is None or not isinstance(self.model, llama_cpp.Llama):
+            raise RuntimeError("Llama-cpp model must be loaded before calling generate_with_gguf_model().")
+
+        # Use the llama-cpp-python chat completion API with streaming
+        try:
+            response = self.model.create_chat_completion(
+                messages=messages,
+                max_tokens=self.max_new_tokens,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                top_k=self.top_k,
+                stream=True
+            )
+
+            for chunk in response:
+                if self.stop_event and self.stop_event.is_set():
+                    break
+
+                # Extract the text content from the chunk
+                delta = chunk["choices"][0]["delta"]
+                if "content" in delta:
+                    yield delta["content"]
+
+        except Exception as e:
+            logger.error(f"Error during GGUF generation: {e}")
+            raise RuntimeError(f"GGUF generation failed: {e}") from e
 
     def generate_with_vision_model(
         self, prompt: str, messages: List[Dict[str, Any]]
@@ -733,6 +908,24 @@ class Inference:
         """
         return self.model_info.get(self.model_name, {}).get(name, default)
 
+    def _is_gguf_model(self) -> bool:
+        """
+        Determine whether the model path points to a GGUF file or directory containing one.
+
+        Returns:
+            bool: ``True`` if the model_path is a `.gguf` file or a directory containing one, otherwise ``False``.
+        """
+        model_path_obj = Path(self.model_path)
+        # Check if the path ends with .gguf (works even if file doesn't exist yet)
+        if model_path_obj.suffix.lower() == ".gguf":
+            return True
+        # Check if it's a directory containing a .gguf file
+        if model_path_obj.is_dir():
+            for item in model_path_obj.iterdir():
+                if item.is_file() and item.suffix.lower() == ".gguf":
+                    return True
+        return False
+
     def _is_vision_model(self) -> bool:
         """
         Determine whether the currently-selected model supports vision inputs.
@@ -755,11 +948,21 @@ class Inference:
         directory specified by `self.model_path`. If the file does not exist, an empty
         dictionary is returned.
 
+        For GGUF models, the config.json would be in the parent directory of the .gguf file.
+
         Returns:
             dict: A dictionary representing the model's configuration, or an empty
             dict if the file is missing.
         """
-        config_path = Path(self.model_path) / "config.json"
+        if self._is_gguf_model():
+            # For GGUF models, config.json would be in the parent directory
+            model_path_obj = Path(self.model_path)
+            if model_path_obj.is_dir():
+                config_path = model_path_obj / "config.json"
+            else:
+                config_path = model_path_obj.parent / "config.json"
+        else:
+            config_path = Path(self.model_path) / "config.json"
         if not config_path.is_file():
             return {}
         with open(config_path, "r", encoding="utf-8") as f:

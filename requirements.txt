@@ -1,8 +1,9 @@
 --index-url https://download.pytorch.org/whl/cu128
 --extra-index-url https://pypi.org/simple
 
+accelerate==1.12.0
 anthropic==0.72.0
-autoawq==0.2.9
+autoawq==0.2.9 ; sys_platform == "linux"
 bitsandbytes==0.46.0
 bleak==0.22.3
 chromadb==0.5.13
@@ -12,6 +13,7 @@ ffmpeg-python==0.2.0
 Flask==3.0.0
 Flask-Cors==5.0.0
 Flask-Session==0.8.0
+gguf==0.17.1
 google-api-python-client==1.6.2
 httplib2==0.22.0
 http-constants==0.5.0
@@ -27,6 +29,7 @@ pydub==0.25.1
 pypdf==5.1.0
 pysbd==0.3.4
 pytest==8.2.2
+llama-cpp-python==0.3.7
 PyYAML==6.0.2
 qwen_vl_utils==0.0.11
 sounddevice==0.4.6

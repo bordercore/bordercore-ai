@@ -46,8 +46,8 @@ from modules.govee import control_lights
 from modules.inference import Inference
 from modules.music import play_music
 from modules.tool_registry import ToolRegistry
-from modules.util import (clean_model_response, get_model_info, get_webpage_contents, sort_models,
-                          strip_code_fences)
+from modules.util import (clean_model_response, get_model_info,
+                          get_webpage_contents, sort_models, strip_code_fences)
 from modules.weather import get_weather_info
 from modules.wolfram_alpha import WolframAlphaFunctionCall
 
@@ -118,21 +118,16 @@ class ChatBot():
         if "temperature" in self.args:
             self.temperature = self.args["temperature"]
 
-    @staticmethod
-    def get_api_endpoints() -> dict[str, str]:
+    def _is_qwen_model(self) -> bool:
         """
-        Return the endpoints for local LLM HTTP API interactions.
+        Check if the current model is a Qwen model.
 
         Returns:
-            Mapping of endpoint keys to full URL strings.
+            True if the model name contains 'qwen' (case-insensitive), False otherwise.
         """
-        host = settings.api_host
-        return {
-            "CHAT": f"{host}/v1/chat/completions",
-            "MODEL_INFO": f"{host}/v1/internal/model/info",
-            "MODEL_LIST": f"{host}/v1/internal/model/list",
-            "MODEL_LOAD": f"{host}/v1/internal/model/load",
-        }
+        if not self.model_name:
+            return False
+        return "qwen" in self.model_name.lower()
 
     # Remove punctuation and whitespace from the end of the string.
     def sanitize_string(self, input_string: str) -> str:
