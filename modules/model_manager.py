@@ -16,6 +16,7 @@ Key features
 """
 
 import gc
+import os
 from typing import Any
 
 import torch
@@ -48,7 +49,7 @@ class ModelManager:
             return
 
         settings.model_name = model_name
-        model_path = f"{settings.model_dir}/{model_name}"
+        model_path = os.path.join(settings.model_dir, model_name)
 
         self.inference = Inference(model_path=model_path, quantize=True)
         self.inference.load_model()

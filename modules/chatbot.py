@@ -526,39 +526,22 @@ class ChatBot():
             chatbot_logger.debug("Sending message to model with streaming enabled")
             response = self.send_message_to_model(messages, stream=True, replace_context=True)
 
-            # For streaming responses, collect chunks first (don't yield yet) to check for tool calls
+            # Stream chunks as they arrive while buffering for tool call detection
             if hasattr(response, "__iter__") and not isinstance(response, str):
-                response_chunks = []
+                buffer = []
                 for chunk in response:
-                    response_chunks.append(chunk)
+                    buffer.append(chunk)
+                    yield chunk  # Yield immediately for streaming
 
-                # After collecting all chunks, check for tool calls
-                full_response = "".join(response_chunks)
+                # After streaming completes, check for tool calls
+                full_response = "".join(buffer)
                 chatbot_logger.debug(f"Checking for tool calls in response (length: {len(full_response)}): {full_response[:500]}")
-                print(f"[ChatBot] Checking for tool calls in response (length: {len(full_response)}): {full_response[:500]}")
                 tool_call_result = self._handle_tool_calls_in_response(messages, full_response)
                 if tool_call_result:
                     chatbot_logger.info("Tool call detected and executed, returning final response")
-                    print(f"[ChatBot] Tool call detected and executed, returning final response")
-                    # Tool was called, yield only the final result (hide the tool call JSON)
-                    final_chunks = []
-                    chunk_count = 0
+                    # Tool was called - yield the tool result
                     for chunk in tool_call_result:
-                        final_chunks.append(chunk)
-                        chunk_count += 1
-                    chatbot_logger.info(f"Collected {chunk_count} chunks from tool call result, total length: {len(''.join(final_chunks))}")
-                    print(f"[ChatBot] Collected {chunk_count} chunks from tool call result, total length: {len(''.join(final_chunks))}")
-                    # Clean the final response (already cleaned in _handle_tool_calls_in_response, but clean again to be safe)
-                    cleaned_final = clean_model_response("".join(final_chunks))
-                    chatbot_logger.info(f"Yielding cleaned final response (length: {len(cleaned_final)})")
-                    print(f"[ChatBot] Yielding cleaned final response (length: {len(cleaned_final)})")
-                    yield cleaned_final
-                else:
-                    # No tool call, clean and yield the original response
-                    chatbot_logger.info("No tool call detected, yielding original response")
-                    print(f"[ChatBot] No tool call detected, yielding original response")
-                    cleaned_response = clean_model_response(full_response)
-                    yield cleaned_response
+                        yield chunk
             else:
                 # Non-streaming response
                 full_response = response if isinstance(response, str) else "".join(response)
