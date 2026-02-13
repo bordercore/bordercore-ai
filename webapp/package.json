@@ -19,7 +19,7 @@
     "eslint-plugin-vue": "^9.26.0",
     "highlight.js": "^11.9.0",
     "katex": "^0.16.25",
-    "markdown-it": "^14.1.0",
+    "markdown-it": "^14.1.1",
     "media-chrome": "^3.2.3",
     "onnxruntime-web": "^1.16.1",
     "sass": "^1.77.8",
