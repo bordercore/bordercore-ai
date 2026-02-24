@@ -14,6 +14,8 @@ for services like Discord bots.
 
 Configuration is handled via command-line arguments and the `api.settings` module.
 """
+from __future__ import annotations
+
 import argparse
 import json
 import logging
@@ -43,7 +45,6 @@ import settings
 from modules.context import Context
 from modules.google_calendar import get_schedule
 from modules.govee import control_lights
-from modules.inference import Inference
 from modules.music import play_music
 from modules.tool_registry import ToolRegistry
 from modules.util import (clean_model_response, get_model_info,
@@ -766,6 +767,8 @@ class ChatBot():
         # Initialize tool registry if not already done
         if self.tool_registry is None:
             self._initialize_tool_registry()
+
+        from modules.inference import Inference
 
         model_path = f"{settings.model_dir}/{settings.model_name}"
         inference = Inference(

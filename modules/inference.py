@@ -5,6 +5,7 @@ custom templates, image-based prompts, and streaming text generation.
 
 The module can be executed as a script to run inference interactively or with an image.
 """
+from __future__ import annotations
 
 import argparse
 import base64
@@ -14,20 +15,12 @@ import logging
 import platform
 from pathlib import Path
 from threading import Event, Thread
-from typing import Any, Dict, Generator, List
-
-import torch
-import transformers
+from typing import TYPE_CHECKING, Any, Dict, Generator, List
 
 try:
     import llama_cpp
 except ImportError:
     llama_cpp = None
-from qwen_vl_utils import process_vision_info
-from transformers import (AutoModelForCausalLM, AutoProcessor, AutoTokenizer,
-                          BitsAndBytesConfig,
-                          Qwen2_5_VLForConditionalGeneration, StoppingCriteria,
-                          StoppingCriteriaList, TextIteratorStreamer, pipeline)
 
 import settings
 from modules.context import Context
@@ -36,24 +29,84 @@ from modules.mcp_exceptions import MCPConnectionError, MCPServerError
 from modules.tool_registry import ToolRegistry
 from modules.util import get_model_info
 
-# Suppress the "Special tokens have been added in the vocabulary..." warning
-transformers.logging.set_verbosity_error()
-
 logger = logging.getLogger(__name__)
 
 COLOR_GREEN = "\033[32m"
 COLOR_BLUE = "\033[34m"
 COLOR_RESET = "\033[0m"
 
+# Heavy ML imports (torch, transformers, qwen_vl_utils) are loaded lazily
+# so that importing this module doesn't require them to be installed.
+if TYPE_CHECKING:
+    import torch
+    from qwen_vl_utils import process_vision_info
+    from transformers import (
+        AutoModelForCausalLM,
+        AutoProcessor,
+        AutoTokenizer,
+        BitsAndBytesConfig,
+        Qwen2_5_VLForConditionalGeneration,
+        StoppingCriteria,
+        StoppingCriteriaList,
+        TextIteratorStreamer,
+        pipeline,
+    )
 
-class EventStoppingCriteria(StoppingCriteria):
-    """Stop generation when a threading.Event is set."""
+    class EventStoppingCriteria(StoppingCriteria):
+        ...
 
-    def __init__(self, stop_event: Event) -> None:
-        self.stop_event = stop_event
+_ml_imports_done = False
 
-    def __call__(self, input_ids: Any, scores: Any, **kwargs: Any) -> bool:
-        return self.stop_event.is_set()
+
+def _ensure_ml_imports() -> None:
+    """Import torch, transformers, and qwen_vl_utils on first use."""
+    global _ml_imports_done
+    if _ml_imports_done:
+        return
+
+    import torch as _torch
+    import transformers as _transformers
+    from qwen_vl_utils import process_vision_info as _process_vision_info
+    from transformers import (
+        AutoModelForCausalLM as _AutoModelForCausalLM,
+        AutoProcessor as _AutoProcessor,
+        AutoTokenizer as _AutoTokenizer,
+        BitsAndBytesConfig as _BitsAndBytesConfig,
+        Qwen2_5_VLForConditionalGeneration as _Qwen2_5_VL,
+        StoppingCriteria as _StoppingCriteria,
+        StoppingCriteriaList as _StoppingCriteriaList,
+        TextIteratorStreamer as _TextIteratorStreamer,
+        pipeline as _pipeline,
+    )
+
+    _transformers.logging.set_verbosity_error()
+
+    class _EventStoppingCriteria(_StoppingCriteria):
+        """Stop generation when a threading.Event is set."""
+
+        def __init__(self, stop_event: Event) -> None:
+            self.stop_event = stop_event
+
+        def __call__(self, input_ids: Any, scores: Any, **kwargs: Any) -> bool:
+            return self.stop_event.is_set()
+
+    # Publish into module globals so the rest of the code works unchanged.
+    g = globals()
+    g["torch"] = _torch
+    g["transformers"] = _transformers
+    g["process_vision_info"] = _process_vision_info
+    g["AutoModelForCausalLM"] = _AutoModelForCausalLM
+    g["AutoProcessor"] = _AutoProcessor
+    g["AutoTokenizer"] = _AutoTokenizer
+    g["BitsAndBytesConfig"] = _BitsAndBytesConfig
+    g["Qwen2_5_VLForConditionalGeneration"] = _Qwen2_5_VL
+    g["StoppingCriteria"] = _StoppingCriteria
+    g["StoppingCriteriaList"] = _StoppingCriteriaList
+    g["TextIteratorStreamer"] = _TextIteratorStreamer
+    g["pipeline"] = _pipeline
+    g["EventStoppingCriteria"] = _EventStoppingCriteria
+
+    _ml_imports_done = True
 
 
 class Inference:
@@ -97,6 +150,8 @@ class Inference:
             enable_thinking: If True, enables tool reasoning mode.
             debug: If True, enables verbose debug output.
         """
+        _ensure_ml_imports()
+
         self.model_path = model_path
         self.model_name = Path(model_path).parts[-1]
         self.quantize = quantize
