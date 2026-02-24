@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from tts.app_kokoro import app
+from kokoro_tts.app_kokoro import app
 
 
 BASE_DIR = Path(__file__).resolve().parent
-SSL_CERT = BASE_DIR / "ssl" / "server.crt"
-SSL_KEY = BASE_DIR / "ssl" / "server.key"
+SSL_CERT = BASE_DIR.parent / "ssl" / "server.crt"
+SSL_KEY = BASE_DIR.parent / "ssl" / "server.key"
 
 
 if __name__ == "__main__":
