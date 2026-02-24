@@ -36,4 +36,4 @@ torchvision==0.22.1
 trafilatura==1.12.1
 transformers==4.53.0
 whisper-mic==1.1.1
-yt-dlp==2024.11.18
+yt-dlp==2026.2.21
