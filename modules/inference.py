@@ -294,6 +294,12 @@ class Inference:
                     logger.error(f"Error loading GGUF model with llama-cpp-python: {e}")
                     raise RuntimeError(f"Failed to load GGUF model: {e}") from e
         elif self._is_vision_model():
+            if "awq" in self.model_name.lower():
+                from transformers import AwqConfig
+
+                awq_config = AwqConfig(bits=4, backend="gemm")
+                model_config_args["quantization_config"] = awq_config
+
             self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
                 self.model_path, **model_config_args
             )
