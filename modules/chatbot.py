@@ -1149,6 +1149,9 @@ class ChatBot():
         Fetches the model list from the server endpoint, appends additional models defined via API config,
         transforms them into a standardized list of dictionaries, and returns the sorted result.
 
+        Recursively searches subdirectories for .gguf files and uses relative paths as model identifiers
+        to support models stored in nested directories (e.g., "Qwen3-8B-GGUF/Qwen3-8B-Q6_K.gguf").
+
         Returns:
             A sorted list of dictionaries, where each dictionary contains metadata about a model,
             such as "model", "name", "type", and optional "qwen_vision".
@@ -1157,13 +1160,39 @@ class ChatBot():
         if not os.path.isdir(directory):
             raise ValueError(f"{directory} is not a valid directory.")
 
-        directories = []
-        for item in os.listdir(directory):
-            full_path = os.path.join(directory, item)
-            if os.path.isdir(full_path) or full_path.endswith("gguf"):
-                directories.append(item)
+        model_names = []
+        # Recursively search for .gguf files in subdirectories
+        for root, dirs, files in os.walk(directory):
+            # Calculate relative path from model_dir
+            rel_root = os.path.relpath(root, directory)
 
-        model_names = directories
+            # Look for .gguf files in current directory
+            for file in files:
+                if file.endswith(".gguf"):
+                    # If file is in root (model_dir), use just filename
+                    # Otherwise use relative path (e.g., "Qwen3-8B-GGUF/Qwen3-8B-Q6_K.gguf")
+                    if rel_root == ".":
+                        model_names.append(file)
+                    else:
+                        model_names.append(os.path.join(rel_root, file))
+
+            # For backward compatibility: include directories that don't contain .gguf files
+            # but only at the top level (not recursively, to avoid duplicates)
+            if rel_root == ".":
+                for item in dirs:
+                    item_path = os.path.join(root, item)
+                    # Check if this directory contains any .gguf files
+                    try:
+                        has_gguf = any(
+                            f.endswith(".gguf") and os.path.isfile(os.path.join(item_path, f))
+                            for f in os.listdir(item_path)
+                        )
+                        # Only add directory if it doesn't contain .gguf files (legacy behavior)
+                        if not has_gguf:
+                            model_names.append(item)
+                    except (OSError, PermissionError):
+                        # Skip directories we can't read
+                        continue
 
         # Add API-based models
         model_names.extend(
@@ -1204,7 +1233,15 @@ class ChatBot():
             # Start with the model identifier
             model_dict = {"model": x}
             # Add the name, defaulting to the model identifier if not specified
-            model_dict["name"] = model_data.get("name", x)
+            # For nested paths, use just the filename (basename) as the default display name
+            if "name" in model_data:
+                model_dict["name"] = model_data["name"]
+            else:
+                # If identifier contains a path separator, use basename; otherwise use identifier
+                if os.sep in x or "/" in x:
+                    model_dict["name"] = os.path.basename(x)
+                else:
+                    model_dict["name"] = x
             # Include all other attributes from models.yaml
             for key, value in model_data.items():
                 if key != "name":  # name is already set above
