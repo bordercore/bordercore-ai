@@ -11,7 +11,7 @@ from pathlib import Path
 
 import dateutil.parser
 import httplib2
-from apiclient.discovery import build
+from googleapiclient.discovery import build
 from oauth2client.client import OAuth2Credentials
 
 import settings
