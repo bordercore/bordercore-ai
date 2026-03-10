@@ -227,19 +227,72 @@ class Inference:
                         break
                 self.model_path = str(gguf_file_obj)
 
-            try:
-                # Load with llama-cpp-python for high performance (Metal on Mac, CUDA on Linux)
-                # n_gpu_layers=-1 offloads all layers to the GPU
-                self.model = llama_cpp.Llama(
-                    model_path=self.model_path,
-                    n_gpu_layers=-1,
-                    n_ctx=self.max_new_tokens,
-                    verbose=self.debug
-                )
-                logger.info("GGUF model loaded successfully with llama-cpp-python")
-            except Exception as e:
-                logger.error(f"Error loading GGUF model with llama-cpp-python: {e}")
-                raise RuntimeError(f"Failed to load GGUF model: {e}") from e
+            # Try loading with configured settings, fallback to lower memory if needed
+            low_memory_mode = getattr(settings, "gguf_low_memory_mode", False)
+            input_context_size = 1024 if low_memory_mode else getattr(settings, "gguf_input_context_size", 2048)
+            n_ctx = input_context_size + self.max_new_tokens
+            attempt = 0
+            max_attempts = 2
+
+            while attempt < max_attempts:
+                try:
+                    # Load with llama-cpp-python for high performance (Metal on Mac, CUDA on Linux)
+                    # n_gpu_layers=-1 offloads all layers to the GPU
+                    # n_ctx should include both input context and output tokens
+                    # Default: 2048 for input context + max_new_tokens for output
+                    # Low memory mode: 1024 for input context + max_new_tokens for output
+                    if attempt == 0:
+                        logger.info(f"Loading GGUF model with n_ctx={n_ctx} (input={input_context_size}, output={self.max_new_tokens})")
+                    else:
+                        logger.info(f"Retrying GGUF model load with reduced context: n_ctx={n_ctx} (input={input_context_size}, output={self.max_new_tokens})")
+                    self.model = llama_cpp.Llama(
+                        model_path=self.model_path,
+                        n_gpu_layers=-1,
+                        n_ctx=n_ctx,
+                        verbose=self.debug
+                    )
+                    logger.info("GGUF model loaded successfully with llama-cpp-python")
+                    break
+                except (RuntimeError, MemoryError) as e:
+                    error_msg = str(e)
+                    # Check if this is a memory error and we haven't already tried low memory mode
+                    is_memory_error = (
+                        "llama_decode returned -3" in error_msg or
+                        "returned -3" in error_msg or
+                        "memory" in error_msg.lower() or
+                        isinstance(e, MemoryError)
+                    )
+                    if is_memory_error and attempt == 0 and not low_memory_mode:
+                        # Automatically retry with lower context size
+                        attempt += 1
+                        input_context_size = 1024
+                        n_ctx = input_context_size + self.max_new_tokens
+                        logger.warning(
+                            f"Memory error during model load, retrying with reduced context size "
+                            f"(n_ctx={n_ctx}). Consider setting 'gguf_low_memory_mode = True' in settings.py"
+                        )
+                        continue
+                    else:
+                        # Re-raise with helpful message if it's a memory error after fallback, or not a memory error
+                        if is_memory_error:
+                            logger.error(f"Memory allocation failure while loading GGUF model: {e}")
+                            helpful_msg = (
+                                "Out of memory error while loading GGUF model. This usually means:\n"
+                                "1. The model is too large for available RAM/VRAM\n"
+                                "2. The context window (n_ctx) is too large\n\n"
+                                "Try these solutions:\n"
+                                "- Enable low memory mode: Set 'gguf_low_memory_mode = True' in settings.py\n"
+                                "- Reduce input context size: Set 'gguf_input_context_size = 1024' (or lower) in settings.py\n"
+                                "- Use a smaller model\n"
+                                "- Close other applications to free up memory"
+                            )
+                            raise RuntimeError(helpful_msg) from e
+                        else:
+                            raise
+                except Exception as e:
+                    # Catch any other exceptions not caught above (non-memory errors)
+                    logger.error(f"Error loading GGUF model with llama-cpp-python: {e}")
+                    raise RuntimeError(f"Failed to load GGUF model: {e}") from e
         elif self._is_vision_model():
             self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
                 self.model_path, **model_config_args
@@ -825,6 +878,25 @@ class Inference:
                 if "content" in delta:
                     yield delta["content"]
 
+        except RuntimeError as e:
+            error_msg = str(e)
+            # Check for memory allocation errors (llama_decode returned -3)
+            if "llama_decode returned -3" in error_msg or "returned -3" in error_msg:
+                logger.error(f"Memory allocation failure during GGUF generation: {e}")
+                helpful_msg = (
+                    "Out of memory error during model inference. This usually means:\n"
+                    "1. The model is too large for available RAM/VRAM\n"
+                    "2. The context window (n_ctx) is too large\n\n"
+                    "Try these solutions:\n"
+                    "- Enable low memory mode: Set 'gguf_low_memory_mode = True' in settings.py\n"
+                    "- Reduce input context size: Set 'gguf_input_context_size = 1024' (or lower) in settings.py\n"
+                    "- Use a smaller model or reduce max_new_tokens\n"
+                    "- Close other applications to free up memory"
+                )
+                raise RuntimeError(helpful_msg) from e
+            else:
+                logger.error(f"Error during GGUF generation: {e}")
+                raise RuntimeError(f"GGUF generation failed: {e}") from e
         except Exception as e:
             logger.error(f"Error during GGUF generation: {e}")
             raise RuntimeError(f"GGUF generation failed: {e}") from e
