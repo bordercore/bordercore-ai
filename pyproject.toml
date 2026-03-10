@@ -33,6 +33,9 @@ dependencies = [
     "yt-dlp",
 ]
 
+[tool.uv]
+no-build-isolation-package = ["gptqmodel"]
+
 [tool.uv.sources]
 torch = { index = "pytorch-cu128" }
 
