@@ -91,6 +91,33 @@ class MCPClient:
 
         self._tools: Optional[List[Dict[str, Any]]] = None
 
+    @staticmethod
+    def check_server_health(url: str, endpoint_path: str = "mcp", timeout: int = 2) -> bool:
+        """
+        Check if an HTTP MCP server is running and accessible.
+
+        Args:
+            url: Base URL of the MCP server (e.g., "http://127.0.0.1:8000").
+            endpoint_path: Endpoint path for MCP requests (default: "mcp").
+            timeout: Connection timeout in seconds (default: 2).
+
+        Returns:
+            True if server is accessible, False otherwise.
+        """
+        try:
+            endpoint = f"{url.rstrip('/')}/{endpoint_path.strip('/')}"
+            with httpx.Client(timeout=timeout) as client:
+                # Try a simple HEAD or GET request to check if server is up
+                # Some servers may not respond to HEAD, so we use GET with a minimal request
+                response = client.get(endpoint, follow_redirects=False)
+                # Any response (even 404/405) means server is running
+                return True
+        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError):
+            return False
+        except Exception:
+            # Any other exception means we couldn't determine, assume not running
+            return False
+
     def _require_process_streams(self) -> tuple[subprocess.Popen[bytes], IO[bytes], IO[bytes], Optional[IO[bytes]]]:
         """
         Ensure the stdio process and its streams are available.

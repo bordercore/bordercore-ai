@@ -23,10 +23,13 @@ import os
 import random
 import re
 import string
+import subprocess
 import sys
 import tempfile
+import time
 import urllib.parse
 import warnings
+from pathlib import Path
 from threading import Event
 from typing import (Any, Dict, Generator, Iterator, List, Literal, Mapping,
                     Union, cast, overload)
@@ -115,6 +118,8 @@ class ChatBot():
         self.mcp_server_name = self.args.get("mcp_server_name") or getattr(settings, "mcp_server_name", "django_mcp")
         self.mcp_token = self.args.get("mcp_token") or getattr(settings, "mcp_token", "")
         self.mcp_endpoint = self.args.get("mcp_endpoint") or getattr(settings, "mcp_endpoint", "mcp")
+        # Track auto-started MCP server processes for cleanup
+        self._auto_started_processes: List[subprocess.Popen[bytes]] = []
 
         if "temperature" in self.args:
             self.temperature = self.args["temperature"]
@@ -1041,6 +1046,49 @@ class ChatBot():
 
         return configured_servers
 
+    def _start_postgres_mcp_server(self) -> subprocess.Popen[bytes] | None:
+        """
+        Start the postgres MCP server as a background subprocess.
+
+        Returns:
+            The subprocess.Popen object if successful, None otherwise.
+        """
+        try:
+            # Find the run_pg_mcp_server.py script
+            root_dir = Path(__file__).resolve().parent.parent
+            server_script = root_dir / "run_pg_mcp_server.py"
+
+            if not server_script.exists():
+                chatbot_logger.error(f"Postgres MCP server script not found at {server_script}")
+                return None
+
+            # Start the server as a background process
+            chatbot_logger.info(f"Starting postgres MCP server: {server_script}")
+            process = subprocess.Popen(
+                [sys.executable, str(server_script)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=os.environ.copy(),
+            )
+
+            # Give it a moment to start
+            time.sleep(0.5)
+
+            # Check if process is still running (hasn't crashed immediately)
+            if process.poll() is not None:
+                # Process exited, try to read error
+                stderr_output = process.stderr.read(1024) if process.stderr else b""
+                chatbot_logger.error(
+                    f"Postgres MCP server exited immediately. Error: {stderr_output.decode('utf-8', errors='ignore')}"
+                )
+                return None
+
+            chatbot_logger.info(f"Postgres MCP server started with PID {process.pid}")
+            return process
+        except Exception as e:
+            chatbot_logger.error(f"Failed to start postgres MCP server: {e}", exc_info=True)
+            return None
+
     def _initialize_tool_registry(self) -> None:
         """
         Initialize the tool registry with MCP servers from settings.
@@ -1082,6 +1130,44 @@ class ChatBot():
                     endpoint = server_config.get("endpoint", "mcp")
                     headers = server_config.get("headers", {})
 
+                    # Check if server is running, auto-start if needed
+                    if not MCPClient.check_server_health(url, endpoint):
+                        chatbot_logger.info(f"[MCP {server_name}] Server not running, attempting to auto-start...")
+                        if server_name == "postgres":
+                            # Auto-start postgres MCP server
+                            server_process = self._start_postgres_mcp_server()
+                            if server_process:
+                                self._auto_started_processes.append(server_process)
+                                # Wait for server to be ready with exponential backoff
+                                max_wait = 10  # seconds
+                                wait_time = 0.5
+                                elapsed = 0.0
+                                while elapsed < max_wait:
+                                    if MCPClient.check_server_health(url, endpoint):
+                                        chatbot_logger.info(f"[MCP {server_name}] Server is now ready after {elapsed:.1f}s")
+                                        break
+                                    time.sleep(wait_time)
+                                    elapsed += wait_time
+                                    wait_time = min(wait_time * 1.5, 2.0)  # Exponential backoff, max 2s
+                                else:
+                                    chatbot_logger.warning(
+                                        f"[MCP {server_name}] Server did not become ready after {max_wait}s. "
+                                        f"Please start it manually: python run_pg_mcp_server.py"
+                                    )
+                                    continue
+                            else:
+                                chatbot_logger.warning(
+                                    f"[MCP {server_name}] Failed to auto-start server. "
+                                    f"Please start it manually: python run_pg_mcp_server.py"
+                                )
+                                continue
+                        else:
+                            chatbot_logger.warning(
+                                f"[MCP {server_name}] Server not running and auto-start not supported. "
+                                f"Please start the server manually."
+                            )
+                            continue
+
                     client = MCPClient(
                         server_name=server_name,
                         url=url,
@@ -1122,6 +1208,22 @@ class ChatBot():
                 self.tool_registry.disconnect_all_mcp_servers()
             except Exception as e:
                 chatbot_logger.warning(f"Error cleaning up MCP servers: {e}")
+
+        # Terminate auto-started server processes
+        for process in self._auto_started_processes:
+            try:
+                if process.poll() is None:  # Process is still running
+                    chatbot_logger.info(f"Terminating auto-started MCP server process (PID {process.pid})")
+                    process.terminate()
+                    try:
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        chatbot_logger.warning(f"Process {process.pid} did not terminate, killing it")
+                        process.kill()
+                        process.wait()
+            except Exception as e:
+                chatbot_logger.warning(f"Error terminating auto-started process: {e}")
+        self._auto_started_processes.clear()
 
     @staticmethod
     def get_model_attribute(model_name: str | None, attribute: str) -> Any | None:

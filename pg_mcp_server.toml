@@ -1,0 +1,19 @@
+[server]
+# Connection string to your local PostgreSQL database.
+database_url = "postgresql://bordercore@bordercore.cvkm90zuldto.us-east-1.rds.amazonaws.com:5432/bordercore"
+
+# Keep false to enforce read-only sessions. Set true only if you intend writes.
+allow_writes = false
+
+# Transport for pg-mcp-server: "http" (SSE endpoint) or "stdio".
+transport = "http"
+
+# Bind interface/port when using http transport.
+host = "127.0.0.1"
+port = 8000
+
+# Optional TLS root certificate bundle path (e.g., RDS global bundle).
+ssl_root_cert = ""
+
+# Enable verbose logging from the server.
+debug = false

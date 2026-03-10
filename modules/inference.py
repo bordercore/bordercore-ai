@@ -12,7 +12,11 @@ import base64
 import importlib
 import json
 import logging
+import os
 import platform
+import subprocess
+import sys
+import time
 from pathlib import Path
 from threading import Event, Thread
 from typing import TYPE_CHECKING, Any, Dict, Generator, List
@@ -166,6 +170,8 @@ class Inference:
         self.enable_thinking = enable_thinking
         # Use provided tool_registry or create a new one
         self.tool_registry: ToolRegistry | None = tool_registry
+        # Track auto-started MCP server processes for cleanup
+        self._auto_started_processes: List[subprocess.Popen[bytes]] = []
         self.tools = self.load_tools()
 
         self.tokenizer = self.load_tokenizer()
@@ -509,6 +515,46 @@ class Inference:
                         print(f"Warning: MCP server '{server_name}' missing 'url' for http transport")
                         continue
 
+                    endpoint = server_config.get("endpoint", "mcp")
+
+                    # Check if server is running, auto-start if needed
+                    if not MCPClient.check_server_health(url, endpoint):
+                        print(f"[MCP {server_name}] Server not running, attempting to auto-start...")
+                        if server_name == "postgres":
+                            # Auto-start postgres MCP server
+                            server_process = self._start_postgres_mcp_server()
+                            if server_process:
+                                self._auto_started_processes.append(server_process)
+                                # Wait for server to be ready with exponential backoff
+                                max_wait = 10  # seconds
+                                wait_time = 0.5
+                                elapsed = 0.0
+                                while elapsed < max_wait:
+                                    if MCPClient.check_server_health(url, endpoint):
+                                        print(f"[MCP {server_name}] Server is now ready after {elapsed:.1f}s")
+                                        break
+                                    time.sleep(wait_time)
+                                    elapsed += wait_time
+                                    wait_time = min(wait_time * 1.5, 2.0)  # Exponential backoff, max 2s
+                                else:
+                                    print(
+                                        f"[MCP {server_name}] Server did not become ready after {max_wait}s. "
+                                        f"Please start it manually: python run_pg_mcp_server.py"
+                                    )
+                                    continue
+                            else:
+                                print(
+                                    f"[MCP {server_name}] Failed to auto-start server. "
+                                    f"Please start it manually: python run_pg_mcp_server.py"
+                                )
+                                continue
+                        else:
+                            print(
+                                f"[MCP {server_name}] Server not running and auto-start not supported. "
+                                f"Please start the server manually."
+                            )
+                            continue
+
                     client = MCPClient(
                         server_name=server_name,
                         url=url,
@@ -537,6 +583,53 @@ class Inference:
         if tool_schemas:
             return tool_schemas
         return None
+
+    def _start_postgres_mcp_server(self) -> subprocess.Popen[bytes] | None:
+        """
+        Start the postgres MCP server as a background subprocess.
+
+        Returns:
+            The subprocess.Popen object if successful, None otherwise.
+        """
+        try:
+            # Find the run_pg_mcp_server.py script
+            root_dir = Path(__file__).resolve().parent.parent
+            server_script = root_dir / "run_pg_mcp_server.py"
+
+            if not server_script.exists():
+                logger.error(f"Postgres MCP server script not found at {server_script}")
+                print(f"Error: Postgres MCP server script not found at {server_script}")
+                return None
+
+            # Start the server as a background process
+            logger.info(f"Starting postgres MCP server: {server_script}")
+            print(f"Starting postgres MCP server: {server_script}")
+            process = subprocess.Popen(
+                [sys.executable, str(server_script)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=os.environ.copy(),
+            )
+
+            # Give it a moment to start
+            time.sleep(0.5)
+
+            # Check if process is still running (hasn't crashed immediately)
+            if process.poll() is not None:
+                # Process exited, try to read error
+                stderr_output = process.stderr.read(1024) if process.stderr else b""
+                error_msg = stderr_output.decode("utf-8", errors="ignore")
+                logger.error(f"Postgres MCP server exited immediately. Error: {error_msg}")
+                print(f"Error: Postgres MCP server exited immediately. Error: {error_msg}")
+                return None
+
+            logger.info(f"Postgres MCP server started with PID {process.pid}")
+            print(f"Postgres MCP server started with PID {process.pid}")
+            return process
+        except Exception as e:
+            logger.error(f"Failed to start postgres MCP server: {e}", exc_info=True)
+            print(f"Error: Failed to start postgres MCP server: {e}")
+            return None
 
     def get_model_loading_args(self) -> Dict[str, Any]:
         """
@@ -1112,6 +1205,22 @@ class Inference:
                 self.tool_registry.disconnect_all_mcp_servers()
             except Exception as e:
                 logger.warning(f"Error cleaning up MCP servers: {e}")
+
+        # Terminate auto-started server processes
+        for process in self._auto_started_processes:
+            try:
+                if process.poll() is None:  # Process is still running
+                    logger.info(f"Terminating auto-started MCP server process (PID {process.pid})")
+                    process.terminate()
+                    try:
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        logger.warning(f"Process {process.pid} did not terminate, killing it")
+                        process.kill()
+                        process.wait()
+            except Exception as e:
+                logger.warning(f"Error terminating auto-started process: {e}")
+        self._auto_started_processes.clear()
 
 
 def main() -> None:
