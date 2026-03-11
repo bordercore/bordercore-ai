@@ -234,6 +234,49 @@ hr.divider {
 // Styles for custom ModelSelect component
 .model-select-wrapper {
   width: 100%;
+  position: relative;
+}
+
+.model-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #0d0926;
+  border: 1px solid rgba(0, 234, 255, 0.25);
+  border-radius: 0.375rem;
+  margin-top: 2px;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.model-dropdown-item {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  color: #fff;
+
+  &:hover, &.is-active {
+    background: rgba(0, 234, 255, 0.1);
+  }
+
+  &:hover {
+    color: #00eaff;
+  }
+}
+
+.model-option-content {
+  display: flex;
+  align-items: center;
+}
+
+.model-option-name {
+  flex: 1;
+}
+
+.model-option-icon {
+  margin-left: auto;
 }
 
 // Force dark background and white text for Oruga dropdown menu

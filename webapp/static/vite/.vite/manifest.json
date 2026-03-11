@@ -1,0 +1,53 @@
+{
+  "_highlight.js-FWXpMJ8B.js": {
+    "file": "assets/highlight.js-FWXpMJ8B.js"
+  },
+  "_katex-BTvXRZlT.js": {
+    "file": "assets/katex-BTvXRZlT.js"
+  },
+  "_markdown-it-B3-BI-td.js": {
+    "file": "assets/markdown-it-B3-BI-td.js"
+  },
+  "front-end/entries/chatbot.tsx": {
+    "file": "dist/js/chatbot-9njiseVE.js",
+    "src": "front-end/entries/chatbot.tsx",
+    "isEntry": true,
+    "imports": [
+      "_highlight.js-FWXpMJ8B.js",
+      "_markdown-it-B3-BI-td.js",
+      "_katex-BTvXRZlT.js"
+    ],
+    "dynamicImports": [
+      "local/optional.js"
+    ],
+    "css": [
+      "chatbot-CmTZfwwM.css"
+    ]
+  },
+  "front-end/entries/styles-css.js": {
+    "file": "dist/css/styles-OC-JV67z.js",
+    "src": "front-end/entries/styles-css.js",
+    "isEntry": true,
+    "css": [
+      "styles-kyEby2rE.css"
+    ],
+    "assets": [
+      "background-B28gXsTX.png"
+    ]
+  },
+  "local/optional.js": {
+    "file": "assets/optional-68oiaMiA.js",
+    "src": "local/optional.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "front-end/entries/chatbot.tsx",
+      "_highlight.js-FWXpMJ8B.js",
+      "_markdown-it-B3-BI-td.js",
+      "_katex-BTvXRZlT.js"
+    ]
+  },
+  "static/img/background.png": {
+    "file": "background-B28gXsTX.png",
+    "src": "static/img/background.png"
+  }
+}

@@ -87,6 +87,16 @@ def before_request_func() -> None:
     session["tts_voice"] = settings.tts_voice
 
 
+def _get_vite_js() -> str:
+    """Read the Vite manifest to resolve the hashed chatbot entry filename."""
+    manifest_path = Path(__file__).parent / "static" / "vite" / ".vite" / "manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text())
+        return "vite/" + manifest["front-end/entries/chatbot.tsx"]["file"]
+    except (FileNotFoundError, KeyError):
+        return "vite/dist/js/chatbot.js"
+
+
 @app.route("/")
 def main() -> str:
     """
@@ -102,11 +112,11 @@ def main() -> str:
         settings={
             "music_uri": settings.music_uri,
             "sensor_uri": settings.sensor_uri,
-            "sensor_threshold": getattr(settings, "sensor_threshold", SENSOR_THRESHOLD_DEFAULT)
+            "sensor_threshold": getattr(settings, "sensor_threshold", SENSOR_THRESHOLD_DEFAULT),
+            "num_stars": NUM_STARS,
         },
-        num_stars=NUM_STARS,
         control_value=CONTROL_VALUE,
-        chat_endpoint="/chat"
+        vite_js=_get_vite_js(),
     )
 
 
