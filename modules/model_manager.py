@@ -22,6 +22,7 @@ from typing import Any
 import torch
 
 import settings
+from modules.chatbot import ChatBot
 from modules.inference import Inference
 
 
@@ -42,6 +43,9 @@ class ModelManager:
         """
         Load the specified model into memory if not already loaded.
 
+        API-based models only require setting the model name; local models
+        are loaded into GPU memory via :class:`Inference`.
+
         Args:
             model_name: The name of the model to load from the model directory.
         """
@@ -49,6 +53,10 @@ class ModelManager:
             return
 
         settings.model_name = model_name
+
+        if ChatBot.get_model_attribute(model_name, "type") == "api":
+            return
+
         model_path = os.path.join(settings.model_dir, model_name)
 
         self.inference = Inference(model_path=model_path, quantize=True)
