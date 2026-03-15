@@ -12,6 +12,7 @@ dependencies = [
     "flask-cors>=6.0.2",
     "flask-session",
     "google-api-python-client",
+    "gptqmodel",
     "http-constants",
     "httplib2",
     "httpx",
