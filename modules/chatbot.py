@@ -664,8 +664,12 @@ class ChatBot():
             raise ValueError("model_name must be set before calling send_message_to_model_openai")
         model: str = self.model_name
 
-        openai.api_key = settings.openai_api_key
-        client = OpenAI()
+        model_base_url = ChatBot.get_model_attribute(self.model_name, "base_url")
+        model_api_key = ChatBot.get_model_attribute(self.model_name, "api_key")
+        client = OpenAI(
+            api_key=model_api_key or settings.openai_api_key,
+            base_url=model_base_url,
+        )
 
         messages = cast(
             list[ChatCompletionMessageParam],
