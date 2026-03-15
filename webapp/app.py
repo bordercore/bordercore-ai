@@ -49,7 +49,7 @@ from modules.rag import RAG
 # warnings.filterwarnings("ignore", message=".*The 'nopython' keyword.*")
 
 
-NUM_STARS = 10
+NUM_STARS = 5
 SENSOR_THRESHOLD_DEFAULT = 100
 
 class LargeRequest(Request):
@@ -485,6 +485,8 @@ def load() -> Response:
     """
     model_name: str = request.form["model"]
     model_type: str | None = ChatBot.get_model_attribute(model_name, "type")
+
+    settings.model_name = model_name
 
     if model_type == "api":
         response_data: Dict[str, Any] = {"status": "OK"}
