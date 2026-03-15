@@ -1,0 +1,16 @@
+[Unit]
+Description=BordercoreAI – webapp frontend (Vite dev)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/jerrell/dev/bordercoreai/webapp
+ExecStart=/usr/bin/npx vite --port 5180
+StandardOutput=journal
+StandardError=journal
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=BordercoreAI – webapp backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/jerrell/dev/bordercoreai
+ExecStart=/snap/bin/uv run python -m webapp
+StandardOutput=journal
+StandardError=journal
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
