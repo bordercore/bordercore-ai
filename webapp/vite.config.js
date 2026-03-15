@@ -18,7 +18,7 @@ module.exports = defineConfig({
   root: __dirname,
   server: {
     host: "0.0.0.0",
-    port: 5173,
+    port: 5180,
     strictPort: true,
     cors: true,
     https: {
@@ -26,7 +26,7 @@ module.exports = defineConfig({
       cert: fs.readFileSync(path.resolve(__dirname, "ssl/server.crt")),
     },
     hmr: {
-      port: 5173,
+      port: 5180,
     },
     proxy: {
       "/chat": { target: "https://localhost:5000", secure: false },

@@ -17,6 +17,7 @@ import FileUpload from "./components/FileUpload";
 import ImagePreview from "./components/ImagePreview";
 import AudioPlayer from "./components/AudioPlayer";
 import PreferencesMenu from "./components/PreferencesMenu";
+import ToastContainer from "./components/Toast";
 
 import useStreamingChat from "./hooks/useStreamingChat";
 import useAudio from "./hooks/useAudio";
@@ -266,6 +267,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       "/load",
       { model: modelName },
       () => {
+        getModelInfo();
         if (modelType !== "api" && modal) {
           setTimeout(() => modal!.hide(), 500);
         }
@@ -675,68 +677,53 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   return (
     <>
-      <div id="top-header" className="d-flex align-items-start">
-        <img src="/static/img/logo.png" width="864" height="170" id="logo" />
-        <div className="animation-container">
-          {Array.from({ length: settings.num_stars || 50 }, (_, i) => (
-            <div key={i} className="c"></div>
-          ))}
-        </div>
-        <div id="canvas-container" className="ms-5"></div>
-        <div id="top-right" className="d-flex flex-column flex-grow-1">
-          <div className="d-flex justify-content-end">
-            <button
-              className="hamburger"
-              ref={hamburgerRef}
-              onClick={() => setShowMenu(!showMenu)}
-            >
-              <div className="hamburger__line"></div>
-              <div className="hamburger__line"></div>
-              <div className="hamburger__line"></div>
-            </button>
-          </div>
-          <div className="text-nowrap mt-auto">
-            <Nav active={mode} onModeChange={handleSwitchMode} />
-          </div>
-        </div>
+      {/* Shooting stars background */}
+      <div className="animation-container">
+        {Array.from({ length: settings.num_stars || 7 }, (_, i) => (
+          <div key={i} className="c"></div>
+        ))}
       </div>
 
-      <hr id="top-divider" />
+      {/* ─── Top Header Bar ─── */}
+      <header className="app-header">
+        <div className="app-header-left">
+          <img src="/static/img/logo.png" className="header-logo" alt="Bordercore AI" />
+        </div>
 
+        <div className="app-header-center">
+          <Nav active={mode} onModeChange={handleSwitchMode} />
+        </div>
+
+        <div className="app-header-right">
+          <button
+            className="hamburger"
+            ref={hamburgerRef}
+            onClick={() => setShowMenu(!showMenu)}
+          >
+            <div className="hamburger__line"></div>
+            <div className="hamburger__line"></div>
+            <div className="hamburger__line"></div>
+          </button>
+        </div>
+      </header>
+
+      {/* ─── Main Two-Panel Layout ─── */}
       <div className="chatbot-container">
-        <div className="me-3">
-          <ChatInput
-            prompt={prompt}
-            onPromptChange={setPrompt}
-            onSend={() => handleSendMessage()}
-            onRegenerate={handleRegenerate}
-            onNewChat={handleNewChat}
-            onStopGeneration={handleStopGeneration}
-            onClipboardClick={handleClipboardClick}
-            inputIsDisabled={inputIsDisabled}
-            showRegenerate={showRegenerate}
-            isGenerating={isGenerating}
-            hasClipboard={!!clipboard}
-          />
-
-          <FileUpload
-            mode={mode}
-            url={url}
-            uploadedFilename={uploadedFilename}
-            audioFileTranscript={audioFileTranscript}
-            audioFileSize={audioFileSize}
-            ragFileUploaded={ragFileUploaded}
-            ragFileSize={ragFileSize}
-            visionImage={visionImage}
-            copyIcon={copyIcon}
-            onTranscribeAudio={handleTranscribeAudio}
-            onFileUploadVision={handleFileUploadVision}
-            onFileUpload={handleFileUpload}
-            onCopyText={handleCopyText}
-          />
+        {/* Left Panel — Chat */}
+        <div className="panel-card chat-panel">
+          <div className="chat-panel-header">
+            <span className="chat-panel-title">
+              <span className="status-dot online"></span>
+              Conversation
+            </span>
+            <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+              {model.name || "No model loaded"}
+            </span>
+          </div>
 
           <div
             className={`container d-flex${isDragOver ? " drag-over" : ""}`}
+            style={{ flex: 1, minHeight: 0 }}
             onDragOver={(e) => {
               e.preventDefault();
               setIsDragOver(true);
@@ -769,41 +756,75 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               imageSrc={imageSrc}
             />
           </div>
+
+          <FileUpload
+            mode={mode}
+            url={url}
+            uploadedFilename={uploadedFilename}
+            audioFileTranscript={audioFileTranscript}
+            audioFileSize={audioFileSize}
+            ragFileUploaded={ragFileUploaded}
+            ragFileSize={ragFileSize}
+            visionImage={visionImage}
+            copyIcon={copyIcon}
+            onTranscribeAudio={handleTranscribeAudio}
+            onFileUploadVision={handleFileUploadVision}
+            onFileUpload={handleFileUpload}
+            onCopyText={handleCopyText}
+          />
+
+          <div className="chat-input-area">
+            <ChatInput
+              prompt={prompt}
+              onPromptChange={setPrompt}
+              onSend={() => handleSendMessage()}
+              onRegenerate={handleRegenerate}
+              onNewChat={handleNewChat}
+              onStopGeneration={handleStopGeneration}
+              onClipboardClick={handleClipboardClick}
+              inputIsDisabled={inputIsDisabled}
+              showRegenerate={showRegenerate}
+              isGenerating={isGenerating}
+              hasClipboard={!!clipboard}
+            />
+          </div>
         </div>
 
-        <div className="chatbot-sidepanel ps-2">
-          <div className="d-flex align-items-center">
-            <div className="text-info text-nowrap fw-bold pe-3 pb-1">
-              Selected Model
-            </div>
-            <div className="flex-grow-1 mt-3 mb-4">
-              <ModelSelect
-                value={model.name}
-                modelList={modelList}
-                getModelIcon={getModelIcon}
-                onChange={handleChangeModel}
-              />
-            </div>
+        {/* Right Panel — Controls & Diagnostics */}
+        <div className="panel-card sidebar-panel">
+          <div className="sidebar-section">
+            <div className="sidebar-section-title">Model</div>
+            <ModelSelect
+              value={model.name}
+              modelList={modelList}
+              getModelIcon={getModelIcon}
+              onChange={handleChangeModel}
+            />
           </div>
-          <div className="d-flex justify-content-center">
-            <ThinkingIcon active={isGenerating} size={180} />
-          </div>
-          <div style={{ height: "20px" }}>
+
+          <div className="sidebar-section">
+            <div className="thinking-area">
+              <ThinkingIcon active={isGenerating} size={140} />
+            </div>
             {notice && (
-              <div className="notice animate__animated animate__pulse animate__slower animate__infinite d-flex justify-content-center fw-bold px-3">
-                <span>{notice}</span>
+              <div className="notice animate__animated animate__pulse animate__slower animate__infinite">
+                {notice}
               </div>
             )}
           </div>
-          <hr className="divider" />
-          <Options
-            switches={switches}
-            onToggle={handleToggleSwitch}
-            onSensorToggle={handleSensorToggle}
-          />
+
+          <div className="sidebar-section" style={{ flex: 1 }}>
+            <div className="sidebar-section-title">Controls</div>
+            <Options
+              switches={switches}
+              onToggle={handleToggleSwitch}
+              onSensorToggle={handleSensorToggle}
+            />
+          </div>
         </div>
       </div>
 
+      {/* ─── Audio Player ─── */}
       <AudioPlayer
         audioIsPlayingOrPaused={audioIsPlayingOrPaused}
         musicInfo={musicInfo}
@@ -813,6 +834,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
         onSongForward={handleSongForward}
       />
 
+      {/* ─── Preferences Flyout ─── */}
       <div ref={menuRef}>
         <PreferencesMenu
           show={showMenu}
@@ -824,6 +846,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           onTtsHostChange={setTtsHost}
         />
       </div>
+
+      {/* Toast Notifications */}
+      <ToastContainer />
 
       {/* Processing Modal */}
       <div

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 
 const navItems = [
   { label: "Chat", link: "/" },
@@ -13,27 +13,17 @@ interface NavProps {
 }
 
 export default function Nav({ active, onModeChange }: NavProps) {
-  const [activeTab, setActiveTab] = useState(active);
-
-  function switchMode(mode: string) {
-    setActiveTab(mode);
-    onModeChange(mode);
-  }
-
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark py-0">
-      <ul className="navbar-nav mr-auto">
-        {navItems.map((item) => (
-          <li
-            key={item.link}
-            className={`nav-item${item.label === activeTab ? " active" : ""}`}
-          >
-            <span className="nav-link" onClick={() => switchMode(item.label)}>
-              {item.label}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <div className="nav-tabs-custom">
+      {navItems.map((item) => (
+        <button
+          key={item.link}
+          className={`nav-tab${item.label === active ? " active" : ""}`}
+          onClick={() => onModeChange(item.label)}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
   );
 }

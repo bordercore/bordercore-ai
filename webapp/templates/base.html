@@ -9,16 +9,16 @@
         <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.7/dist/bundle.min.js"></script>
         {% if config.DEBUG %}
-        <script type="module" src="https://{{ request.host.split(':')[0] }}:5173/@vite/client"></script>
+        <script type="module" src="https://{{ request.host.split(':')[0] }}:5180/@vite/client"></script>
         {% endif %}
     </head>
-    <body class="m-3">
+    <body>
         <div id="app"></div>
         <script id="session" type="application/json">{{ session|tojson|safe }}</script>
         <script id="settings" type="application/json">{{ settings|tojson|safe }}</script>
         <div id="controlValue" class="d-none">{{ control_value }}</div>
         {% if config.DEBUG %}
-        <script type="module" src="https://{{ request.host.split(':')[0] }}:5173/front-end/entries/chatbot.tsx"></script>
+        <script type="module" src="https://{{ request.host.split(':')[0] }}:5180/front-end/entries/chatbot.tsx"></script>
         {% else %}
         <script type="module" src="{{ url_for('static', filename=vite_js) }}"></script>
         {% endif %}

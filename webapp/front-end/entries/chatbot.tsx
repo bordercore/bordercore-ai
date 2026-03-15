@@ -16,6 +16,7 @@ import {
   faGear,
   faLink,
   faPaperclip,
+  faPaperPlane,
   faPaste,
   faPlus,
   faRotateLeft,
@@ -39,6 +40,7 @@ library.add(
   faGear,
   faLink,
   faPaperclip,
+  faPaperPlane,
   faPaste,
   faPlus,
   faRotateLeft

@@ -1,240 +1,443 @@
 @import "shooting-stars";
 
+// ─── Design Tokens ───────────────────────────────────────────
 :root {
-  --bs-body-bg: #000 !important;
-  --bs-body-color: #fff !important;
-  --bs-code-color: #bfa3d7 !important;
+  // Backgrounds
+  --bg-base: #080c24;
+  --bg-surface: #0d1331;
+  --bg-surface-raised: #111a3e;
+  --bg-input: #0c1230;
+
+  // Borders
+  --border-subtle: rgba(0, 234, 255, 0.12);
+  --border-accent: rgba(0, 234, 255, 0.3);
+  --border-panel: rgba(100, 120, 180, 0.15);
+
+  // Text
+  --text-primary: #e2e8f0;
+  --text-secondary: #8892b0;
+  --text-muted: #5a6486;
+  --text-accent: #00eaff;
+  --text-highlight: #67e8f9;
+
+  // Accents
+  --accent-cyan: #00eaff;
+  --accent-purple: #a855f7;
+  --accent-pink: #ec4899;
+  --accent-green: #34d399;
+
+  // Shadows
+  --shadow-panel: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 20px rgba(0, 234, 255, 0.08);
+
+  // Bootstrap overrides
+  --bs-body-bg: var(--bg-base) !important;
+  --bs-body-color: var(--text-primary) !important;
+  --bs-code-color: #c4b5fd !important;
 }
 
+// ─── Base ────────────────────────────────────────────────────
 body {
-  background-color: var(--bs-body-bg);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-#logo {
-  z-index: 10;
+// ─── App Shell ───────────────────────────────────────────────
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 0.75rem;
+  gap: 0.75rem;
+  box-sizing: border-box;
 }
 
-#canvas-container {
-  height: 100%;
-  width: 50%;
-  z-index: 10;
+// ─── Top Header ──────────────────────────────────────────────
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-panel);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-panel);
+  flex-shrink: 0;
+  min-height: 3.5rem;
 }
 
-.container {
-  flex: 1;
-  border-radius: 10px;
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-hr.divider {
-  border: 3px solid #1496cd;
-  margin: 20px 0;
-}
+.app-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
 
-#message-container {
-  flex: 1;
-  position: relative;
-  height: 75vh;
-  overflow-y: auto;
-
-  /* format code */
-  pre {
-    background-color: #020d1d;
-    padding: 1rem;
-    border: 1px solid #697098;
-    border-radius: 0.3rem;
-    text-wrap: wrap;
+  span {
+    color: var(--accent-cyan);
   }
-
-  strong {
-    color: #73adff;
-  }
 }
 
-#artifact-container {
-  flex: 1;
+.app-header-center {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
-#prompt {
-  width: 85%;
+.app-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-// Expand the message-container to 100% if the artifact-container isn't present
-.container:not(:has(#artifact-container)) #message-container {
-  flex: 1 0 100%;
+// ─── Nav Tabs ────────────────────────────────────────────────
+.nav-tabs-custom {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--bg-input);
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-subtle);
 }
 
-.drag-over {
-  background-color: #66668f;
-}
-
-.transcript-container {
-  position: relative;
-  max-height: 50vh;
-  overflow-y: auto;
-}
-
-.code-block-with-copy {
-  position: relative;
-}
-
-.code-copy-button {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  padding: 0.2rem 0.6rem;
-  font-size: 0.75rem;
-  line-height: 1.2;
-  color: #f8f9fa;
-  background-color: rgba(33, 37, 41, 0.85);
-  border: 1px solid rgba(248, 249, 250, 0.2);
-  border-radius: 0.25rem;
+.nav-tab {
+  padding: 0.45rem 1rem;
+  border-radius: 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s ease-in-out;
+  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
+  text-transform: uppercase;
+
+  &:hover {
+    color: var(--text-primary);
+    background: rgba(0, 234, 255, 0.06);
+  }
+
+  &.active {
+    color: var(--accent-cyan);
+    background: rgba(0, 234, 255, 0.12);
+    box-shadow: 0 0 8px rgba(0, 234, 255, 0.15);
+  }
 }
 
-.code-copy-button:hover,
-.code-copy-button:focus-visible {
-  background-color: rgba(13, 110, 253, 0.85);
-  border-color: rgba(13, 110, 253, 0.9);
-}
-
-.code-block-with-copy:hover .code-copy-button,
-.code-block-with-copy:focus-within .code-copy-button {
-  opacity: 1;
-}
-
-#image-preview {
-  border: 1px solid #73adff;
-  border-radius: 5px;
-  object-fit: contain;
-}
-
-#top-divider {
-  color: #706f7e;
-  border-top: 4px solid;
-  opacity: 0.75;
-}
-
-#top-header, #top-right {
-  height: 170px;
-}
-
+// ─── Hamburger ───────────────────────────────────────────────
 .hamburger {
   background: transparent;
-  border: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.5rem;
   cursor: pointer;
-  padding: 0;
-  z-index: 10;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-color: var(--accent-cyan);
+
+    .hamburger__line {
+      background: var(--accent-cyan);
+    }
+  }
 }
 
 .hamburger__line {
-  background: rgb(203 213 225);
-  margin: 0.25rem 0;
-  height: 0.25rem;
-  width: 2rem;
+  background: var(--text-secondary);
+  height: 2px;
+  width: 1.25rem;
+  border-radius: 1px;
   transition: all 0.3s ease-out;
 }
 
 .hamburger:hover .hamburger__line:nth-child(1) {
-  transform: translate(-2px, 4px) rotate(-45deg);
-  width: 16px;
+  transform: translate(-2px, 3px) rotate(-45deg);
+  width: 12px;
 }
 
 .hamburger:hover .hamburger__line:nth-child(3) {
-  transform: translate(-2px, -4px) rotate(45deg);
-  width: 16px;
+  transform: translate(-2px, -3px) rotate(45deg);
+  width: 12px;
 }
 
-.icon {
-  &:hover {
-    filter: drop-shadow(0.12rem 0.12rem 0.62rem #fff) drop-shadow(-0.12rem -0.12rem 0.62rem #fff);
-    color: #9f9fdd;
-    cursor: pointer;
-    transform: translateY(-0.06rem);
-  }
-}
-
-.glow {
-  &:hover {
-    filter: drop-shadow(0.12rem 0.12rem 0.62rem #6af6d1) drop-shadow(-0.12rem -0.12rem 0.62rem #6af6d1);
-  }
-}
-
-#menu {
-  position: absolute;
-  top: 5rem;
-  right: 5rem;
-  border: 0.12rem solid #0f0;
-  border-radius: 0.7rem;
-  box-shadow: 0.06rem 0.06rem 0.31rem #00f, -0.06rem -0.06rem 0.31rem #00f;
-  background-color: #0d0926;
-  z-index: 20;
-}
-
-.button-small {
-  --bs-btn-padding-y: .25rem !important;
-  --bs-btn-padding-x: .5rem !important;
-  --bs-btn-font-size: .75rem !important;
-}
-
+// ─── Main Layout ─────────────────────────────────────────────
 .chatbot-container {
   display: grid;
-  grid-template-columns: 4fr 2fr;
+  grid-template-columns: 1fr 340px;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.chatbot-container:before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: url("/static/img/background.png");
-  opacity: 0.2;
-  z-index: -1;
-  pointer-events: none; /* Allow text from the main div be selectable */
+// ─── Panels ──────────────────────────────────────────────────
+.panel-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-panel);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.chatbot-sidepanel {
-  border-left: #333 solid 2px;
+// ─── Left Panel (Chat) ──────────────────────────────────────
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
-.notice {
-  color: #00eaff;
-  height: 2rem;
+.chat-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--border-panel);
+  flex-shrink: 0;
+}
+
+.chat-panel-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+}
+
+// ─── Message Container ───────────────────────────────────────
+#message-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 0.5rem;
+  min-height: 0;
+
+  pre {
+    background: var(--bg-base);
+    padding: 1rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.5rem;
+    text-wrap: wrap;
+    font-size: 0.85rem;
+  }
+
+  strong {
+    color: var(--text-highlight);
+  }
+}
+
+// ─── Messages ────────────────────────────────────────────────
+.chatbot-user,
+.chatbot-assistant {
+  padding: 0.75rem 1rem;
+  margin: 0.4rem 0.5rem;
+  border-radius: 0.75rem;
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+
+.chatbot-user {
+  background: rgba(0, 234, 255, 0.06);
+  border: 1px solid rgba(0, 234, 255, 0.1);
+}
+
+.chatbot-assistant {
+  background: rgba(168, 85, 247, 0.04);
+  border: 1px solid rgba(168, 85, 247, 0.08);
 }
 
 .role {
-  color: #7e92c8;
+  color: var(--text-accent);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-.modal-content {
-  border: 0.12rem solid #fff;
-  background-color: #0d0926 !important;
-  border-color: #3a395f !important;
+.chatbot-assistant .role {
+  color: var(--accent-purple);
 }
 
-.form-control, .form-select {
-  background-color: #3c1679 !important;
-  color: #fff !important;
+// ─── Chat Input ──────────────────────────────────────────────
+.chat-input-area {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border-panel);
+  flex-shrink: 0;
 }
 
-// Legacy styles for old select element (kept for backwards compatibility)
-.model-select {
-  text-align: left;
-  font-family: monospace; // Use monospace for consistent spacing
+.chat-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  transition: border-color 0.2s;
 
-  option {
-    text-align: left;
-    font-family: monospace;
+  &:focus-within {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 12px rgba(0, 234, 255, 0.1);
   }
 }
 
-// Styles for custom ModelSelect component
+#prompt {
+  flex: 1;
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-primary) !important;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.5rem;
+  outline: none;
+  box-shadow: none !important;
+
+  &::placeholder {
+    color: var(--text-muted);
+  }
+}
+
+.input-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--accent-cyan);
+    background: rgba(0, 234, 255, 0.1);
+  }
+}
+
+// ─── File Upload ─────────────────────────────────────────────
+.file-upload-bar {
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--border-panel);
+  flex-shrink: 0;
+}
+
+.file-input-wrapper {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(0, 234, 255, 0.08);
+    color: var(--accent-cyan);
+  }
+}
+
+.file-input {
+  font-size: 100px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+// ─── Right Sidebar ───────────────────────────────────────────
+.sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  background: linear-gradient(
+    180deg,
+    rgba(18, 26, 62, 1) 0%,
+    rgba(10, 15, 38, 1) 50%,
+    rgba(6, 9, 24, 1) 100%
+  );
+}
+
+.sidebar-section {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-panel);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.sidebar-section-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+// ─── Model Select ────────────────────────────────────────────
 .model-select-wrapper {
   width: 100%;
   position: relative;
+}
+
+.model-select-trigger {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.65rem;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  text-align: left;
+
+  &:hover, &:focus {
+    border-color: var(--accent-cyan);
+  }
+}
+
+.model-select-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.model-select-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-select-arrow {
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .model-dropdown-menu {
@@ -243,26 +446,36 @@ hr.divider {
   left: 0;
   right: 0;
   z-index: 1000;
-  background: #0d0926;
-  border: 1px solid rgba(0, 234, 255, 0.25);
-  border-radius: 0.375rem;
-  margin-top: 2px;
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-accent);
+  border-radius: 0.65rem;
+  margin-top: 4px;
   max-height: 300px;
   overflow-y: auto;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 .model-dropdown-item {
   padding: 0.5rem 0.75rem;
   cursor: pointer;
-  color: #fff;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  transition: all 0.15s;
 
   &:hover, &.is-active {
-    background: rgba(0, 234, 255, 0.1);
+    background: rgba(0, 234, 255, 0.08);
   }
 
   &:hover {
-    color: #00eaff;
+    color: var(--accent-cyan);
+  }
+
+  &:first-child {
+    border-radius: 0.65rem 0.65rem 0 0;
+  }
+
+  &:last-child {
+    border-radius: 0 0 0.65rem 0.65rem;
   }
 }
 
@@ -279,145 +492,265 @@ hr.divider {
   margin-left: auto;
 }
 
-// Force dark background and white text for Oruga dropdown menu
-.model-select-wrapper :deep(.o-dropdown__menu),
-.model-select-wrapper .o-dropdown__menu {
-  background-color: #0d0926 !important;
-  background: #0d0926 !important;
-  color: #fff !important;
+// ─── Thinking Icon ───────────────────────────────────────────
+.thinking-area {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0;
 }
 
-.model-select-wrapper .o-dropdown__menu *:not(:hover),
-.model-select-wrapper .o-dropdown__item:not(:hover),
-.model-select-wrapper .o-dropdown__item:not(:hover) *,
-.model-select-wrapper .o-dropdown__item:not(:hover) span,
-.model-select-wrapper .o-dropdown__item:not(:hover) div {
-  color: #fff !important;
+// ─── Status / Notice ─────────────────────────────────────────
+.notice {
+  color: var(--accent-cyan);
+  font-size: 0.8rem;
+  text-align: center;
 }
 
-/* Dark purple text on hover - very aggressive */
-.model-select-wrapper .o-dropdown__item:hover,
-.model-select-wrapper .o-dropdown__item:hover *,
-.model-select-wrapper .o-dropdown__item:hover span,
-.model-select-wrapper .o-dropdown__item:hover div,
-.model-select-wrapper .o-dropdown__item:hover .model-option-content,
-.model-select-wrapper .o-dropdown__item:hover .model-option-content *,
-.model-select-wrapper .o-dropdown__item:hover .model-option-name,
-.model-select-wrapper .o-dropdown__item:hover .model-option-icon,
-.model-select-wrapper [class*="dropdown__item"]:hover,
-.model-select-wrapper [class*="dropdown__item"]:hover *,
-.model-select-wrapper [role="option"]:hover,
-.model-select-wrapper [role="option"]:hover * {
-  color: #3c1679 !important;
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+
+  &.online { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+  &.offline { background: #ef4444; }
+  &.pending { background: #f59e0b; }
 }
 
-/* Used to hide mustached content before Vue has loaded */
-[v-cloak] {
-  display: none;
+// ─── Options / Toggle Panel ─────────────────────────────────
+.options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.fadein-enter-active, .fadein-leave-active {
-  transition: opacity 1.0s ease;
+.option-group {
+  background: var(--bg-base);
+  border: 1px solid var(--border-panel);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
 }
 
-.fadein-enter-from, .fadein-leave-to {
-  opacity: 0;
+.option-group-title {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
-/* Border animation for preferences */
-/* Source: https://codepen.io/jlengstorf/pen/WNPGMJo */
+.toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0;
+}
 
-/**
- * `@property` is required for the animation to work.
- * Without it, the angle values won’t interpolate properly.
- *
- * @see https://dev.to/afif/we-can-finally-animate-css-gradient-kdk
- */
+.toggle-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 0.4rem;
+  background: rgba(0, 234, 255, 0.08);
+  flex-shrink: 0;
+
+  svg {
+    width: 0.85rem;
+    height: 0.85rem;
+    fill: var(--accent-cyan);
+    opacity: 0.8;
+  }
+}
+
+.toggle-label {
+  flex: 1;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+
+// ─── Preferences Menu ────────────────────────────────────────
+#menu {
+  position: absolute;
+  top: 4.5rem;
+  right: 1.5rem;
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-accent);
+  border-radius: 1rem;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 234, 255, 0.08);
+  z-index: 20;
+  padding: 1.25rem;
+  min-width: 380px;
+
+  // Animated border
+  animation: spin 2.5s infinite linear;
+  background:
+    linear-gradient(
+        to bottom,
+        oklch(0.1 0.15 260 / 0.97),
+        oklch(0.1 0.15 260 / 0.97)
+      )
+      padding-box,
+    conic-gradient(
+        from var(--bg-angle) in oklch longer hue,
+        oklch(0.7 0.25 200) 0 0
+      )
+      border-box;
+  border: 2px solid transparent;
+}
+
 @property --bg-angle {
   inherits: false;
   initial-value: 0deg;
   syntax: "<angle>";
 }
 
-/**
- * To animate the gradient, we set the custom property to 1 full
- * rotation. The animation starts at the default value of `0deg`.
- */
 @keyframes spin {
   to {
     --bg-angle: 360deg;
   }
 }
 
-
-#menu {
-  /* add the animation, but pause it by default */
-  animation: spin 2.5s infinite linear;
-
-  /**
-   * Using `background-origin` we can create a “border” using two gradients. And to
-   * make the gradients better-looking, we use OKLCH.
-   *
-   * @see https://developer.mozilla.org/en-US/docs/Web/CSS/background-origin
-   * @see https://evilmartians.com/chronicles/oklch-in-css-why-quit-rgb-hsl
-   */
-  background:
-    /* Background colors don’t work with `background-origin`, so use a gradient. */
-    linear-gradient(
-        to bottom,
-        oklch(0.1 0.2 240 / 0.95),
-        oklch(0.1 0.2 240 / 0.95)
-      )
-      padding-box, /* ends at inner border edges */
-    conic-gradient(
-        from var(--bg-angle) in oklch longer hue,
-        oklch(1 0.37 0) 0 0
-      )
-      border-box; /* extends to outer border edges */
-
-  /* a clear border lets the background gradient shine through */
-  border: 6px solid transparent;
-
-  border-radius: 1rem;
-  box-shadow: 0.125rem 0.25rem 0.25rem 0.5rem oklch(0.1 0.37 315 / 0.25);
-  color: white;
-  padding: 1rem;
+.pref-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 
-/* Slider */
+.pref-hint {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+// ─── Sliders ─────────────────────────────────────────────────
 .custom-slider {
-  width: 11rem;
+  width: 10rem;
 }
 
-/* Oruga switches */
+// ─── Form Overrides ──────────────────────────────────────────
+.form-control, .form-select {
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
 
-.switches .o-switch__label {
-  margin-left: 0.5rem !important;
+  &:focus {
+    border-color: var(--accent-cyan) !important;
+    box-shadow: 0 0 8px rgba(0, 234, 255, 0.15) !important;
+  }
 }
 
-.o-switch__check {
-  margin-left: 0.5rem !important;
+// ─── Dividers ────────────────────────────────────────────────
+hr.divider {
+  border: none;
+  border-top: 1px solid var(--border-panel);
+  margin: 0.75rem 0;
+  opacity: 1;
 }
 
-.o-switch__check--checked {
-  background: #3d4687 !important;
+#top-divider {
+  display: none; // Replaced by panel borders
 }
 
-.o-switch__label {
-  margin-left: 1rem !important;
+// ─── Code Blocks ─────────────────────────────────────────────
+.code-block-with-copy {
+  position: relative;
 }
 
+.code-copy-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.35rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    background: rgba(0, 234, 255, 0.15);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+}
+
+.code-block-with-copy:hover .code-copy-button,
+.code-block-with-copy:focus-within .code-copy-button {
+  opacity: 1;
+}
+
+// ─── Image Preview ───────────────────────────────────────────
+#image-preview {
+  border: 1px solid var(--border-accent);
+  border-radius: 0.65rem;
+  object-fit: contain;
+}
+
+// ─── Transcript ──────────────────────────────────────────────
+.transcript-container {
+  position: relative;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+#transcript {
+  margin: 0.5rem 0;
+  border: 1px solid var(--border-panel);
+  padding: 0.75rem;
+  border-radius: 0.65rem;
+  background: var(--bg-base);
+  font-size: 0.85rem;
+  line-height: 1.5;
+
+  &:hover .hover-target {
+    display: flex !important;
+  }
+}
+
+#copyIcon {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  color: var(--text-muted);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--accent-cyan);
+    filter: drop-shadow(0 0 6px rgba(0, 234, 255, 0.4));
+  }
+}
+
+// ─── Modal ───────────────────────────────────────────────────
+.modal-content {
+  background: var(--bg-surface-raised) !important;
+  border: 1px solid var(--border-accent) !important;
+  border-radius: 1rem;
+  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
+}
+
+// ─── Audio Player ────────────────────────────────────────────
 #audioPlayer {
   position: fixed;
   bottom: 0;
   left: 0;
   height: 4rem;
   width: 100%;
-  background: rgb(2,25,48);
-background: linear-gradient(90deg, rgba(2,25,48,1) 0%, rgba(90,90,172,1) 93%);
-  padding: 10px;
+  background: linear-gradient(90deg, var(--bg-surface) 0%, rgba(30, 30, 80, 0.95) 100%);
+  padding: 0.5rem 1rem;
   text-align: center;
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid var(--border-panel);
+  z-index: 50;
+  backdrop-filter: blur(12px);
 
   #songIndex {
     position: absolute;
@@ -427,18 +760,18 @@ background: linear-gradient(90deg, rgba(2,25,48,1) 0%, rgba(90,90,172,1) 93%);
 }
 
 media-controller {
-  background-color: #021930;
-  border-radius: 0.40rem;
+  background-color: var(--bg-base);
+  border-radius: 0.5rem;
   width: 40rem;
 }
 
 .media-control-bar {
-  background-color: #021930;
+  background-color: var(--bg-base);
   flex-flow: wrap;
 }
 
 media-play-button, media-time-display, media-time-range, media-mute-button, media-volume-range {
-  background-color: #021930;
+  background-color: var(--bg-base);
 }
 
 @media screen and (max-width: 1200px) {
@@ -451,100 +784,208 @@ media-volume-range {
   flex-grow: 1;
 }
 
-#transcript {
-  margin: 1rem;
-  border: 1px solid #666666;
-  padding: 0.5rem;
-  border-radius: 0.40rem;
-  background-color: #222;
+// ─── Drag & Drop ─────────────────────────────────────────────
+.drag-over {
+  background: rgba(0, 234, 255, 0.06) !important;
+  border: 2px dashed var(--accent-cyan) !important;
+}
 
+// ─── Icon Buttons ────────────────────────────────────────────
+.icon {
   &:hover {
-    .hover-target {
-      display: flex !important;
-    }
+    filter: drop-shadow(0 0 8px rgba(0, 234, 255, 0.5));
+    color: var(--accent-cyan);
+    cursor: pointer;
+    transform: translateY(-1px);
   }
 }
 
-#copyIcon {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-
-  svg {
-    color: #7a7a7a;
-  }
-
+.glow {
   &:hover {
-    filter: drop-shadow(0.12rem 0.12rem 0.62rem #666) drop-shadow(-0.12rem -0.12rem 0.62rem #666);
-    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(0, 234, 255, 0.5));
   }
 }
 
-.file-input-wrapper {
-  position: relative;
-  overflow: hidden;
-  display: inline-block;
-  padding: 0.25rem;
-
-  &:hover {
-    background-color: #392b2b;
-    border-radius: 0.40rem;
-  }
+// ─── Buttons ─────────────────────────────────────────────────
+.button-small {
+  --bs-btn-padding-y: .25rem !important;
+  --bs-btn-padding-x: .5rem !important;
+  --bs-btn-font-size: .75rem !important;
 }
 
-/* Hide the default file-input widget */
-.file-input {
-  font-size: 100px;
-  position: absolute;
-  left: 0;
-  top: 0;
-  opacity: 0;
-}
-
-/* Navbar */
-.navbar-nav {
-  .nav-item {
-    .nav-link {
-      background-color: #101541 !important;
-      cursor: pointer;
-    }
-  }
-
-  .nav-item.active .nav-link {
-    color: #fff !important;
-    font-weight: bold !important;
-  }
-
-  .nav-item:first-child .nav-link {
-    border-top-left-radius: 0.75rem !important;
-    border-bottom-left-radius: 0.75rem !important;
-  }
-
-  .nav-item:last-child .nav-link {
-    border-top-right-radius: 0.75rem !important;
-    border-bottom-right-radius: 0.75rem !important;
-  }
-}
-
-/* Style the scrollbars */
-
+// ─── Scrollbar ───────────────────────────────────────────────
 ::-webkit-scrollbar {
-  width: 0.5rem;
+  width: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  border-radius: 0.6rem;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #0f0f5e;
-  border-radius: 0.6rem;
-}
+  background: rgba(0, 234, 255, 0.15);
+  border-radius: 10px;
 
-::-webkit-scrollbar-thumb:hover {
-  background-color: #3d4687;
+  &:hover {
+    background: rgba(0, 234, 255, 0.3);
+  }
 }
 
 ::-webkit-scrollbar-corner {
-  background-color: rgba(0, 0, 0, 0.5);
+  background: transparent;
+}
+
+// ─── Animations ──────────────────────────────────────────────
+.fadein-enter-active, .fadein-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fadein-enter-from, .fadein-leave-to {
+  opacity: 0;
+}
+
+// ─── Legacy Compat (hidden) ──────────────────────────────────
+[v-cloak] {
+  display: none;
+}
+
+// Hide old header — we build a new one in React
+#top-header {
+  display: none !important;
+}
+
+// Old navbar styles (kept for Nav component)
+.navbar-nav {
+  display: none;
+}
+
+// ─── Utility ─────────────────────────────────────────────────
+.text-accent {
+  color: var(--accent-cyan);
+}
+
+.text-accent-purple {
+  color: var(--accent-purple);
+}
+
+// Legacy overrides
+.container {
+  flex: 1;
+  border-radius: 0;
+  display: flex;
+  min-height: 0;
+}
+
+#artifact-container {
+  flex: 1;
+}
+
+.container:not(:has(#artifact-container)) #message-container {
+  flex: 1 0 100%;
+}
+
+// ─── Logo (small version for new header) ─────────────────────
+.header-logo {
+  height: 3.5rem;
+  width: auto;
+  object-fit: contain;
+  position: relative;
+  z-index: 2;
+}
+
+// ─── Toasts ─────────────────────────────────────────────────
+.notify-container {
+  position: fixed;
+  top: 5rem;
+  right: 1rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 420px;
+  pointer-events: auto;
+}
+
+.notify-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-surface-raised);
+  border: 1px solid;
+  border-radius: 0.75rem;
+  animation: notifySlideIn 0.3s ease-out;
+  backdrop-filter: blur(12px);
+}
+
+.notify-icon {
+  font-size: 1rem;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.notify-danger .notify-icon { color: #ef4444; }
+.notify-warning .notify-icon { color: #f59e0b; }
+.notify-info .notify-icon { color: var(--accent-cyan); }
+
+.notify-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notify-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.2rem;
+}
+
+.notify-danger .notify-title { color: #ef4444; }
+.notify-warning .notify-title { color: #f59e0b; }
+.notify-info .notify-title { color: var(--accent-cyan); }
+
+.notify-body {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.notify-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+@keyframes notifySlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// ─── Shooting Stars ─────────────────────────────────────────
+.animation-container {
+  position: absolute;
+  top: 0;
+  left: 4.5rem;
+  right: 0;
+  height: 5px;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 1;
 }

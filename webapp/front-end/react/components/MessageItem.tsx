@@ -15,11 +15,11 @@ export default function MessageItem({ message }: MessageItemProps) {
   const sanitizedHtml = renderMarkdown(message.content);
 
   return (
-    <div className={`chatbot-${message.role} d-flex px-3 mt-2`}>
-      <div className="role fw-bold me-2">
+    <div className={`chatbot-${message.role} d-flex`}>
+      <div className="role fw-bold me-2" style={{ minWidth: "1.5rem" }}>
         {message.role === "user" ? "You" : "AI"}
       </div>
-      <div>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
       </div>
     </div>

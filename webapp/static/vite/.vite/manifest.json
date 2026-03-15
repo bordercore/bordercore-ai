@@ -9,7 +9,7 @@
     "file": "assets/markdown-it-B3-BI-td.js"
   },
   "front-end/entries/chatbot.tsx": {
-    "file": "dist/js/chatbot-9njiseVE.js",
+    "file": "dist/js/chatbot-C4IAmZ_W.js",
     "src": "front-end/entries/chatbot.tsx",
     "isEntry": true,
     "imports": [
@@ -25,18 +25,15 @@
     ]
   },
   "front-end/entries/styles-css.js": {
-    "file": "dist/css/styles-OC-JV67z.js",
+    "file": "dist/css/styles-iU4R7Xth.js",
     "src": "front-end/entries/styles-css.js",
     "isEntry": true,
     "css": [
-      "styles-kyEby2rE.css"
-    ],
-    "assets": [
-      "background-B28gXsTX.png"
+      "styles-9WO3PbfD.css"
     ]
   },
   "local/optional.js": {
-    "file": "assets/optional-68oiaMiA.js",
+    "file": "assets/optional-BakJ3Uqv.js",
     "src": "local/optional.js",
     "isDynamicEntry": true,
     "imports": [
@@ -45,9 +42,5 @@
       "_markdown-it-B3-BI-td.js",
       "_katex-BTvXRZlT.js"
     ]
-  },
-  "static/img/background.png": {
-    "file": "background-B28gXsTX.png",
-    "src": "static/img/background.png"
   }
 }

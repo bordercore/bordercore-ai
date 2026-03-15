@@ -5,6 +5,7 @@ import {
   faPlus,
   faCircleStop,
   faPaste,
+  faPaperPlane,
 } from "@fortawesome/free-solid-svg-icons";
 
 interface ChatInputProps {
@@ -35,39 +36,38 @@ export default function ChatInput({
   hasClipboard,
 }: ChatInputProps) {
   function handleKeyDown(event: React.KeyboardEvent) {
-    if (event.key === "Enter") {
+    if (event.key === "Enter" && prompt.trim()) {
       event.preventDefault();
       onSend();
     }
   }
 
   return (
-    <form>
-      <div className="d-flex align-items-center mb-3">
+    <form onSubmit={(e) => e.preventDefault()}>
+      <div className="chat-input-wrapper">
         <input
           value={prompt}
           onChange={(e) => onPromptChange(e.target.value)}
           id="prompt"
-          className="form-control"
           type="text"
-          placeholder="Prompt"
+          placeholder="Type your message..."
           onKeyDown={handleKeyDown}
           disabled={inputIsDisabled}
+          autoComplete="off"
         />
+
         {showRegenerate && (
           <>
             <div
-              className="icon text-primary ms-3"
+              className="input-action"
               onClick={onRegenerate}
-              data-bs-toggle="tooltip"
               title="Regenerate Response"
             >
               <FontAwesomeIcon icon={faRotateLeft} />
             </div>
             <div
-              className="icon text-primary ms-3"
+              className="input-action"
               onClick={onNewChat}
-              data-bs-toggle="tooltip"
               title="New Chat"
             >
               <FontAwesomeIcon icon={faPlus} />
@@ -76,9 +76,8 @@ export default function ChatInput({
         )}
         {isGenerating && (
           <div
-            className="icon text-primary ms-3"
+            className="input-action"
             onClick={onStopGeneration}
-            data-bs-toggle="tooltip"
             title="Stop Response"
           >
             <FontAwesomeIcon icon={faCircleStop} />
@@ -86,14 +85,21 @@ export default function ChatInput({
         )}
         {hasClipboard && (
           <div
-            className="icon text-info ms-3 animate__animated animate__bounceIn"
+            className="input-action animate__animated animate__bounceIn"
             onClick={onClipboardClick}
-            data-bs-toggle="tooltip"
             title="Clipboard"
           >
-            <FontAwesomeIcon icon={faPaste} className="fa-2x" />
+            <FontAwesomeIcon icon={faPaste} />
           </div>
         )}
+        <div
+          className="input-action"
+          onClick={() => { if (prompt.trim() && !inputIsDisabled) onSend(); }}
+          title="Send"
+          style={{ color: prompt.trim() ? "var(--accent-cyan)" : undefined, opacity: prompt.trim() ? 1 : 0.4 }}
+        >
+          <FontAwesomeIcon icon={faPaperPlane} />
+        </div>
       </div>
     </form>
   );

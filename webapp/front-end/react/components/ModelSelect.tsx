@@ -52,7 +52,7 @@ export default function ModelSelect({
   return (
     <div className="model-select-wrapper" ref={wrapperRef}>
       <button
-        className="model-select-trigger form-select"
+        className="model-select-trigger"
         type="button"
         aria-expanded={isOpen}
         aria-haspopup="listbox"

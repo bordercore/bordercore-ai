@@ -23,60 +23,51 @@ export default function PreferencesMenu({
   if (!show) return null;
 
   return (
-    <div id="menu" className="p-3 fadein">
-      <h4 className="text-info">Preferences</h4>
-      <hr />
-      <div className="row g-3 align-items-center mb-3">
-        <div className="col-auto">
-          <label className="col-form-label">Temperature</label>
+    <div id="menu">
+      <h4 style={{ color: "var(--accent-cyan)", fontSize: "0.9rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: "1rem" }}>
+        Preferences
+      </h4>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Temperature</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <Slider
+              value={temperature}
+              onChange={onTemperatureChange}
+              min={0.0}
+              max={1.0}
+              step={0.1}
+              showInput={false}
+            />
+            <span className="pref-hint">0 (Predictable) to 1 (Random)</span>
+          </div>
         </div>
-        <div className="col-auto">
-          <Slider
-            value={temperature}
-            onChange={onTemperatureChange}
-            min={0.0}
-            max={1.0}
-            step={0.1}
-            showInput={false}
-          />
+        <div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Audio Speed</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <Slider
+              value={audioSpeed}
+              onChange={onAudioSpeedChange}
+              min={0}
+              max={2}
+              step={0.1}
+              showInput={false}
+            />
+            <span className="pref-hint">0 (Slow) to 2 (Fast)</span>
+          </div>
         </div>
-        <div className="col-auto ms-2">
-          <span className="form-text">0 (Predictable) to 1 (Random)</span>
-        </div>
-      </div>
-      <div className="row g-3 align-items-center mb-3">
-        <div className="col-auto">
-          <label className="col-form-label">Audio Speed</label>
-        </div>
-        <div className="col-auto">
-          <Slider
-            value={audioSpeed}
-            onChange={onAudioSpeedChange}
-            min={0}
-            max={2}
-            step={0.1}
-            showInput={false}
-          />
-        </div>
-        <div className="col-auto ms-2">
-          <span className="form-text">0 (Slow) to 2 (Fast)</span>
-        </div>
-      </div>
-      <div className="row align-items-center mt-2 mb-3">
-        <div className="col-auto">
-          <label className="col-form-label">TTS Host</label>
-        </div>
-        <div className="col-auto">
-          <input
-            type="text"
-            className="form-control"
-            value={ttsHost}
-            onChange={(e) => onTtsHostChange(e.target.value)}
-            size={20}
-          />
-        </div>
-        <div className="col-auto">
-          <span className="form-text">Hostname and port for TTS server</span>
+        <div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>TTS Host</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <input
+              type="text"
+              className="form-control"
+              value={ttsHost}
+              onChange={(e) => onTtsHostChange(e.target.value)}
+              size={20}
+            />
+            <span className="pref-hint">Hostname and port for TTS</span>
+          </div>
         </div>
       </div>
     </div>
