@@ -349,6 +349,14 @@ try:
 except ModuleNotFoundError:
     pass
 
+try:
+    from gpu_stats import gpu_bp
+    app.register_blueprint(gpu_bp)
+except ImportError:
+    logger.info("GPU stats blueprint not available")
+except Exception:
+    logger.exception("Failed to register GPU stats blueprint")
+
 
 def generate_stream(chatbot: ChatBot, message: Any, stop_event: Event) -> Iterator[str]:
     """

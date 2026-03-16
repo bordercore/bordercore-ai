@@ -13,6 +13,7 @@ export interface Switches {
   vad: boolean;
   wolframAlpha: boolean;
   enableThinking: boolean;
+  gpuOrb: boolean;
 }
 
 export interface ModelInfo {
@@ -112,6 +113,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
     vad: false,
     wolframAlpha: false,
     enableThinking: session.enable_thinking !== undefined ? session.enable_thinking : false,
+    gpuOrb: true,
   });
   const [temperature, setTemperature] = useState(session.temperature || 0.7);
   const [audioSpeed, setAudioSpeed] = useState(session.audio_speed || 1);

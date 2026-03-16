@@ -76,6 +76,23 @@ export default function Options({ switches, onToggle, onSensorToggle }: OptionsP
         />
       </div>
 
+      {/* Display */}
+      <div className="option-group">
+        <div className="option-group-title">Display</div>
+        <ToggleItem
+          label="GPU Orb"
+          checked={switches.gpuOrb}
+          onToggle={() => onToggle("gpuOrb")}
+          ariaLabel="Use GPU Orb visualization"
+          icon={
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+              <circle cx="12" cy="12" r="4" />
+            </svg>
+          }
+        />
+      </div>
+
       {/* Sensors */}
       <div className="option-group">
         <div className="option-group-title">Sensors</div>

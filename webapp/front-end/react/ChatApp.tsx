@@ -11,6 +11,7 @@ import Nav from "./components/Nav";
 import ChatInput from "./components/ChatInput";
 import MessageList from "./components/MessageList";
 import ModelSelect from "./components/ModelSelect";
+import GpuOrb from "./components/GpuOrb";
 import ThinkingIcon from "./components/ThinkingIcon";
 import Options from "./components/Options";
 import FileUpload from "./components/FileUpload";
@@ -690,11 +691,10 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           <img src="/static/img/logo.png" className="header-logo" alt="Bordercore AI" />
         </div>
 
-        <div className="app-header-center">
-          <Nav active={mode} onModeChange={handleSwitchMode} />
-        </div>
+        <div className="app-header-center"></div>
 
         <div className="app-header-right">
+          <Nav active={mode} onModeChange={handleSwitchMode} />
           <button
             className="hamburger"
             ref={hamburgerRef}
@@ -804,7 +804,10 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
           <div className="sidebar-section">
             <div className="thinking-area">
-              <ThinkingIcon active={isGenerating} size={140} />
+              {switches.gpuOrb
+                ? <GpuOrb active={isGenerating} size={140} />
+                : <ThinkingIcon active={isGenerating} size={140} />
+              }
             </div>
             {notice && (
               <div className="notice animate__animated animate__pulse animate__slower animate__infinite">

@@ -37,6 +37,7 @@ module.exports = defineConfig({
       "/load": { target: "https://localhost:5000", secure: false },
       "/speech2text": { target: "https://localhost:5000", secure: false },
       "/mark_as_played": { target: "https://localhost:5000", secure: false },
+      "/gpu": { target: "https://localhost:5000", secure: false },
     },
   },
   resolve: {
@@ -61,6 +62,7 @@ module.exports = defineConfig({
           "highlight.js": ["highlight.js"],
           "katex": ["katex"],
           "markdown-it": ["markdown-it"],
+          "three": ["three"],
         },
       },
     },
