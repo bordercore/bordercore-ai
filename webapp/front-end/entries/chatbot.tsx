@@ -26,6 +26,7 @@ import "bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "animate.css";
 import "media-chrome";
+import "../../static/css/styles.scss";
 
 // Register FontAwesome icons
 library.add(

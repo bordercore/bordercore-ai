@@ -15,7 +15,7 @@ export default function MessageItem({ message }: MessageItemProps) {
   const sanitizedHtml = renderMarkdown(message.content);
 
   return (
-    <div className={`chatbot-${message.role} d-flex`}>
+    <div className={`chatbot-${message.role} d-flex align-items-baseline`}>
       <div className="role fw-bold me-2" style={{ minWidth: "1.5rem" }}>
         {message.role === "user" ? "You" : "AI"}
       </div>

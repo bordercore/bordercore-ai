@@ -248,6 +248,10 @@ body {
   border-radius: 0.75rem;
   line-height: 1.6;
   font-size: 0.9rem;
+
+  p {
+    margin-bottom: 0;
+  }
 }
 
 .chatbot-user {

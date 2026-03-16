@@ -319,7 +319,12 @@ export default function GpuOrb({ size = 140, active = false }: GpuOrbProps) {
 
   return (
     <div
-      style={{ width: size, height: size }}
+      style={{
+        width: size,
+        height: size,
+        maskImage: "radial-gradient(circle, black 40%, transparent 70%)",
+        WebkitMaskImage: "radial-gradient(circle, black 40%, transparent 70%)",
+      }}
       aria-busy={active ? "true" : "false"}
       role="img"
       aria-label={active ? "GPU activity visualization" : "GPU idle"}
