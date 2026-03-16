@@ -1077,23 +1077,29 @@ class Inference:
                 return_tensors="pt",
             ).to("cuda")
 
-        # Qwen2 Vision does not yet support the pipeline streamer
-        generated_ids = self.model.generate(**inputs, max_new_tokens=128)
-
-        # Trim the input token IDs from the generated output
-        trimmed_ids = [
-            out_ids[len(in_ids):]
-            for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
-        ]
-
-        output_text = self.tokenizer.batch_decode(
-            trimmed_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False
+        streamer = TextIteratorStreamer(
+            self.tokenizer, skip_prompt=True, skip_special_tokens=True
         )
 
-        for text in output_text:
-            if self.stop_event and self.stop_event.is_set():
-                break
-            yield text
+        generate_kwargs = dict(
+            **inputs, max_new_tokens=self.max_new_tokens, streamer=streamer
+        )
+
+        if self.stop_event is not None:
+            generate_kwargs["stopping_criteria"] = StoppingCriteriaList(
+                [EventStoppingCriteria(self.stop_event)]
+            )
+
+        thread = Thread(target=self.model.generate, kwargs=generate_kwargs)
+        thread.start()
+
+        try:
+            for text in streamer:
+                if self.stop_event and self.stop_event.is_set():
+                    break
+                yield text
+        finally:
+            thread.join()
 
     def prepare_image_prompt(self, image_path: str, text: str) -> List[Dict[str, Any]]:
         """
