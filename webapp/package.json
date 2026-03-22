@@ -20,7 +20,7 @@
     "@vitejs/plugin-react": "^4.2.0",
     "animate.css": "^4.1.1",
     "audiomotion-analyzer": "^4.3.0",
-    "axios": "^0.21.4",
+    "axios": "^0.30.0",
     "bootstrap": "^5.2.3",
     "dompurify": "^3.0.8",
     "highlight.js": "^11.9.0",
