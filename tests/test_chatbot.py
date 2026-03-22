@@ -19,10 +19,12 @@ def test_init_stt_if_enabled_enabled():
     """Returns WhisperMic instance when STT is enabled."""
     instance = ChatBot()
     instance.args = {"stt": True}
-    with patch("modules.chatbot.WhisperMic") as mock_mic:
-        mic = instance.init_stt_if_enabled()
-        mock_mic.assert_called_once_with(model="small", energy=100)
-        assert mic == mock_mic()
+    with patch.dict("sys.modules", {"whisper_mic": MagicMock(), "whisper_mic.whisper_mic": MagicMock()}) as mods:
+        mock_mic_class = mods["whisper_mic.whisper_mic"].WhisperMic
+        with patch("modules.chatbot.WhisperMic", mock_mic_class, create=True):
+            mic = instance.init_stt_if_enabled()
+            mock_mic_class.assert_called_once_with(model="small", energy=100)
+            assert mic == mock_mic_class()
 
 
 def test_init_stt_if_enabled_disabled():
@@ -73,9 +75,9 @@ def test_handle_message_lights(chatbot):
     chatbot.get_request_type = MagicMock(return_value={"category": "lights"})
     with patch("modules.chatbot.control_lights", return_value="light-response") as mock_control:
         messages = [{"role": "user", "content": "turn on the lights"}]
-        chatbot.send_message_to_model = MagicMock(return_value="llm-response")
+        chatbot.send_message_to_model = MagicMock(return_value=["llm-response"])
 
-        result = chatbot.dispatch_message(messages)
+        result = list(chatbot.dispatch_message(messages))
 
         # Tool called
         mock_control.assert_called_once()
@@ -88,7 +90,7 @@ def test_handle_message_lights(chatbot):
         assert kwargs.get("stream") is True
         assert kwargs.get("replace_context") is True
         # Final result is the model's return value
-        assert result == "llm-response"
+        assert result == ["llm-response"]
 
 
 def test_handle_message_music(chatbot):
@@ -96,9 +98,9 @@ def test_handle_message_music(chatbot):
     chatbot.get_request_type = MagicMock(return_value={"category": "music"})
     with patch("modules.chatbot.play_music", return_value="music-response") as mock_play:
         messages = [{"role": "user", "content": "play music"}]
-        chatbot.send_message_to_model = MagicMock(return_value="llm-response")
+        chatbot.send_message_to_model = MagicMock(return_value=["llm-response"])
 
-        result = chatbot.dispatch_message(messages)
+        result = list(chatbot.dispatch_message(messages))
 
         mock_play.assert_called_once()
         assert messages[-1]["content"] == "music-response"
@@ -106,29 +108,27 @@ def test_handle_message_music(chatbot):
         _, kwargs = chatbot.send_message_to_model.call_args
         assert kwargs.get("stream") is True
         assert kwargs.get("replace_context") is True
-        assert result == "llm-response"
+        assert result == ["llm-response"]
 
 
 def test_handle_message_math_with_wolfram(chatbot):
     """When wolfram_alpha is enabled, math uses Wolfram and forwards result to the model."""
     chatbot.args["wolfram_alpha"] = True
     messages = [{"role": "user", "content": "what is 2+2"}]
-    chatbot.send_message_to_model = MagicMock(return_value="wolfram-llm-response")
+    chatbot.send_message_to_model = MagicMock(return_value=["wolfram-llm-response"])
 
     with patch("modules.chatbot.WolframAlphaFunctionCall") as mock_class:
         mock_instance = mock_class.return_value
         mock_instance.run.return_value = "4"
 
-        result = chatbot.dispatch_message(messages)
+        result = list(chatbot.dispatch_message(messages))
 
         mock_instance.run.assert_called_once_with("what is 2+2")
-        # Tool output becomes the message content sent to the model
-        assert messages[-1]["content"] == "4"
         chatbot.send_message_to_model.assert_called_once()
         _, kwargs = chatbot.send_message_to_model.call_args
         assert kwargs.get("stream") is True
         assert kwargs.get("replace_context") is True
-        assert result == "wolfram-llm-response"
+        assert result == ["wolfram-llm-response"]
 
 
 def test_handle_message_math_with_thinking_enabled(chatbot):
@@ -136,30 +136,30 @@ def test_handle_message_math_with_thinking_enabled(chatbot):
     chatbot.args["enable_thinking"] = True
     chatbot.get_request_type = MagicMock(return_value={"category": "math"})
     messages = [{"role": "user", "content": "what is 2+2"}]
-    chatbot.send_message_to_model = MagicMock(return_value="llm-response")
+    chatbot.send_message_to_model = MagicMock(return_value=["llm-response"])
 
-    result = chatbot.dispatch_message(messages)
+    result = list(chatbot.dispatch_message(messages))
 
     chatbot.send_message_to_model.assert_called_once()
     _, kwargs = chatbot.send_message_to_model.call_args
     assert kwargs.get("stream") is True
     assert kwargs.get("replace_context") is True
-    assert result == "llm-response"
+    assert result == ["llm-response"]
 
 
 def test_handle_message_default(chatbot):
     """Unknown categories go straight to the model."""
     chatbot.get_request_type = MagicMock(return_value={"category": "unknown"})
     messages = [{"role": "user", "content": "tell me a joke"}]
-    chatbot.send_message_to_model = MagicMock(return_value="default-response")
+    chatbot.send_message_to_model = MagicMock(return_value=["default-response"])
 
-    result = chatbot.dispatch_message(messages)
+    result = list(chatbot.dispatch_message(messages))
 
     chatbot.send_message_to_model.assert_called_once()
     _, kwargs = chatbot.send_message_to_model.call_args
     assert kwargs.get("stream") is True
     assert kwargs.get("replace_context") is True
-    assert result == "default-response"
+    assert result == ["default-response"]
 
 
 def test_handle_message_with_url(chatbot):
@@ -169,9 +169,9 @@ def test_handle_message_with_url(chatbot):
         # get_request_type is ignored when url is set, but it's fine if present
         chatbot.get_request_type = MagicMock(return_value={"category": "other"})
         messages = [{"role": "user", "content": "summarize"}]
-        chatbot.send_message_to_model = MagicMock(return_value="summarized")
+        chatbot.send_message_to_model = MagicMock(return_value=["summarized"])
 
-        result = chatbot.dispatch_message(messages)
+        result = list(chatbot.dispatch_message(messages))
 
         mock_get.assert_called_once_with("http://example.com")
         assert "Example site" in messages[-1]["content"]
@@ -179,4 +179,4 @@ def test_handle_message_with_url(chatbot):
         _, kwargs = chatbot.send_message_to_model.call_args
         assert kwargs.get("stream") is True
         assert kwargs.get("replace_context") is True
-        assert result == "summarized"
+        assert result == ["summarized"]

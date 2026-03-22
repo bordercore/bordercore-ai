@@ -79,3 +79,8 @@ addopts = "--capture=no --tb=line"
 norecursedirs = ["webapp/node_modules"]
 import_mode = "importlib"
 filterwarnings = ["ignore"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
