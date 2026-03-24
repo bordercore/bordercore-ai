@@ -8,3 +8,9 @@ claude-3-5-sonnet-20240620:
   name: Claude 3.5 Sonnet
   type: api
   vendor: anthropic
+claude-sonnet-4-20250514:
+  name: Claude Sonnet 4 (via CLIProxy)
+  type: api
+  vendor: openai
+  base_url: http://localhost:8317/v1
+  api_key: "not-needed"
