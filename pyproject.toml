@@ -26,6 +26,7 @@ dependencies = [
     "pypdf",
     "pysbd",
     "python-dateutil",
+    "pynvml>=12.0.0",
     "pyyaml",
     "qwen-vl-utils>=0.0.14",
     "requests",
