@@ -29,7 +29,7 @@ export default function MessageList({ messages, waiting, error }: MessageListPro
       ))}
       {waiting && (
         <div
-          className="spinner-border ms-3 text-info animate__animated animate__fadeIn"
+          className="spinner-border ms-3 text-info"
           role="status"
         />
       )}

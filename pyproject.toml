@@ -38,6 +38,9 @@ dependencies = [
     "yt-dlp",
 ]
 
+[tool.setuptools]
+packages = []
+
 [tool.uv.sources]
 torch = { index = "pytorch-cu128" }
 
