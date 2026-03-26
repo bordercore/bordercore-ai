@@ -10,18 +10,18 @@ export default function ThinkingMessage({ text }: ThinkingMessageProps) {
   const [showText, setShowText] = useState(false);
 
   return (
-    <div className="row ms-2">
+    <div className="flex flex-wrap ml-2">
       <div
-        className="control col-auto rounded-2 mb-2 p-1 ps-2"
+        className="control w-auto rounded-md mb-2 p-1 pl-2"
         aria-expanded={showText}
         onClick={() => setShowText(!showText)}
         style={{ cursor: "pointer" }}
       >
-        <FontAwesomeIcon icon={faGear} className="gear-icon me-2" />
-        <span className="me-2">Thinking...</span>
+        <FontAwesomeIcon icon={faGear} className="gear-icon mr-2" />
+        <span className="mr-2">Thinking...</span>
         <FontAwesomeIcon
           icon={faChevronUp}
-          className={`toggle-icon me-1${showText ? " rotated" : ""}`}
+          className={`toggle-icon mr-1${showText ? " rotated" : ""}`}
         />
       </div>
       {showText && <div>{text}</div>}

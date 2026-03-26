@@ -25,31 +25,29 @@ export default function AudioPlayer({
     return musicInfo.findIndex((x) => x === currentSong);
   }, [musicInfo, currentSong]);
 
-  const isVisible = audioIsPlayingOrPaused;
-
   return (
-    <div id="audioPlayer" className={isVisible ? "d-flex" : "d-none"}>
+    <div id="audioPlayer" style={{ display: audioIsPlayingOrPaused ? "flex" : "none" }}>
       <div
         id="audioPlayerInfo"
-        className="position-relative d-flex align-items-center justify-content-center w-100"
+        className="relative flex items-center justify-center w-full"
       >
         {audioIsPlayingOrPaused && (
-          <div className="d-flex">
+          <div className="flex">
             <img
               id="isPlaying"
               src="/static/img/equaliser-animated-green.gif"
-              className="mb-1 me-2"
+              className="mb-1 mr-2"
               width="20"
               height="20"
             />
             {musicInfo ? (
               <div>
                 Playing{" "}
-                <span className="text-info">{currentSong.title}</span> by{" "}
-                <span className="text-info">{currentSong.artist}</span>
+                <span className="text-bs-info">{currentSong.title}</span> by{" "}
+                <span className="text-bs-info">{currentSong.artist}</span>
                 <div id="songIndex">
                   <span
-                    className={`me-3 ${songIndex > 0 ? "text-info" : "text-secondary"}`}
+                    className={`mr-3 ${songIndex > 0 ? "text-bs-info" : "text-bs-secondary"}`}
                   >
                     <FontAwesomeIcon
                       icon={faBackward}
@@ -57,10 +55,10 @@ export default function AudioPlayer({
                       onClick={onSongBackward}
                     />
                   </span>
-                  <span className="fw-bold">{songIndex + 1}</span> /{" "}
-                  <span className="fw-bold">{musicInfo.length}</span>
+                  <span className="font-bold">{songIndex + 1}</span> /{" "}
+                  <span className="font-bold">{musicInfo.length}</span>
                   <span
-                    className={`ms-3 ${songIndex < musicInfo.length - 1 ? "text-info" : "text-secondary"}`}
+                    className={`ml-3 ${songIndex < musicInfo.length - 1 ? "text-bs-info" : "text-bs-secondary"}`}
                   >
                     <FontAwesomeIcon
                       icon={faForward}

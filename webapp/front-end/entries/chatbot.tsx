@@ -22,8 +22,7 @@ import {
   faRotateLeft,
 } from "@fortawesome/free-solid-svg-icons";
 
-import "bootstrap";
-import "bootstrap/dist/css/bootstrap.min.css";
+import "../tailwind.css";
 import "animate.css";
 import "media-chrome";
 import "../../static/css/styles.scss";

@@ -91,7 +91,7 @@ export default function Slider({
       {showInput ? (
         <input
           type="number"
-          className="slider-value-input input ms-3"
+          className="slider-value-input input ml-3"
           min={min}
           max={max}
           step={step}
@@ -99,7 +99,7 @@ export default function Slider({
           onChange={onNumberInput}
         />
       ) : (
-        <span className="slider-value ms-2">
+        <span className="slider-value ml-2">
           <strong>{snappedValue}</strong>
         </span>
       )}

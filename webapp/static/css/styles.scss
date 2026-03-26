@@ -30,10 +30,6 @@
   --shadow-panel: 0 4px 24px rgba(0, 0, 0, 0.4);
   --shadow-glow: 0 0 20px rgba(0, 234, 255, 0.08);
 
-  // Bootstrap overrides
-  --bs-body-bg: var(--bg-base) !important;
-  --bs-body-color: var(--text-primary) !important;
-  --bs-code-color: #c4b5fd !important;
 }
 
 // ─── Base ────────────────────────────────────────────────────
@@ -200,6 +196,13 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+
+.chat-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .chat-panel-header {
@@ -637,19 +640,6 @@ body {
   width: 10rem;
 }
 
-// ─── Form Overrides ──────────────────────────────────────────
-.form-control, .form-select {
-  background-color: var(--bg-input) !important;
-  color: var(--text-primary) !important;
-  border: 1px solid var(--border-subtle) !important;
-  border-radius: 0.5rem;
-  font-size: 0.85rem;
-
-  &:focus {
-    border-color: var(--accent-cyan) !important;
-    box-shadow: 0 0 8px rgba(0, 234, 255, 0.15) !important;
-  }
-}
 
 // ─── Dividers ────────────────────────────────────────────────
 hr.divider {
@@ -737,8 +727,8 @@ hr.divider {
 
 // ─── Modal ───────────────────────────────────────────────────
 .modal-content {
-  background: var(--bg-surface-raised) !important;
-  border: 1px solid var(--border-accent) !important;
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-accent);
   border-radius: 1rem;
   box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
 }
@@ -811,12 +801,6 @@ media-volume-range {
   }
 }
 
-// ─── Buttons ─────────────────────────────────────────────────
-.button-small {
-  --bs-btn-padding-y: .25rem !important;
-  --bs-btn-padding-x: .5rem !important;
-  --bs-btn-font-size: .75rem !important;
-}
 
 // ─── Scrollbar ───────────────────────────────────────────────
 ::-webkit-scrollbar {
@@ -859,10 +843,6 @@ media-volume-range {
   display: none !important;
 }
 
-// Old navbar styles (kept for Nav component)
-.navbar-nav {
-  display: none;
-}
 
 // ─── Utility ─────────────────────────────────────────────────
 .text-accent {
@@ -873,19 +853,11 @@ media-volume-range {
   color: var(--accent-purple);
 }
 
-// Legacy overrides
-.container {
-  flex: 1;
-  border-radius: 0;
-  display: flex;
-  min-height: 0;
-}
-
 #artifact-container {
   flex: 1;
 }
 
-.container:not(:has(#artifact-container)) #message-container {
+.chat-body:not(:has(#artifact-container)) #message-container {
   flex: 1 0 100%;
 }
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useRef, useState } from "react";
-import { Modal } from "bootstrap";
 import axios from "axios";
+import Modal from "./components/Modal";
 
 import { useChatStore, Switches } from "./stores/ChatStoreContext";
 import { doGet, doPost } from "./utils/reactUtils";
@@ -71,6 +71,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   const [copyIcon, setCopyIcon] = useState("copy");
   const [imageSrc, setImageSrc] = useState("");
+  const [showProcessingModal, setShowProcessingModal] = useState(false);
+  const [showClipboardModal, setShowClipboardModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
 
@@ -259,24 +261,22 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   function handleChangeModel(modelName: string) {
     const modelType = getModelAttribute(modelName, "type");
-    let modal: Modal | null = null;
     if (modelType !== "api") {
-      modal = new Modal("#modalProcessing");
-      modal.show();
+      setShowProcessingModal(true);
     }
     doPost(
       "/load",
       { model: modelName },
       () => {
         getModelInfo();
-        if (modelType !== "api" && modal) {
-          setTimeout(() => modal!.hide(), 500);
+        if (modelType !== "api") {
+          setTimeout(() => setShowProcessingModal(false), 500);
         }
       },
       "",
       () => {
-        if (modelType !== "api" && modal) {
-          setTimeout(() => modal!.hide(), 500);
+        if (modelType !== "api") {
+          setTimeout(() => setShowProcessingModal(false), 500);
         }
       }
     );
@@ -343,16 +343,11 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   }
 
   function handleClipboardClick() {
-    const modal = new Modal("#modalClipboard");
-    modal.show();
+    setShowClipboardModal(true);
   }
 
   function handleDeleteClipboard() {
-    const el = document.getElementById("modalClipboard");
-    if (el) {
-      const modal = Modal.getInstance(el);
-      modal?.hide();
-    }
+    setShowClipboardModal(false);
     setTimeout(() => setClipboard(null), 500);
   }
 
@@ -390,8 +385,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       formData.append("file", fileData);
     }
 
-    const modal = new Modal("#modalProcessing");
-    modal.show();
+    setShowProcessingModal(true);
 
     axios
       .post(endpoint, formData, {
@@ -405,10 +399,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
         } else {
           setUploadedFilename(event!.target.files![0].name);
         }
-        modal.hide();
+        setShowProcessingModal(false);
         // Load audio into player
-        const el = document.getElementById("audioPlayer");
-        if (el) el.classList.replace("d-none", "d-flex");
+        setAudioIsPlayingOrPaused(true);
         const playerEl = document.getElementById("player") as HTMLAudioElement;
         if (audioUrl) {
           fileData = convertBase64ToBytes(response.data) as any;
@@ -419,8 +412,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   }
 
   function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
-    const modal = new Modal("#modalProcessing");
-    modal.show();
+    setShowProcessingModal(true);
 
     const formData = new FormData();
     const fileData = event.target.files?.[0];
@@ -437,11 +429,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
         setSha1sum(response.data.sha1sum);
         setUploadedFilename(event.target.files![0].name);
         window.setTimeout(() => {
-          const modalEl = document.getElementById("modalProcessing");
-          if (modalEl) {
-            const m = Modal.getInstance(modalEl);
-            m?.hide();
-          }
+          setShowProcessingModal(false);
         }, 500);
       });
   }
@@ -525,8 +513,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       return updated;
     });
 
-    const el = document.getElementById("audioPlayer");
-    if (el) el.classList.replace("d-none", "d-flex");
+    setAudioIsPlayingOrPaused(true);
     const playerEl = document.getElementById("player") as HTMLAudioElement;
     setCurrentSong(song);
     if (playerEl) {
@@ -722,8 +709,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           </div>
 
           <div
-            className={`container d-flex${isDragOver ? " drag-over" : ""}`}
-            style={{ flex: 1, minHeight: 0 }}
+            className={`chat-body${isDragOver ? " drag-over" : ""}`}
             onDragOver={(e) => {
               e.preventDefault();
               setIsDragOver(true);
@@ -854,56 +840,38 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       <ToastContainer />
 
       {/* Processing Modal */}
-      <div
-        id="modalProcessing"
-        className="modal fade"
-        tabIndex={-1}
-        role="dialog"
-        aria-hidden="true"
-      >
-        <div className="modal-dialog modal-sm modal-dialog-centered" role="document">
-          <h4 className="modal-content p-3 d-flex flex-row justify-content-center">
-            <div>Processing...</div>
-            <div className="spinner-border ms-2 text-secondary" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          </h4>
+      <Modal isOpen={showProcessingModal} onClose={() => setShowProcessingModal(false)} size="sm">
+        <div className="flex items-center justify-center">
+          <div>Processing...</div>
+          <div className="ml-2 h-5 w-5 animate-spin rounded-full border-2 border-bs-secondary border-t-transparent" role="status">
+            <span className="sr-only">Loading...</span>
+          </div>
         </div>
-      </div>
+      </Modal>
 
       {/* Clipboard Modal */}
-      <div
-        id="modalClipboard"
-        className="modal fade"
-        tabIndex={-1}
-        role="dialog"
-        aria-hidden="true"
-      >
-        <div className="modal-dialog modal-lg modal-dialog-centered" role="document">
-          <h6 className="modal-content p-3 d-flex flex-row justify-content-center">
-            <div className="d-flex flex-column">
-              <h5 className="text-info">Pasted content</h5>
-              <div>{clipboard?.content}</div>
-              <div>
-                <button
-                  type="button"
-                  className="btn btn-primary button-small mt-3"
-                  data-bs-dismiss="modal"
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-warning button-small ms-3 mt-3"
-                  onClick={handleDeleteClipboard}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </h6>
+      <Modal isOpen={showClipboardModal} onClose={() => setShowClipboardModal(false)} size="lg">
+        <div className="flex flex-col">
+          <h5 className="text-bs-info">Pasted content</h5>
+          <div>{clipboard?.content}</div>
+          <div>
+            <button
+              type="button"
+              className="mt-3 rounded-md bg-bs-primary px-3 py-1 text-sm font-medium text-white hover:bg-bs-primary/80"
+              onClick={() => setShowClipboardModal(false)}
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              className="ml-3 mt-3 rounded-md bg-bs-warning px-3 py-1 text-sm font-medium text-white hover:bg-bs-warning/80"
+              onClick={handleDeleteClipboard}
+            >
+              Delete
+            </button>
+          </div>
         </div>
-      </div>
+      </Modal>
     </>
   );
 }

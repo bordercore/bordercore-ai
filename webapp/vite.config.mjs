@@ -1,7 +1,10 @@
-const path = require("path");
-const { defineConfig } = require("vite");
-const fs = require("fs");
+import path from "path";
+import { fileURLToPath } from "url";
+import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
+import fs from "fs";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === "production";
 
 // Resolve @optional-module: use local/optional.js if it exists, otherwise fallback.js
@@ -9,8 +12,8 @@ const optionalModulePath = fs.existsSync(path.resolve(__dirname, "local/optional
   ? path.resolve(__dirname, "local/optional.js")
   : path.resolve(__dirname, "fallback.js");
 
-module.exports = defineConfig({
-  plugins: [],
+export default defineConfig({
+  plugins: [tailwindcss()],
   esbuild: {
     jsx: "automatic",
   },

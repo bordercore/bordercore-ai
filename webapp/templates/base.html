@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,7 +16,7 @@
         <div id="app"></div>
         <script id="session" type="application/json">{{ session|tojson|safe }}</script>
         <script id="settings" type="application/json">{{ settings|tojson|safe }}</script>
-        <div id="controlValue" class="d-none">{{ control_value }}</div>
+        <div id="controlValue" style="display:none">{{ control_value }}</div>
         {% if config.DEBUG %}
         <script type="module" src="https://{{ request.host.split(':')[0] }}:5180/front-end/entries/chatbot.tsx"></script>
         {% else %}

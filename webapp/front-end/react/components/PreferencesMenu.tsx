@@ -61,7 +61,7 @@ export default function PreferencesMenu({
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <input
               type="text"
-              className="form-control"
+              className="w-full rounded-lg border border-border-subtle bg-bg-input px-3 py-2 text-sm text-txt-primary focus:border-accent-cyan focus:outline-none"
               value={ttsHost}
               onChange={(e) => onTtsHostChange(e.target.value)}
               size={20}

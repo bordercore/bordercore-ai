@@ -22,11 +22,12 @@ export default function ImagePreview({
   return (
     <div
       id="artifact-container"
-      className={`p-2${visionImage === null ? " d-none" : ""}`}
+      className="p-2"
+      style={{ display: visionImage === null ? "none" : undefined }}
     >
       <img
         id="image-preview"
-        className="w-100 p-1"
+        className="w-full p-1"
         src={imageSrc}
         alt="Image preview"
       />
