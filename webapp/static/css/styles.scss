@@ -232,6 +232,7 @@ body {
   pre {
     background: var(--bg-base);
     padding: 1rem;
+    margin: 0.5rem 0;
     border: 1px solid var(--border-subtle);
     border-radius: 0.5rem;
     text-wrap: wrap;
@@ -240,6 +241,92 @@ body {
 
   strong {
     color: var(--text-highlight);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 1rem 0 0.5rem;
+    line-height: 1.3;
+  }
+
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.4rem; }
+  h3 { font-size: 1.15rem; }
+  h4 { font-size: 1rem; }
+  h5 { font-size: 0.9rem; }
+  h6 { font-size: 0.8rem; color: var(--text-secondary); }
+
+  // ─── AI-generated Tables ────────────────────────────────────
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 1rem 0;
+    background: linear-gradient(
+      135deg,
+      rgba(13, 19, 49, 0.9) 0%,
+      rgba(17, 26, 62, 0.7) 100%
+    );
+    border: 1px solid var(--border-accent);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.3),
+      0 0 1px rgba(0, 234, 255, 0.2),
+      inset 0 1px 0 rgba(0, 234, 255, 0.05);
+  }
+
+  thead {
+    background: linear-gradient(
+      90deg,
+      rgba(0, 234, 255, 0.12) 0%,
+      rgba(168, 85, 247, 0.10) 100%
+    );
+
+    th {
+      padding: 0.75rem 1rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-cyan);
+      text-align: left;
+      border-bottom: 1px solid var(--border-accent);
+      white-space: nowrap;
+    }
+  }
+
+  tbody {
+    tr {
+      transition: background 0.15s ease;
+
+      &:nth-child(even) {
+        background: rgba(0, 234, 255, 0.03);
+      }
+
+      &:hover {
+        background: rgba(0, 234, 255, 0.07);
+      }
+
+      &:not(:last-child) td {
+        border-bottom: 1px solid rgba(100, 120, 180, 0.1);
+      }
+    }
+
+    td {
+      padding: 0.65rem 1rem;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+  }
+
+  // First column accent highlight
+  tbody td:first-child {
+    color: var(--text-highlight);
+    font-weight: 500;
   }
 }
 
