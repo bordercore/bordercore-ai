@@ -17,7 +17,7 @@ interface UseClipboardPasteOptions {
 }
 
 /**
- * Handles paste events: detects URLs, long text (>200 chars) for clipboard, or appends short text to prompt.
+ * Handles paste events: detects URLs, long text (>10 lines) for clipboard, or appends short text to prompt.
  */
 export default function useClipboardPaste(options: UseClipboardPasteOptions) {
   const { onURL, onLongText, onShortText, getNextId } = options;
@@ -34,7 +34,8 @@ export default function useClipboardPaste(options: UseClipboardPasteOptions) {
         return;
       }
 
-      if (paste.length > 200) {
+      const lineCount = paste.split("\n").length;
+      if (lineCount > 10) {
         onLongText(paste, getNextId());
       } else {
         onShortText(paste);

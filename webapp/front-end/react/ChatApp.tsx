@@ -13,6 +13,7 @@ import MessageList from "./components/MessageList";
 import ModelSelect from "./components/ModelSelect";
 import GpuOrb from "./components/GpuOrb";
 import ThinkingIcon from "./components/ThinkingIcon";
+import NexusViz from "./components/NexusViz";
 import Options from "./components/Options";
 import FileUpload from "./components/FileUpload";
 import ImagePreview from "./components/ImagePreview";
@@ -41,6 +42,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     model, setModel,
     modelList, setModelList,
     switches, setSwitches,
+    visualization, setVisualization,
     temperature, setTemperature,
     audioSpeed, setAudioSpeed,
     ttsHost, setTtsHost,
@@ -790,10 +792,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
           <div className="sidebar-section">
             <div className="thinking-area">
-              {switches.gpuOrb
-                ? <GpuOrb active={isGenerating} size={140} />
-                : <ThinkingIcon active={isGenerating} size={140} />
-              }
+              {visualization === "gpuOrb" && <GpuOrb active={isGenerating} size={140} />}
+              {visualization === "thinkingIcon" && <ThinkingIcon active={isGenerating} size={140} />}
+              {visualization === "nexus" && <NexusViz active={isGenerating} size={140} />}
             </div>
             {notice && (
               <div className="notice animate__animated animate__pulse animate__slower animate__infinite">
@@ -808,6 +809,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               switches={switches}
               onToggle={handleToggleSwitch}
               onSensorToggle={handleSensorToggle}
+              visualization={visualization}
+              onVisualizationChange={setVisualization}
             />
           </div>
         </div>

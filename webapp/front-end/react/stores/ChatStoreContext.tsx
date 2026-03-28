@@ -13,8 +13,9 @@ export interface Switches {
   vad: boolean;
   wolframAlpha: boolean;
   enableThinking: boolean;
-  gpuOrb: boolean;
 }
+
+export type VisualizationType = "gpuOrb" | "thinkingIcon" | "nexus";
 
 export interface ModelInfo {
   name: string;
@@ -41,6 +42,8 @@ interface ChatStoreContextType {
   setModelList: (list: ModelInfo[]) => void;
   switches: Switches;
   setSwitches: (switches: Switches) => void;
+  visualization: VisualizationType;
+  setVisualization: (v: VisualizationType) => void;
   temperature: number;
   setTemperature: (temp: number) => void;
   audioSpeed: number;
@@ -113,8 +116,8 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
     vad: false,
     wolframAlpha: false,
     enableThinking: session.enable_thinking !== undefined ? session.enable_thinking : false,
-    gpuOrb: true,
   });
+  const [visualization, setVisualization] = useState<VisualizationType>("gpuOrb");
   const [temperature, setTemperature] = useState(session.temperature || 0.7);
   const [audioSpeed, setAudioSpeed] = useState(session.audio_speed || 1);
   const [ttsHost, setTtsHost] = useState(session.tts_host || "");
@@ -179,6 +182,8 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       setModelList,
       switches,
       setSwitches,
+      visualization,
+      setVisualization,
       temperature,
       setTemperature,
       audioSpeed,
@@ -234,6 +239,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       model,
       modelList,
       switches,
+      visualization,
       temperature,
       audioSpeed,
       ttsHost,

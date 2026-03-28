@@ -1,14 +1,55 @@
 import React from "react";
 import Switch from "react-switch";
-import { Switches } from "../stores/ChatStoreContext";
+import { Switches, VisualizationType } from "../stores/ChatStoreContext";
 
 interface OptionsProps {
   switches: Switches;
   onToggle: (key: keyof Switches) => void;
   onSensorToggle: () => void;
+  visualization: VisualizationType;
+  onVisualizationChange: (v: VisualizationType) => void;
 }
 
-export default function Options({ switches, onToggle, onSensorToggle }: OptionsProps) {
+const VISUALIZATION_OPTIONS: { value: VisualizationType; label: string; icon: React.ReactNode }[] = [
+  {
+    value: "gpuOrb",
+    label: "GPU Orb",
+    icon: (
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+        <circle cx="12" cy="12" r="4" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
+    value: "thinkingIcon",
+    label: "Thinking",
+    icon: (
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" />
+        <circle cx="12" cy="12" r="4" fill="currentColor" />
+        <line x1="12" y1="2" x2="12" y2="6" stroke="currentColor" strokeWidth="1.5" />
+        <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" strokeWidth="1.5" />
+        <line x1="2" y1="12" x2="6" y2="12" stroke="currentColor" strokeWidth="1.5" />
+        <line x1="18" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+    ),
+  },
+  {
+    value: "nexus",
+    label: "Nexus",
+    icon: (
+      <svg viewBox="0 0 24 24">
+        <ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        <ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="currentColor" strokeWidth="1.5" transform="rotate(60, 12, 12)" />
+        <ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="currentColor" strokeWidth="1.5" transform="rotate(-60, 12, 12)" />
+        <circle cx="12" cy="12" r="2" fill="currentColor" />
+      </svg>
+    ),
+  },
+];
+
+export default function Options({ switches, onToggle, onSensorToggle, visualization, onVisualizationChange }: OptionsProps) {
   return (
     <div className="options-grid">
       {/* Voice Features */}
@@ -79,18 +120,24 @@ export default function Options({ switches, onToggle, onSensorToggle }: OptionsP
       {/* Display */}
       <div className="option-group">
         <div className="option-group-title">Display</div>
-        <ToggleItem
-          label="GPU Orb"
-          checked={switches.gpuOrb}
-          onToggle={() => onToggle("gpuOrb")}
-          ariaLabel="Use GPU Orb visualization"
-          icon={
-            <svg viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
-              <circle cx="12" cy="12" r="4" />
-            </svg>
-          }
-        />
+        <div className="visualization-selector">
+          <div className="toggle-label">Visualization</div>
+          <div className="segmented-control" role="radiogroup" aria-label="Visualization style">
+            {VISUALIZATION_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                role="radio"
+                className={`segmented-option${visualization === opt.value ? " is-active" : ""}`}
+                onClick={() => onVisualizationChange(opt.value)}
+                aria-checked={visualization === opt.value}
+                type="button"
+              >
+                <span className="toggle-badge" aria-hidden="true">{opt.icon}</span>
+                <span>{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Sensors */}

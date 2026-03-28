@@ -670,6 +670,129 @@ body {
   color: var(--text-primary);
 }
 
+// ─── Nexus Visualization ─────────────────────────────────────
+.nexus-viz {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nexus-brackets {
+  opacity: 0.35;
+}
+
+.nexus-scanner {
+  transform-origin: 50px 50px;
+  opacity: 0;
+}
+
+.nexus-viz svg.active {
+  .nexus-ring-1-anim {
+    animation: nexus-spin 8s linear infinite;
+  }
+
+  .nexus-ring-2-anim {
+    animation: nexus-spin 12s linear infinite reverse;
+  }
+
+  .nexus-ring-3-anim {
+    animation: nexus-spin 10s linear infinite;
+  }
+
+  .nexus-ring-stroke {
+    animation: nexus-dash 1.5s linear infinite;
+  }
+
+  .nexus-core {
+    animation: nexus-core-pulse 2.5s ease-in-out infinite;
+  }
+
+  .nexus-core-inner {
+    animation: nexus-core-inner-pulse 2.5s ease-in-out infinite;
+  }
+
+  .nexus-scanner {
+    opacity: 0.25;
+    animation: nexus-spin 4s linear infinite;
+  }
+
+  .nexus-brackets {
+    animation: nexus-brackets-pulse 3s ease-in-out infinite;
+  }
+}
+
+@keyframes nexus-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes nexus-dash {
+  to { stroke-dashoffset: -18; }
+}
+
+@keyframes nexus-core-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+@keyframes nexus-core-inner-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes nexus-brackets-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+
+// ─── Segmented Control ───────────────────────────────────────
+.segmented-control {
+  display: flex;
+  gap: 0.2rem;
+  background: var(--bg-base);
+  border-radius: 0.5rem;
+  padding: 0.15rem;
+}
+
+.segmented-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    color: var(--text-primary);
+    background: rgba(0, 234, 255, 0.05);
+  }
+
+  &.is-active {
+    background: var(--bg-input);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    box-shadow: 0 0 6px rgba(0, 234, 255, 0.15);
+  }
+
+  .toggle-badge {
+    width: 1.2rem;
+    height: 1.2rem;
+  }
+}
+
+.visualization-selector {
+  .toggle-label {
+    margin-bottom: 0.4rem;
+  }
+}
+
 // ─── Preferences Menu ────────────────────────────────────────
 #menu {
   position: absolute;
