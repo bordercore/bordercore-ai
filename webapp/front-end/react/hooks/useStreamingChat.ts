@@ -96,7 +96,15 @@ export default function useStreamingChat() {
                     const content = decoder.decode(value, { stream: true });
                     buffer += content;
 
-                    if (!buffer.startsWith(controlValue)) {
+                    if (buffer.startsWith("ERROR_JSON:")) {
+                      try {
+                        const parsed = JSON.parse(buffer.slice("ERROR_JSON:".length));
+                        console.error("API error:", parsed.error);
+                        onStreamChunk(parsed.display, buffer);
+                      } catch {
+                        onStreamChunk(buffer, buffer);
+                      }
+                    } else if (!buffer.startsWith(controlValue)) {
                       // Strip thinking blocks from visible output
                       let cleanedContent = buffer;
                       cleanedContent = cleanedContent.replace(

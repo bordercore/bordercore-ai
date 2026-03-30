@@ -29,6 +29,9 @@ from pathlib import Path
 from threading import Event
 from typing import Any, Dict, Iterator
 
+import anthropic
+import openai
+
 import ffmpeg
 import numpy as np
 import sounddevice  # Adding this eliminates an annoying warning
@@ -394,6 +397,15 @@ def generate_stream(chatbot: ChatBot, message: Any, stop_event: Event) -> Iterat
         # User-friendly errors from music service - display as-is
         logger.warning(f"Music service error: {error}")
         yield str(error)
+    except (openai.APIStatusError, anthropic.APIStatusError) as error:
+        body = error.body
+        if isinstance(body, dict):
+            err = body.get("error", body) if isinstance(body.get("error"), dict) else body
+            message = err.get("message")
+            payload = {"error": body, "display": message or str(error)}
+        else:
+            payload = {"error": str(error), "display": str(error)}
+        yield f"ERROR_JSON:{json.dumps(payload)}"
     except Exception as error:
         # Generic errors - log details but show friendly message to user
         logger.error(f"Error in generate_stream: {error}", exc_info=True)
