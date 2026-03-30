@@ -193,7 +193,8 @@ def rag_chat() -> ResponseReturnValue:
     temperature = float(request.form.get("temperature", 0.7))
     enable_thinking = request.form.get("enable_thinking", "false").lower() == "true"
 
-    store_params_in_session(speak, audio_speed, temperature, enable_thinking)
+    visualization = request.form.get("visualization", "")
+    store_params_in_session(speak, audio_speed, temperature, enable_thinking, visualization)
 
     chromdb = Path(__file__).resolve().parent.parent / "chromdb"
     rag = RAG(model_name, chromdb=str(chromdb))
@@ -311,7 +312,8 @@ def audio_chat() -> str:
     temperature = float(request.form.get("temperature", 0.7))
     enable_thinking = request.form.get("enable_thinking", "false").lower() == "true"
 
-    store_params_in_session(speak, audio_speed, temperature, enable_thinking)
+    visualization = request.form.get("visualization", "")
+    store_params_in_session(speak, audio_speed, temperature, enable_thinking, visualization)
 
     audio = Audio()
     return audio.query_transcription(model_name, message, transcript)
@@ -436,7 +438,8 @@ def chat() -> Response:
     url = request.form.get("url", None)
     enable_thinking = request.form.get("enable_thinking", "false").lower() == "true"
 
-    store_params_in_session(speak, audio_speed, temperature, enable_thinking)
+    visualization = request.form.get("visualization", "")
+    store_params_in_session(speak, audio_speed, temperature, enable_thinking, visualization)
 
     stop_event = Event()
 
@@ -558,7 +561,8 @@ def load_audio(file: str | bytes, sr: int = 16_000) -> np.ndarray:
 
 
 def store_params_in_session(
-    speak: str, audio_speed: float, temperature: float, enable_thinking: bool
+    speak: str, audio_speed: float, temperature: float, enable_thinking: bool,
+    visualization: str = "",
 ) -> None:
     """
     Stores user preferences in the Flask session for later use.
@@ -568,9 +572,12 @@ def store_params_in_session(
         audio_speed: Playback speed multiplier for TTS.
         temperature: Sampling temperature used during LLM generation.
         enable_thinking: Whether internal reasoning/debug steps should be enabled.
+        visualization: Active visualizer type (e.g. "gpuOrb", "thinkingIcon", "nexus").
     """
     session.permanent = True
     session["speak"] = speak.lower() == "true"  # Convert "true" to True, for example
     session["audio_speed"] = audio_speed
     session["temperature"] = temperature
     session["enable_thinking"] = enable_thinking
+    if visualization:
+        session["visualization"] = visualization

@@ -584,6 +584,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       temperature,
       wolfram_alpha: switches.wolframAlpha,
       enable_thinking: switches.enableThinking,
+      visualization,
       url,
       ...args,
     };

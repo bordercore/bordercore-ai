@@ -117,7 +117,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
     wolframAlpha: false,
     enableThinking: session.enable_thinking !== undefined ? session.enable_thinking : false,
   });
-  const [visualization, setVisualization] = useState<VisualizationType>("gpuOrb");
+  const [visualization, setVisualization] = useState<VisualizationType>(session.visualization || "gpuOrb");
   const [temperature, setTemperature] = useState(session.temperature || 0.7);
   const [audioSpeed, setAudioSpeed] = useState(session.audio_speed || 1);
   const [ttsHost, setTtsHost] = useState(session.tts_host || "");
