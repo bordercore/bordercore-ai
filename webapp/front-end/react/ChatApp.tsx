@@ -390,9 +390,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     setShowProcessingModal(true);
 
     axios
-      .post(endpoint, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
+      .post(endpoint, formData)
       .then((response) => {
         setAudioFileTranscript(response.data.text);
         setAudioFileSize(response.data.text.length);
@@ -423,9 +421,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     formData.append("file", fileData);
 
     axios
-      .post("rag/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
+      .post("rag/upload", formData)
       .then((response) => {
         setRagFileUploaded(true);
         setSha1sum(response.data.sha1sum);

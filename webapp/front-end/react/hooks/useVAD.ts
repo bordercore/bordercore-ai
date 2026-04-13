@@ -51,9 +51,7 @@ export default function useVAD(options: UseVADOptions) {
         setNotice("Waiting for speech to text");
 
         axios
-          .post("/speech2text", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          })
+          .post("/speech2text", formData)
           .then((response) => {
             onSpeechResult(response.data.input);
           });

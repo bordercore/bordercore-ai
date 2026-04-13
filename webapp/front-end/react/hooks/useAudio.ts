@@ -95,9 +95,7 @@ export default function useAudio(options: UseAudioOptions) {
             setNotice("Waiting for speech to text");
 
             axios
-              .post("/speech2text", formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-              })
+              .post("/speech2text", formData)
               .then((response) => {
                 setNotice("");
                 onSpeechResult(response.data.input);
