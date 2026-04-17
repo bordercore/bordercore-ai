@@ -11,12 +11,16 @@
     "file": "assets/markdown-it-CX5YUr_g.js",
     "name": "markdown-it"
   },
+  "_ogl-CwQ26FrP.js": {
+    "file": "assets/ogl-CwQ26FrP.js",
+    "name": "ogl"
+  },
   "_three-DUzPAr7Q.js": {
     "file": "assets/three-DUzPAr7Q.js",
     "name": "three"
   },
   "front-end/entries/chatbot.tsx": {
-    "file": "dist/js/chatbot-CJoYkUzZ.js",
+    "file": "dist/js/chatbot-CPQSNpeI.js",
     "name": "dist/js/chatbot",
     "src": "front-end/entries/chatbot.tsx",
     "isEntry": true,
@@ -25,6 +29,7 @@
       "_markdown-it-CX5YUr_g.js",
       "_katex-BTvXRZlT.js",
       "_three-DUzPAr7Q.js",
+      "_ogl-CwQ26FrP.js",
       "front-end/entries/styles-css.js"
     ],
     "dynamicImports": [
@@ -35,16 +40,16 @@
     ]
   },
   "front-end/entries/styles-css.js": {
-    "file": "dist/css/styles-D8n5wjq1.js",
+    "file": "dist/css/styles-DU5Elxq8.js",
     "name": "dist/css/styles",
     "src": "front-end/entries/styles-css.js",
     "isEntry": true,
     "css": [
-      "styles-98RyMg-b.css"
+      "styles-B57d9p7U.css"
     ]
   },
   "local/optional.js": {
-    "file": "assets/optional-DAvC8Vd4.js",
+    "file": "assets/optional-PHS3Krrk.js",
     "name": "optional",
     "src": "local/optional.js",
     "isDynamicEntry": true,
@@ -54,6 +59,7 @@
       "_markdown-it-CX5YUr_g.js",
       "_katex-BTvXRZlT.js",
       "_three-DUzPAr7Q.js",
+      "_ogl-CwQ26FrP.js",
       "front-end/entries/styles-css.js"
     ]
   }

@@ -15,6 +15,8 @@ import GpuOrb from "./components/GpuOrb";
 import ThinkingIcon from "./components/ThinkingIcon";
 import NexusViz from "./components/NexusViz";
 import CursorLines from "./components/CursorLines";
+import AuroraBackground from "./components/AuroraBackground";
+import Starfield from "./components/Starfield";
 import Options from "./components/Options";
 import FileUpload from "./components/FileUpload";
 import ImagePreview from "./components/ImagePreview";
@@ -50,6 +52,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     cursorEffect, setCursorEffect,
     cursorDensity, setCursorDensity,
     cursorSpeed, setCursorSpeed,
+    auroraEnabled, setAuroraEnabled,
+    starfieldEnabled, setStarfieldEnabled,
     prompt, setPrompt,
     error, setError,
     clipboard, setClipboard,
@@ -668,6 +672,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   return (
     <>
+      {auroraEnabled && <AuroraBackground />}
+      {starfieldEnabled && <Starfield />}
       {cursorEffect && <CursorLines density={cursorDensity} speed={cursorSpeed} />}
 
       {/* Shooting stars background */}
@@ -845,6 +851,10 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           onCursorDensityChange={setCursorDensity}
           cursorSpeed={cursorSpeed}
           onCursorSpeedChange={setCursorSpeed}
+          auroraEnabled={auroraEnabled}
+          onAuroraEnabledChange={setAuroraEnabled}
+          starfieldEnabled={starfieldEnabled}
+          onStarfieldEnabledChange={setStarfieldEnabled}
         />
       </div>
 

@@ -59,7 +59,9 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1.25rem;
-  background: var(--bg-surface);
+  background: rgba(13, 19, 49, 0.38);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border: 1px solid var(--border-panel);
   border-radius: 1rem;
   box-shadow: var(--shadow-panel);
@@ -182,7 +184,9 @@ body {
 
 // ─── Panels ──────────────────────────────────────────────────
 .panel-card {
-  background: var(--bg-surface);
+  background: rgba(13, 19, 49, 0.38);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border: 1px solid var(--border-panel);
   border-radius: 1rem;
   box-shadow: var(--shadow-panel);
@@ -811,8 +815,8 @@ body {
   background:
     linear-gradient(
         to bottom,
-        oklch(0.1 0.15 260 / 0.97),
-        oklch(0.1 0.15 260 / 0.97)
+        oklch(0.1 0.15 260),
+        oklch(0.1 0.15 260)
       )
       padding-box,
     conic-gradient(
@@ -1185,4 +1189,23 @@ media-volume-range {
   height: 100vh;
   pointer-events: none;
   z-index: 0;
+}
+
+// ─── Ambient Background (aurora + starfield) ───────────────
+.aurora-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: -2;
+}
+
+.starfield-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 5;
 }

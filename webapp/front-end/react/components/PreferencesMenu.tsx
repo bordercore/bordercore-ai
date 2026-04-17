@@ -16,6 +16,10 @@ interface PreferencesMenuProps {
   onCursorDensityChange: (value: number) => void;
   cursorSpeed: number;
   onCursorSpeedChange: (value: number) => void;
+  auroraEnabled: boolean;
+  onAuroraEnabledChange: (value: boolean) => void;
+  starfieldEnabled: boolean;
+  onStarfieldEnabledChange: (value: boolean) => void;
 }
 
 export default function PreferencesMenu({
@@ -32,6 +36,10 @@ export default function PreferencesMenu({
   onCursorDensityChange,
   cursorSpeed,
   onCursorSpeedChange,
+  auroraEnabled,
+  onAuroraEnabledChange,
+  starfieldEnabled,
+  onStarfieldEnabledChange,
 }: PreferencesMenuProps) {
   if (!show) return null;
 
@@ -80,6 +88,50 @@ export default function PreferencesMenu({
               size={20}
             />
             <span className="pref-hint">Hostname and port for TTS</span>
+          </div>
+        </div>
+        <div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Aurora</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <Switch
+              checked={auroraEnabled}
+              onChange={onAuroraEnabledChange}
+              aria-label="Toggle aurora background"
+              onColor="#0a2a30"
+              onHandleColor="#00eaff"
+              offColor="#0c1230"
+              offHandleColor="#3a4060"
+              handleDiameter={18}
+              uncheckedIcon={false}
+              checkedIcon={false}
+              boxShadow="0 0 4px rgba(0,234,255,.3)"
+              activeBoxShadow="0 0 8px rgba(0,234,255,.6)"
+              height={24}
+              width={46}
+            />
+            <span className="pref-hint">Drifting glow behind the UI</span>
+          </div>
+        </div>
+        <div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Starfield</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <Switch
+              checked={starfieldEnabled}
+              onChange={onStarfieldEnabledChange}
+              aria-label="Toggle floating starfield"
+              onColor="#0a2a30"
+              onHandleColor="#00eaff"
+              offColor="#0c1230"
+              offHandleColor="#3a4060"
+              handleDiameter={18}
+              uncheckedIcon={false}
+              checkedIcon={false}
+              boxShadow="0 0 4px rgba(0,234,255,.3)"
+              activeBoxShadow="0 0 8px rgba(0,234,255,.6)"
+              height={24}
+              width={46}
+            />
+            <span className="pref-hint">Cyan and purple particles drifting in the foreground</span>
           </div>
         </div>
         <div>

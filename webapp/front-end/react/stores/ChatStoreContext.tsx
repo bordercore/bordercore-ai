@@ -56,6 +56,10 @@ interface ChatStoreContextType {
   setCursorDensity: (n: number) => void;
   cursorSpeed: number;
   setCursorSpeed: (n: number) => void;
+  auroraEnabled: boolean;
+  setAuroraEnabled: (enabled: boolean) => void;
+  starfieldEnabled: boolean;
+  setStarfieldEnabled: (enabled: boolean) => void;
   prompt: string;
   setPrompt: React.Dispatch<React.SetStateAction<string>>;
   error: any;
@@ -138,6 +142,12 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
     const v = Number(window?.localStorage.getItem("cursorSpeed"));
     return Number.isFinite(v) && v >= 0 ? v : 0.3;
   });
+  const [auroraEnabled, setAuroraEnabled] = useState<boolean>(
+    () => (typeof window !== "undefined" ? window.localStorage.getItem("auroraEnabled") !== "false" : true)
+  );
+  const [starfieldEnabled, setStarfieldEnabled] = useState<boolean>(
+    () => (typeof window !== "undefined" ? window.localStorage.getItem("starfieldEnabled") !== "false" : true)
+  );
   useEffect(() => {
     window.localStorage.setItem("cursorEffect", String(cursorEffect));
   }, [cursorEffect]);
@@ -147,6 +157,12 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   useEffect(() => {
     window.localStorage.setItem("cursorSpeed", String(cursorSpeed));
   }, [cursorSpeed]);
+  useEffect(() => {
+    window.localStorage.setItem("auroraEnabled", String(auroraEnabled));
+  }, [auroraEnabled]);
+  useEffect(() => {
+    window.localStorage.setItem("starfieldEnabled", String(starfieldEnabled));
+  }, [starfieldEnabled]);
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState<any>("");
   const [clipboard, setClipboard] = useState<ClipboardData | null>(null);
@@ -222,6 +238,10 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       setCursorDensity,
       cursorSpeed,
       setCursorSpeed,
+      auroraEnabled,
+      setAuroraEnabled,
+      starfieldEnabled,
+      setStarfieldEnabled,
       prompt,
       setPrompt,
       error,
@@ -278,6 +298,8 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       cursorEffect,
       cursorDensity,
       cursorSpeed,
+      auroraEnabled,
+      starfieldEnabled,
       prompt,
       error,
       clipboard,
