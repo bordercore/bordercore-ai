@@ -23,6 +23,7 @@ import torch
 
 import settings
 from modules.inference import Inference
+from modules.util import get_model_info
 
 
 class ModelManager:
@@ -49,6 +50,12 @@ class ModelManager:
             return
 
         settings.model_name = model_name
+
+        # API-based models have no local weights — nothing to load.
+        model_info = get_model_info() or {}
+        if model_info.get(model_name, {}).get("type") == "api":
+            return
+
         model_path = os.path.join(settings.model_dir, model_name)
 
         self.inference = Inference(model_path=model_path, quantize=True)
