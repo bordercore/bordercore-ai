@@ -1,4 +1,5 @@
 import React from "react";
+import Switch from "react-switch";
 import Slider from "./Slider";
 
 interface PreferencesMenuProps {
@@ -9,6 +10,12 @@ interface PreferencesMenuProps {
   onAudioSpeedChange: (value: number) => void;
   ttsHost: string;
   onTtsHostChange: (value: string) => void;
+  cursorEffect: boolean;
+  onCursorEffectChange: (value: boolean) => void;
+  cursorDensity: number;
+  onCursorDensityChange: (value: number) => void;
+  cursorSpeed: number;
+  onCursorSpeedChange: (value: number) => void;
 }
 
 export default function PreferencesMenu({
@@ -19,6 +26,12 @@ export default function PreferencesMenu({
   onAudioSpeedChange,
   ttsHost,
   onTtsHostChange,
+  cursorEffect,
+  onCursorEffectChange,
+  cursorDensity,
+  onCursorDensityChange,
+  cursorSpeed,
+  onCursorSpeedChange,
 }: PreferencesMenuProps) {
   if (!show) return null;
 
@@ -69,6 +82,60 @@ export default function PreferencesMenu({
             <span className="pref-hint">Hostname and port for TTS</span>
           </div>
         </div>
+        <div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Cursor Effect</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <Switch
+              checked={cursorEffect}
+              onChange={onCursorEffectChange}
+              aria-label="Toggle cursor streak effect"
+              onColor="#0a2a30"
+              onHandleColor="#00eaff"
+              offColor="#0c1230"
+              offHandleColor="#3a4060"
+              handleDiameter={18}
+              uncheckedIcon={false}
+              checkedIcon={false}
+              boxShadow="0 0 4px rgba(0,234,255,.3)"
+              activeBoxShadow="0 0 8px rgba(0,234,255,.6)"
+              height={24}
+              width={46}
+            />
+            <span className="pref-hint">Animated streaks that follow the cursor</span>
+          </div>
+        </div>
+        {cursorEffect && (
+          <>
+            <div>
+              <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Cursor Density</div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <Slider
+                  value={cursorDensity}
+                  onChange={onCursorDensityChange}
+                  min={1}
+                  max={40}
+                  step={1}
+                  showInput={false}
+                />
+                <span className="pref-hint">Number of streaks</span>
+              </div>
+            </div>
+            <div>
+              <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Cursor Speed</div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <Slider
+                  value={cursorSpeed}
+                  onChange={onCursorSpeedChange}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  showInput={false}
+                />
+                <span className="pref-hint">Motion intensity</span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

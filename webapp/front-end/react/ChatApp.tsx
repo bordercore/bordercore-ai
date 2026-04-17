@@ -14,6 +14,7 @@ import ModelSelect from "./components/ModelSelect";
 import GpuOrb from "./components/GpuOrb";
 import ThinkingIcon from "./components/ThinkingIcon";
 import NexusViz from "./components/NexusViz";
+import CursorLines from "./components/CursorLines";
 import Options from "./components/Options";
 import FileUpload from "./components/FileUpload";
 import ImagePreview from "./components/ImagePreview";
@@ -46,6 +47,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     temperature, setTemperature,
     audioSpeed, setAudioSpeed,
     ttsHost, setTtsHost,
+    cursorEffect, setCursorEffect,
+    cursorDensity, setCursorDensity,
+    cursorSpeed, setCursorSpeed,
     prompt, setPrompt,
     error, setError,
     clipboard, setClipboard,
@@ -664,6 +668,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   return (
     <>
+      {cursorEffect && <CursorLines density={cursorDensity} speed={cursorSpeed} />}
+
       {/* Shooting stars background */}
       <div className="animation-container">
         {Array.from({ length: settings.num_stars || 7 }, (_, i) => (
@@ -833,6 +839,12 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           onAudioSpeedChange={setAudioSpeed}
           ttsHost={ttsHost}
           onTtsHostChange={setTtsHost}
+          cursorEffect={cursorEffect}
+          onCursorEffectChange={setCursorEffect}
+          cursorDensity={cursorDensity}
+          onCursorDensityChange={setCursorDensity}
+          cursorSpeed={cursorSpeed}
+          onCursorSpeedChange={setCursorSpeed}
         />
       </div>
 

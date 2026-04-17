@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, ReactNode } from "react";
 
 export interface ChatMessage {
   id: number;
@@ -50,6 +50,12 @@ interface ChatStoreContextType {
   setAudioSpeed: (speed: number) => void;
   ttsHost: string;
   setTtsHost: (host: string) => void;
+  cursorEffect: boolean;
+  setCursorEffect: (enabled: boolean) => void;
+  cursorDensity: number;
+  setCursorDensity: (n: number) => void;
+  cursorSpeed: number;
+  setCursorSpeed: (n: number) => void;
   prompt: string;
   setPrompt: React.Dispatch<React.SetStateAction<string>>;
   error: any;
@@ -121,6 +127,26 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   const [temperature, setTemperature] = useState(session.temperature || 0.7);
   const [audioSpeed, setAudioSpeed] = useState(session.audio_speed || 1);
   const [ttsHost, setTtsHost] = useState(session.tts_host || "");
+  const [cursorEffect, setCursorEffect] = useState<boolean>(
+    () => (typeof window !== "undefined" ? window.localStorage.getItem("cursorEffect") !== "false" : true)
+  );
+  const [cursorDensity, setCursorDensity] = useState<number>(() => {
+    const v = Number(window?.localStorage.getItem("cursorDensity"));
+    return Number.isFinite(v) && v > 0 ? v : 3;
+  });
+  const [cursorSpeed, setCursorSpeed] = useState<number>(() => {
+    const v = Number(window?.localStorage.getItem("cursorSpeed"));
+    return Number.isFinite(v) && v >= 0 ? v : 0.3;
+  });
+  useEffect(() => {
+    window.localStorage.setItem("cursorEffect", String(cursorEffect));
+  }, [cursorEffect]);
+  useEffect(() => {
+    window.localStorage.setItem("cursorDensity", String(cursorDensity));
+  }, [cursorDensity]);
+  useEffect(() => {
+    window.localStorage.setItem("cursorSpeed", String(cursorSpeed));
+  }, [cursorSpeed]);
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState<any>("");
   const [clipboard, setClipboard] = useState<ClipboardData | null>(null);
@@ -190,6 +216,12 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       setAudioSpeed,
       ttsHost,
       setTtsHost,
+      cursorEffect,
+      setCursorEffect,
+      cursorDensity,
+      setCursorDensity,
+      cursorSpeed,
+      setCursorSpeed,
       prompt,
       setPrompt,
       error,
@@ -243,6 +275,9 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       temperature,
       audioSpeed,
       ttsHost,
+      cursorEffect,
+      cursorDensity,
+      cursorSpeed,
       prompt,
       error,
       clipboard,
