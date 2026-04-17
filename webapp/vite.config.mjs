@@ -24,6 +24,10 @@ export default defineConfig({
     port: 5180,
     strictPort: true,
     cors: true,
+    // Vite 5.4+ rejects WS upgrades from any hostname not in this list
+    // (only IPv4 and *.localhost are auto-allowed). Without this, HMR
+    // breaks for custom hostnames like ai.bordercore.com.
+    allowedHosts: ["ai.bordercore.com", "deepvirtual"],
     https: {
       key: fs.readFileSync(path.resolve(__dirname, "ssl/server.key")),
       cert: fs.readFileSync(path.resolve(__dirname, "ssl/server.crt")),
