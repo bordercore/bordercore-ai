@@ -19,3 +19,4 @@ tts/old/
 .dir-locals.el
 tts/ssl/
 webapp/ssl/
+sync.sh
