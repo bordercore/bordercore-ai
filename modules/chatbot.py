@@ -167,9 +167,7 @@ class ChatBot():
         """
         text = urllib.parse.quote(text)
         host = settings.tts_host
-        voice = settings.tts_voice
-        output_file = "stream_output.wav"
-        url = f"http://{host}/api/tts-generate-streaming?text={text}&voice={voice}&language=en&output_file={output_file}"
+        url = f"{host}/?text={text}"
         response = requests.get(url, stream=True, timeout=20)
 
         if response.status_code == HttpStatus.OK:
