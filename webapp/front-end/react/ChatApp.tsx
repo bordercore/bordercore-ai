@@ -54,6 +54,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     cursorSpeed, setCursorSpeed,
     auroraEnabled, setAuroraEnabled,
     starfieldEnabled, setStarfieldEnabled,
+    waitingAnimation, setWaitingAnimation,
     prompt, setPrompt,
     error, setError,
     clipboard, setClipboard,
@@ -735,6 +736,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
             <MessageList
               messages={filteredChatHistory}
               waiting={waiting}
+              waitingAnimation={waitingAnimation}
               error={error}
             />
             <ImagePreview
@@ -820,6 +822,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               onSensorToggle={handleSensorToggle}
               visualization={visualization}
               onVisualizationChange={setVisualization}
+              waitingAnimation={waitingAnimation}
+              onWaitingAnimationChange={setWaitingAnimation}
             />
           </div>
         </div>

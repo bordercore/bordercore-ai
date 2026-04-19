@@ -1,6 +1,6 @@
 import React from "react";
 import Switch from "react-switch";
-import { Switches, VisualizationType } from "../stores/ChatStoreContext";
+import { Switches, VisualizationType, WaitingAnimation } from "../stores/ChatStoreContext";
 
 interface OptionsProps {
   switches: Switches;
@@ -8,7 +8,20 @@ interface OptionsProps {
   onSensorToggle: () => void;
   visualization: VisualizationType;
   onVisualizationChange: (v: VisualizationType) => void;
+  waitingAnimation: WaitingAnimation;
+  onWaitingAnimationChange: (v: WaitingAnimation) => void;
 }
+
+const WAITING_ANIMATION_OPTIONS: { value: WaitingAnimation; label: string }[] = [
+  { value: "spinner", label: "Spinner" },
+  { value: "tokenStream", label: "Token Stream" },
+  { value: "scramble", label: "Scramble Glyphs" },
+  { value: "typingDots", label: "Typing Dots" },
+  { value: "shimmerBubble", label: "Shimmer Bubble" },
+  { value: "travelingBorder", label: "Traveling Border" },
+  { value: "eqBars", label: "EQ Bars" },
+  { value: "radarSweep", label: "Radar Sweep" },
+];
 
 const VISUALIZATION_OPTIONS: { value: VisualizationType; label: string; icon: React.ReactNode }[] = [
   {
@@ -49,7 +62,15 @@ const VISUALIZATION_OPTIONS: { value: VisualizationType; label: string; icon: Re
   },
 ];
 
-export default function Options({ switches, onToggle, onSensorToggle, visualization, onVisualizationChange }: OptionsProps) {
+export default function Options({
+  switches,
+  onToggle,
+  onSensorToggle,
+  visualization,
+  onVisualizationChange,
+  waitingAnimation,
+  onWaitingAnimationChange,
+}: OptionsProps) {
   return (
     <div className="options-grid">
       {/* Voice Features */}
@@ -137,6 +158,19 @@ export default function Options({ switches, onToggle, onSensorToggle, visualizat
               </button>
             ))}
           </div>
+        </div>
+        <div className="visualization-selector">
+          <div className="toggle-label">Waiting Animation</div>
+          <select
+            className="waiting-animation-select"
+            value={waitingAnimation}
+            onChange={(e) => onWaitingAnimationChange(e.target.value as WaitingAnimation)}
+            aria-label="Waiting animation style"
+          >
+            {WAITING_ANIMATION_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
       </div>
 

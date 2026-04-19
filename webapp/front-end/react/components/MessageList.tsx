@@ -2,12 +2,14 @@ import React, { useRef, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
 import MessageItem from "./MessageItem";
+import WaitingIndicator from "./WaitingIndicator";
 import useCodeCopyObserver from "../hooks/useCodeCopyObserver";
-import { ChatMessage } from "../stores/ChatStoreContext";
+import { ChatMessage, WaitingAnimation } from "../stores/ChatStoreContext";
 
 interface MessageListProps {
   messages: ChatMessage[];
   waiting: boolean;
+  waitingAnimation: WaitingAnimation;
   error: any;
 }
 
@@ -17,7 +19,7 @@ const variantColorMap: Record<string, string> = {
   info: "text-bs-info",
 };
 
-export default function MessageList({ messages, waiting, error }: MessageListProps) {
+export default function MessageList({ messages, waiting, waitingAnimation, error }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   useCodeCopyObserver(containerRef);
 
@@ -33,12 +35,7 @@ export default function MessageList({ messages, waiting, error }: MessageListPro
       {messages.map((message) => (
         <MessageItem key={message.id} message={message} />
       ))}
-      {waiting && (
-        <div
-          className="ml-3 h-5 w-5 animate-spin rounded-full border-2 border-bs-info border-t-transparent"
-          role="status"
-        />
-      )}
+      {waiting && <WaitingIndicator animation={waitingAnimation} />}
       {error && (
         <div className="notice animate__animated animate__headShake w-full font-bold">
           <FontAwesomeIcon

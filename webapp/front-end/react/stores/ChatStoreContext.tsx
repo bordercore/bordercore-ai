@@ -17,6 +17,35 @@ export interface Switches {
 
 export type VisualizationType = "gpuOrb" | "thinkingIcon" | "nexus";
 
+export type WaitingAnimation =
+  | "spinner"
+  | "tokenStream"
+  | "scramble"
+  | "typingDots"
+  | "shimmerBubble"
+  | "travelingBorder"
+  | "eqBars"
+  | "radarSweep";
+
+const WAITING_ANIMATIONS: WaitingAnimation[] = [
+  "spinner",
+  "tokenStream",
+  "scramble",
+  "typingDots",
+  "shimmerBubble",
+  "travelingBorder",
+  "eqBars",
+  "radarSweep",
+];
+
+function loadWaitingAnimation(): WaitingAnimation {
+  if (typeof window === "undefined") return "tokenStream";
+  const saved = window.localStorage.getItem("waitingAnimation");
+  return WAITING_ANIMATIONS.includes(saved as WaitingAnimation)
+    ? (saved as WaitingAnimation)
+    : "tokenStream";
+}
+
 export interface ModelInfo {
   name: string;
   model?: string;
@@ -60,6 +89,8 @@ interface ChatStoreContextType {
   setAuroraEnabled: (enabled: boolean) => void;
   starfieldEnabled: boolean;
   setStarfieldEnabled: (enabled: boolean) => void;
+  waitingAnimation: WaitingAnimation;
+  setWaitingAnimation: (v: WaitingAnimation) => void;
   prompt: string;
   setPrompt: React.Dispatch<React.SetStateAction<string>>;
   error: any;
@@ -148,6 +179,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   const [starfieldEnabled, setStarfieldEnabled] = useState<boolean>(
     () => (typeof window !== "undefined" ? window.localStorage.getItem("starfieldEnabled") !== "false" : true)
   );
+  const [waitingAnimation, setWaitingAnimation] = useState<WaitingAnimation>(loadWaitingAnimation);
   useEffect(() => {
     window.localStorage.setItem("cursorEffect", String(cursorEffect));
   }, [cursorEffect]);
@@ -163,6 +195,9 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   useEffect(() => {
     window.localStorage.setItem("starfieldEnabled", String(starfieldEnabled));
   }, [starfieldEnabled]);
+  useEffect(() => {
+    window.localStorage.setItem("waitingAnimation", waitingAnimation);
+  }, [waitingAnimation]);
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState<any>("");
   const [clipboard, setClipboard] = useState<ClipboardData | null>(null);
@@ -242,6 +277,8 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       setAuroraEnabled,
       starfieldEnabled,
       setStarfieldEnabled,
+      waitingAnimation,
+      setWaitingAnimation,
       prompt,
       setPrompt,
       error,
@@ -300,6 +337,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       cursorSpeed,
       auroraEnabled,
       starfieldEnabled,
+      waitingAnimation,
       prompt,
       error,
       clipboard,
