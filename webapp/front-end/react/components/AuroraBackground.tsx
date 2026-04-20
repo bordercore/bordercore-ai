@@ -27,8 +27,8 @@ const fragment = /* glsl */ `
     vec2 uv = vUv;
     uv.x *= aspect;
 
-    float tSlow = uTime * 0.05;
-    float tMed  = uTime * 0.08;
+    float tSlow = uTime * 0.08;
+    float tMed  = uTime * 0.13;
 
     vec2 c1 = vec2(
       aspect * (0.78 + sin(tMed) * 0.12),
