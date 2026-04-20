@@ -5,12 +5,48 @@ import DOMPurify from "dompurify";
 
 import "highlight.js/styles/dracula.css";
 
+// highlightAuto's relevance scoring mis-labels short Python snippets as C++,
+// so restrict auto-detection to languages likely to appear in AI chat responses
+// and exclude C-family grammars that tend to false-positive.
+const AUTO_DETECT_LANGUAGES = [
+  "python",
+  "javascript",
+  "typescript",
+  "bash",
+  "shell",
+  "json",
+  "yaml",
+  "html",
+  "xml",
+  "css",
+  "scss",
+  "sql",
+  "rust",
+  "go",
+  "ruby",
+  "markdown",
+  "dockerfile",
+  "ini",
+  "diff",
+];
+
 const markdown = MarkdownIt({
-  highlight: function (str: string) {
+  highlight: function (str: string, lang: string) {
+    let highlighted: string;
+    let languageClass = "";
     try {
-      return hljs.highlightAuto(str).value;
-    } catch (__) {}
-    return "";
+      if (lang && hljs.getLanguage(lang)) {
+        highlighted = hljs.highlight(str, { language: lang, ignoreIllegals: true }).value;
+        languageClass = ` language-${lang}`;
+      } else {
+        const auto = hljs.highlightAuto(str, AUTO_DETECT_LANGUAGES);
+        highlighted = auto.value;
+        if (auto.language) languageClass = ` language-${auto.language}`;
+      }
+    } catch (__) {
+      highlighted = markdown.utils.escapeHtml(str);
+    }
+    return `<pre class="hljs"><code class="hljs${languageClass}">${highlighted}</code></pre>`;
   },
 });
 

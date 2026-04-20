@@ -902,6 +902,38 @@ hr.divider {
   opacity: 1;
 }
 
+// Let the surrounding <pre> provide the background, not Dracula's default
+.hljs {
+  background: transparent;
+  padding: 0;
+}
+
+// Supplement Dracula theme for token types its stylesheet omits
+.hljs-number,
+.hljs-regexp {
+  color: #bd93f9;
+}
+
+.hljs-built_in,
+.hljs-class .hljs-title,
+.hljs-title.class_ {
+  color: #50fa7b;
+}
+
+.hljs-title.function_,
+.hljs-function .hljs-title {
+  color: #50fa7b;
+}
+
+.hljs-params {
+  color: #ffb86c;
+}
+
+.hljs-operator,
+.hljs-punctuation {
+  color: #ff79c6;
+}
+
 // ─── Image Preview ───────────────────────────────────────────
 #image-preview {
   border: 1px solid var(--border-accent);
