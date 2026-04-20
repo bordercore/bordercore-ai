@@ -45,7 +45,7 @@ export default function CursorLines({ density = 3, speed = 0.3 }: CursorLinesPro
     let lastY = 0;
     let hasMoved = false;
 
-    function resize() {
+    const resize = () => {
       dpr = window.devicePixelRatio || 1;
       w = window.innerWidth;
       h = window.innerHeight;
@@ -54,9 +54,9 @@ export default function CursorLines({ density = 3, speed = 0.3 }: CursorLinesPro
       canvas.style.width = w + "px";
       canvas.style.height = h + "px";
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
+    };
 
-    function onMove(e: MouseEvent) {
+    const onMove = (e: MouseEvent) => {
       if (!hasMoved) {
         lastX = e.clientX;
         lastY = e.clientY;
@@ -86,20 +86,18 @@ export default function CursorLines({ density = 3, speed = 0.3 }: CursorLinesPro
       }
       lastX = e.clientX;
       lastY = e.clientY;
-    }
+    };
 
     // Cheap pseudo-curl field — no noise dep, good enough to drift segments
-    function curl(x: number, y: number, t: number): [number, number] {
-      return [
-        Math.sin(y * CURL_SCALE + t) - Math.cos(x * CURL_SCALE * 1.3 + t * 0.6),
-        Math.cos(x * CURL_SCALE + t) + Math.sin(y * CURL_SCALE * 1.3 + t * 0.6),
-      ];
-    }
+    const curl = (x: number, y: number, t: number): [number, number] => [
+      Math.sin(y * CURL_SCALE + t) - Math.cos(x * CURL_SCALE * 1.3 + t * 0.6),
+      Math.cos(x * CURL_SCALE + t) + Math.sin(y * CURL_SCALE * 1.3 + t * 0.6),
+    ];
 
     let raf = 0;
     const start = performance.now();
 
-    function frame(now: number) {
+    const frame = (now: number) => {
       const t = (now - start) / 1000;
       const curlStrength = 0.03 + speedRef.current * 0.6;
 
@@ -139,7 +137,7 @@ export default function CursorLines({ density = 3, speed = 0.3 }: CursorLinesPro
       }
 
       raf = requestAnimationFrame(frame);
-    }
+    };
 
     resize();
     window.addEventListener("resize", resize);
