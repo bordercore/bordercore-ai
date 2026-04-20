@@ -20,7 +20,7 @@
     "name": "three"
   },
   "front-end/entries/chatbot.tsx": {
-    "file": "dist/js/chatbot-BXLo4xFS.js",
+    "file": "dist/js/chatbot-vl_eD6Xu.js",
     "name": "dist/js/chatbot",
     "src": "front-end/entries/chatbot.tsx",
     "isEntry": true,
@@ -40,16 +40,16 @@
     ]
   },
   "front-end/entries/styles-css.js": {
-    "file": "dist/css/styles-BuTr-WGl.js",
+    "file": "dist/css/styles-B9B9NoLu.js",
     "name": "dist/css/styles",
     "src": "front-end/entries/styles-css.js",
     "isEntry": true,
     "css": [
-      "styles-Cs4Smnag.css"
+      "styles-CxnU_0ip.css"
     ]
   },
   "local/optional.js": {
-    "file": "assets/optional-BT8i3yJa.js",
+    "file": "assets/optional-Dg2Van73.js",
     "name": "optional",
     "src": "local/optional.js",
     "isDynamicEntry": true,
