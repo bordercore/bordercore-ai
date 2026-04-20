@@ -61,7 +61,7 @@ export default function AudioPlayer({
         )}
       </div>
       <media-controller audio>
-        <audio id="player" slot="media" src="" type="audio/mpeg"></audio>
+        <audio id="player" slot="media" src=""></audio>
         <media-control-bar className="media-control-bar">
           <media-play-button id="media-play-button"></media-play-button>
           <media-time-display showduration></media-time-display>

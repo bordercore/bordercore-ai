@@ -48,7 +48,7 @@ export default function Starfield() {
     let h = 0;
     let stars: Star[] = [];
 
-    function resize() {
+    const resize = () => {
       dpr = window.devicePixelRatio || 1;
       w = window.innerWidth;
       h = window.innerHeight;
@@ -58,7 +58,7 @@ export default function Starfield() {
       canvas.style.height = h + "px";
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       stars = makeStars(w, h);
-    }
+    };
 
     resize();
     window.addEventListener("resize", resize);
@@ -68,7 +68,7 @@ export default function Starfield() {
     const start = lastNow;
     let paused = false;
 
-    function frame(now: number) {
+    const frame = (now: number) => {
       const dt = Math.min(0.1, (now - lastNow) / 1000);
       lastNow = now;
       if (!paused) {
@@ -97,11 +97,11 @@ export default function Starfield() {
         }
       }
       raf = requestAnimationFrame(frame);
-    }
+    };
 
-    function onVisibility() {
+    const onVisibility = () => {
       paused = document.hidden;
-    }
+    };
     document.addEventListener("visibilitychange", onVisibility);
 
     raf = requestAnimationFrame(frame);

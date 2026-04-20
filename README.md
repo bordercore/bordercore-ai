@@ -206,7 +206,7 @@ pytest
 The repository ships with shared Git hooks in `.githooks/`:
 
 - **pre-commit**: flake8 F401 (unused Python imports), ESLint + Prettier on staged frontend files (via `lint-staged`), and mypy.
-- **pre-push**: TypeScript typecheck (`tsc --noEmit`), warn-only.
+- **pre-push**: TypeScript typecheck (`tsc --noEmit`).
 
 Enable them once per clone:
 
@@ -226,7 +226,7 @@ npm run typecheck            # tsc --noEmit
 npm run stylelint            # stylelint
 ```
 
-`typecheck` and `stylelint` are currently warn-only in CI pending a cleanup pass; ESLint, Prettier, and the Vite build are blocking.
+`stylelint` is currently warn-only in CI pending a cleanup pass; ESLint, Prettier, `typecheck`, and the Vite build are blocking.
 
 ---
 

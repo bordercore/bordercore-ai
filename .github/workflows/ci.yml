@@ -59,12 +59,11 @@ jobs:
     - name: Format check (Prettier)
       run: npm run format:check:react
 
+    - name: Typecheck
+      run: npm run typecheck
+
     - name: Build
       run: npm run vite:build
-
-    - name: Typecheck (warn-only)
-      continue-on-error: true
-      run: npm run typecheck
 
     - name: Lint SCSS (stylelint, warn-only)
       continue-on-error: true
