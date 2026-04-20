@@ -226,7 +226,7 @@ npm run typecheck            # tsc --noEmit
 npm run stylelint            # stylelint
 ```
 
-`stylelint` is currently warn-only in CI pending a cleanup pass; ESLint, Prettier, `typecheck`, and the Vite build are blocking.
+All frontend checks are blocking in CI: ESLint, Prettier, `typecheck`, `stylelint`, and the Vite build.
 
 ---
 

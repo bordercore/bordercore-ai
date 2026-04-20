@@ -27,6 +27,12 @@
           "/^ms-transform$/"
         ]
       }
+    ],
+    "selector-class-pattern": [
+      "^[a-z][a-z0-9_-]*$",
+      {
+        "message": "Expected class selector to be kebab-case, BEM, or use highlight.js-style underscores"
+      }
     ]
   }
 }

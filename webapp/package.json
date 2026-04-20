@@ -9,13 +9,16 @@
     "lint:react": "eslint \"front-end/react/**/*.{ts,tsx,jsx}\"",
     "format:react": "prettier --write \"front-end/react/**/*.{ts,tsx,jsx,js}\"",
     "format:check:react": "prettier --check \"front-end/react/**/*.{ts,tsx,jsx,js}\"",
-    "stylelint": "stylelint \"static/css/**/*.{scss,css}\"",
+    "stylelint": "stylelint \"static/css/**/*.scss\"",
     "lint:staged": "lint-staged"
   },
   "lint-staged": {
     "front-end/react/**/*.{ts,tsx,jsx}": [
       "eslint",
       "prettier --write"
+    ],
+    "static/css/**/*.scss": [
+      "stylelint"
     ]
   },
   "dependencies": {
