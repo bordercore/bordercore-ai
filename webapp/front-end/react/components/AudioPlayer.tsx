@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBackward, faForward } from "@fortawesome/free-solid-svg-icons";
-import { animateCSS } from "../utils/animateCSS";
 
 interface AudioPlayerProps {
   audioIsPlayingOrPaused: boolean;

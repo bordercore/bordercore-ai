@@ -127,7 +127,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   const sensorThreshold = settings.sensor_threshold ?? 100;
 
   // --- Hooks ---
-  const { sendMessage, stopGeneration, abortControllerRef } = useStreamingChat();
+  const { sendMessage, stopGeneration } = useStreamingChat();
 
   // Use ref to always call the latest handleSendMessage (avoids stale closures)
   const handleSendMessageRef = useRef(handleSendMessage);
@@ -266,22 +266,6 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       if ("thinking" in newObj) delete newObj.thinking;
       return newObj;
     });
-  }
-
-  function addClipboardToMessages() {
-    if (!clipboard) return chatHistory;
-    const copiedArray = JSON.parse(JSON.stringify(chatHistory));
-    copiedArray.forEach((element: any) => {
-      if (element.id === clipboard.id) {
-        element.content += ": " + clipboard.content;
-      }
-    });
-    return copiedArray;
-  }
-
-  function addMessage(role: "user" | "assistant", message: string) {
-    const id = nextId();
-    setChatHistory(prev => [...prev, { id, content: message, role }]);
   }
 
   function getModelInfo() {
@@ -672,7 +656,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
         setError({ body: "Error communicating with webapp.", variant: "danger" });
         console.error("Error:", err);
       },
-      onAbort: (hasContent: boolean) => {
+      onAbort: (_hasContent: boolean) => {
         setChatHistory(prev => {
           const updated = [...prev];
           const lastMessage = updated[updated.length - 1];
@@ -755,21 +739,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               waitingAnimation={waitingAnimation}
               error={error}
             />
-            <ImagePreview
-              visionImage={visionImage}
-              isDragOver={isDragOver}
-              onDragOver={e => {
-                e.preventDefault();
-                setIsDragOver(true);
-              }}
-              onDrop={handleImageDrop}
-              onDragEnter={e => e.preventDefault()}
-              onDragLeave={e => {
-                e.preventDefault();
-                setIsDragOver(false);
-              }}
-              imageSrc={imageSrc}
-            />
+            <ImagePreview visionImage={visionImage} imageSrc={imageSrc} />
           </div>
 
           <FileUpload
