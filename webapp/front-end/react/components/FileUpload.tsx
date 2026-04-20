@@ -113,7 +113,7 @@ export default function FileUpload({
       {mode === "Audio" && audioFileTranscript && (
         <div className="transcript-container">
           <div id="transcript" className="relative">
-            <div id="copyIcon" className="hover-target hidden" onClick={onCopyText}>
+            <div id="copy-icon" className="hover-target hidden" onClick={onCopyText}>
               <FontAwesomeIcon
                 icon={copyIcon === "check" ? faCheck : faCopy}
                 className="fa-lg ml-3"

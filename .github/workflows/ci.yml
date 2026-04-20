@@ -62,9 +62,8 @@ jobs:
     - name: Typecheck
       run: npm run typecheck
 
+    - name: Lint SCSS (stylelint)
+      run: npm run stylelint
+
     - name: Build
       run: npm run vite:build
-
-    - name: Lint SCSS (stylelint, warn-only)
-      continue-on-error: true
-      run: npm run stylelint

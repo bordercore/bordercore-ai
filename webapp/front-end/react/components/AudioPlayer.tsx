@@ -26,7 +26,7 @@ export default function AudioPlayer({
   }, [musicInfo, currentSong]);
 
   return (
-    <div id="audioPlayer" style={{ display: audioIsPlayingOrPaused ? "flex" : "none" }}>
+    <div id="audio-player" style={{ display: audioIsPlayingOrPaused ? "flex" : "none" }}>
       <div id="audioPlayerInfo" className="relative flex items-center justify-center w-full">
         {audioIsPlayingOrPaused && (
           <div className="flex">
@@ -41,7 +41,7 @@ export default function AudioPlayer({
               <div>
                 Playing <span className="text-bs-info">{currentSong.title}</span> by{" "}
                 <span className="text-bs-info">{currentSong.artist}</span>
-                <div id="songIndex">
+                <div id="song-index">
                   <span className={`mr-3 ${songIndex > 0 ? "text-bs-info" : "text-bs-secondary"}`}>
                     <FontAwesomeIcon icon={faBackward} className="glow" onClick={onSongBackward} />
                   </span>
