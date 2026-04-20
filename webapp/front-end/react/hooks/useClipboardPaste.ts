@@ -25,9 +25,7 @@ export default function useClipboardPaste(options: UseClipboardPasteOptions) {
   useEffect(() => {
     function handlePaste(event: ClipboardEvent) {
       event.preventDefault();
-      const paste = (event.clipboardData || (window as any).clipboardData).getData(
-        "text"
-      );
+      const paste = (event.clipboardData || (window as any).clipboardData).getData("text");
 
       if (isValidURL(paste)) {
         onURL(paste);

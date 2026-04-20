@@ -40,41 +40,76 @@ interface ChatAppProps {
 export default function ChatApp({ session, settings, controlValue }: ChatAppProps) {
   const store = useChatStore();
   const {
-    chatHistory, setChatHistory,
-    mode, setMode,
-    model, setModel,
-    modelList, setModelList,
-    switches, setSwitches,
-    visualization, setVisualization,
-    temperature, setTemperature,
-    audioSpeed, setAudioSpeed,
-    ttsHost, setTtsHost,
-    cursorEffect, setCursorEffect,
-    cursorDensity, setCursorDensity,
-    cursorSpeed, setCursorSpeed,
-    auroraEnabled, setAuroraEnabled,
-    panelOpacity, setPanelOpacity,
-    starfieldEnabled, setStarfieldEnabled,
-    waitingAnimation, setWaitingAnimation,
-    prompt, setPrompt,
-    error, setError,
-    clipboard, setClipboard,
-    url, setUrl,
-    waiting, setWaiting,
-    notice, setNotice,
-    uploadedFilename, setUploadedFilename,
-    visionImage, setVisionImage,
-    ragFileUploaded, setRagFileUploaded,
-    ragFileSize, setRagFileSize,
-    audioFileTranscript, setAudioFileTranscript,
-    audioFileSize, setAudioFileSize,
-    audioIsPlayingOrPaused, setAudioIsPlayingOrPaused,
-    musicInfo, setMusicInfo,
-    currentSong, setCurrentSong,
-    sha1sum, setSha1sum,
-    isDragOver, setIsDragOver,
-    showMenu, setShowMenu,
-    isGenerating, setIsGenerating,
+    chatHistory,
+    setChatHistory,
+    mode,
+    setMode,
+    model,
+    setModel,
+    modelList,
+    setModelList,
+    switches,
+    setSwitches,
+    visualization,
+    setVisualization,
+    temperature,
+    setTemperature,
+    audioSpeed,
+    setAudioSpeed,
+    ttsHost,
+    setTtsHost,
+    cursorEffect,
+    setCursorEffect,
+    cursorDensity,
+    setCursorDensity,
+    cursorSpeed,
+    setCursorSpeed,
+    auroraEnabled,
+    setAuroraEnabled,
+    panelOpacity,
+    setPanelOpacity,
+    starfieldEnabled,
+    setStarfieldEnabled,
+    waitingAnimation,
+    setWaitingAnimation,
+    prompt,
+    setPrompt,
+    error,
+    setError,
+    clipboard,
+    setClipboard,
+    url,
+    setUrl,
+    waiting,
+    setWaiting,
+    notice,
+    setNotice,
+    uploadedFilename,
+    setUploadedFilename,
+    visionImage,
+    setVisionImage,
+    ragFileUploaded,
+    setRagFileUploaded,
+    ragFileSize,
+    setRagFileSize,
+    audioFileTranscript,
+    setAudioFileTranscript,
+    audioFileSize,
+    setAudioFileSize,
+    audioIsPlayingOrPaused,
+    setAudioIsPlayingOrPaused,
+    musicInfo,
+    setMusicInfo,
+    currentSong,
+    setCurrentSong,
+    sha1sum,
+    setSha1sum,
+    isDragOver,
+    setIsDragOver,
+    showMenu,
+    setShowMenu,
+    isGenerating,
+    setIsGenerating,
     nextId,
     filteredChatHistory,
     chatEndpoint,
@@ -98,12 +133,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   const handleSendMessageRef = useRef(handleSendMessage);
   handleSendMessageRef.current = handleSendMessage;
 
-  const handleSpeechResult = useCallback(
-    (text: string) => {
-      handleSendMessageRef.current(text);
-    },
-    []
-  );
+  const handleSpeechResult = useCallback((text: string) => {
+    handleSendMessageRef.current(text);
+  }, []);
 
   const audioHook = useAudio({
     session,
@@ -150,18 +182,12 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       },
       [mode]
     ),
-    onLongText: useCallback(
-      (text: string, id: number) => {
-        setClipboard({ content: text, id });
-      },
-      []
-    ),
-    onShortText: useCallback(
-      (text: string) => {
-        setPrompt((prev) => prev + text);
-      },
-      []
-    ),
+    onLongText: useCallback((text: string, id: number) => {
+      setClipboard({ content: text, id });
+    }, []),
+    onShortText: useCallback((text: string) => {
+      setPrompt(prev => prev + text);
+    }, []),
     getNextId: nextId,
   });
 
@@ -223,7 +249,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   // --- Helper functions ---
   function getModelAttribute(modelName: string, attribute: string) {
-    const result = modelList.find((obj) => obj.model === modelName);
+    const result = modelList.find(obj => obj.model === modelName);
     return result ? result[attribute] : "";
   }
 
@@ -235,7 +261,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   }
 
   function removeThinkingField(array: any[]) {
-    return array.map((obj) => {
+    return array.map(obj => {
       const newObj = { ...obj };
       if ("thinking" in newObj) delete newObj.thinking;
       return newObj;
@@ -255,7 +281,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   function addMessage(role: "user" | "assistant", message: string) {
     const id = nextId();
-    setChatHistory((prev) => [...prev, { id, content: message, role }]);
+    setChatHistory(prev => [...prev, { id, content: message, role }]);
   }
 
   function getModelInfo() {
@@ -399,26 +425,24 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
     setShowProcessingModal(true);
 
-    axios
-      .post(endpoint, formData)
-      .then((response) => {
-        setAudioFileTranscript(response.data.text);
-        setAudioFileSize(response.data.text.length);
-        if (audioUrl) {
-          setUploadedFilename(response.data.title);
-        } else {
-          setUploadedFilename(event!.target.files![0].name);
-        }
-        setShowProcessingModal(false);
-        // Load audio into player
-        setAudioIsPlayingOrPaused(true);
-        const playerEl = document.getElementById("player") as HTMLAudioElement;
-        if (audioUrl) {
-          fileData = convertBase64ToBytes(response.data) as any;
-        }
-        const audioURL = URL.createObjectURL(fileData as any);
-        if (playerEl) playerEl.src = audioURL;
-      });
+    axios.post(endpoint, formData).then(response => {
+      setAudioFileTranscript(response.data.text);
+      setAudioFileSize(response.data.text.length);
+      if (audioUrl) {
+        setUploadedFilename(response.data.title);
+      } else {
+        setUploadedFilename(event!.target.files![0].name);
+      }
+      setShowProcessingModal(false);
+      // Load audio into player
+      setAudioIsPlayingOrPaused(true);
+      const playerEl = document.getElementById("player") as HTMLAudioElement;
+      if (audioUrl) {
+        fileData = convertBase64ToBytes(response.data) as any;
+      }
+      const audioURL = URL.createObjectURL(fileData as any);
+      if (playerEl) playerEl.src = audioURL;
+    });
   }
 
   function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
@@ -430,16 +454,14 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     setRagFileSize(fileData.size);
     formData.append("file", fileData);
 
-    axios
-      .post("rag/upload", formData)
-      .then((response) => {
-        setRagFileUploaded(true);
-        setSha1sum(response.data.sha1sum);
-        setUploadedFilename(event.target.files![0].name);
-        window.setTimeout(() => {
-          setShowProcessingModal(false);
-        }, 500);
-      });
+    axios.post("rag/upload", formData).then(response => {
+      setRagFileUploaded(true);
+      setSha1sum(response.data.sha1sum);
+      setUploadedFilename(event.target.files![0].name);
+      window.setTimeout(() => {
+        setShowProcessingModal(false);
+      }, 500);
+    });
   }
 
   function handleFileUploadVision(event: React.ChangeEvent<HTMLInputElement>) {
@@ -484,7 +506,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   function handleAudioEnded() {
     if (musicInfo && musicInfo.length > 0) {
-      const idx = musicInfo.findIndex((x) => x === currentSong);
+      const idx = musicInfo.findIndex(x => x === currentSong);
       if (idx < musicInfo.length - 1) {
         playSong(musicInfo[idx + 1]);
       } else {
@@ -495,7 +517,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   function handleSongBackward(event: React.MouseEvent) {
     if (!musicInfo) return;
-    const idx = musicInfo.findIndex((x) => x === currentSong);
+    const idx = musicInfo.findIndex(x => x === currentSong);
     if (idx > 0) {
       animateCSS(event.currentTarget as HTMLElement, "heartBeat");
       playSong(musicInfo[idx - 1]);
@@ -504,7 +526,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   function handleSongForward(event: React.MouseEvent) {
     if (!musicInfo) return;
-    const idx = musicInfo.findIndex((x) => x === currentSong);
+    const idx = musicInfo.findIndex(x => x === currentSong);
     if (idx < musicInfo.length - 1) {
       animateCSS(event.currentTarget as HTMLElement, "heartBeat");
       playSong(musicInfo[idx + 1]);
@@ -512,7 +534,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   }
 
   async function playSong(song: any) {
-    setChatHistory((prev) => {
+    setChatHistory(prev => {
       const updated = [...prev];
       updated[updated.length - 1] = {
         ...updated[updated.length - 1],
@@ -538,11 +560,12 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   }
 
   // --- Core streaming function ---
-  function sendMessageToChatbot(message: string, args: Record<string, any> = {}, regenerate = false) {
-    if (
-      mode === "Vision" &&
-      getModelAttribute(model.name, "qwen_vision") === null
-    ) {
+  function sendMessageToChatbot(
+    message: string,
+    args: Record<string, any> = {},
+    regenerate = false
+  ) {
+    if (mode === "Vision" && getModelAttribute(model.name, "qwen_vision") === null) {
       setError({
         body: "Error: you must load a vision model to use this feature.",
         variant: "danger",
@@ -565,17 +588,18 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
     // Build messages from the up-to-date history (including clipboard injection)
     const messagesWithClipboard = clipboard
-      ? currentHistory.map((el) =>
-          el.id === clipboard.id
-            ? { ...el, content: el.content + ": " + clipboard.content }
-            : el
+      ? currentHistory.map(el =>
+          el.id === clipboard.id ? { ...el, content: el.content + ": " + clipboard.content } : el
         )
       : currentHistory;
     const messages = removeThinkingField(messagesWithClipboard);
 
     // Add empty assistant message for streaming
     const assistantId = nextId();
-    const historyWithAssistant = [...currentHistory, { id: assistantId, content: "", role: "assistant" as const }];
+    const historyWithAssistant = [
+      ...currentHistory,
+      { id: assistantId, content: "", role: "assistant" as const },
+    ];
 
     // Now update state
     setChatHistory(historyWithAssistant);
@@ -600,7 +624,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       controlValue,
       onStreamStart: () => {},
       onStreamChunk: (cleanedContent: string) => {
-        setChatHistory((prev) => {
+        setChatHistory(prev => {
           const updated = [...prev];
           updated[updated.length - 1] = {
             ...updated[updated.length - 1],
@@ -621,7 +645,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               setMusicInfo(jsonObject.music_info);
               playSong(jsonObject.music_info[0]);
             } else {
-              setChatHistory((prev) => {
+              setChatHistory(prev => {
                 const updated = [...prev];
                 updated[updated.length - 1] = {
                   ...updated[updated.length - 1],
@@ -631,7 +655,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               });
             }
           } else if (jsonObject?.content && jsonObject?.lights) {
-            setChatHistory((prev) => {
+            setChatHistory(prev => {
               const updated = [...prev];
               updated[updated.length - 1] = {
                 ...updated[updated.length - 1],
@@ -649,7 +673,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
         console.error("Error:", err);
       },
       onAbort: (hasContent: boolean) => {
-        setChatHistory((prev) => {
+        setChatHistory(prev => {
           const updated = [...prev];
           const lastMessage = updated[updated.length - 1];
           if (lastMessage?.role === "assistant") {
@@ -690,11 +714,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
         <div className="app-header-right">
           <Nav active={mode} onModeChange={handleSwitchMode} />
-          <button
-            className="hamburger"
-            ref={hamburgerRef}
-            onClick={() => setShowMenu(!showMenu)}
-          >
+          <button className="hamburger" ref={hamburgerRef} onClick={() => setShowMenu(!showMenu)}>
             <div className="hamburger__line"></div>
             <div className="hamburger__line"></div>
             <div className="hamburger__line"></div>
@@ -718,13 +738,13 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
           <div
             className={`chat-body${isDragOver ? " drag-over" : ""}`}
-            onDragOver={(e) => {
+            onDragOver={e => {
               e.preventDefault();
               setIsDragOver(true);
             }}
             onDrop={handleImageDrop}
-            onDragEnter={(e) => e.preventDefault()}
-            onDragLeave={(e) => {
+            onDragEnter={e => e.preventDefault()}
+            onDragLeave={e => {
               e.preventDefault();
               setIsDragOver(false);
             }}
@@ -738,13 +758,13 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
             <ImagePreview
               visionImage={visionImage}
               isDragOver={isDragOver}
-              onDragOver={(e) => {
+              onDragOver={e => {
                 e.preventDefault();
                 setIsDragOver(true);
               }}
               onDrop={handleImageDrop}
-              onDragEnter={(e) => e.preventDefault()}
-              onDragLeave={(e) => {
+              onDragEnter={e => e.preventDefault()}
+              onDragLeave={e => {
                 e.preventDefault();
                 setIsDragOver(false);
               }}
@@ -800,7 +820,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           <div className="sidebar-section">
             <div className="thinking-area">
               {visualization === "gpuOrb" && <GpuOrb active={isGenerating} size={140} />}
-              {visualization === "thinkingIcon" && <ThinkingIcon active={isGenerating} size={140} />}
+              {visualization === "thinkingIcon" && (
+                <ThinkingIcon active={isGenerating} size={140} />
+              )}
               {visualization === "nexus" && <NexusViz active={isGenerating} size={140} />}
             </div>
             {notice && (
@@ -867,7 +889,10 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       <Modal isOpen={showProcessingModal} onClose={() => setShowProcessingModal(false)} size="sm">
         <div className="flex items-center justify-center">
           <div>Processing...</div>
-          <div className="ml-2 h-5 w-5 animate-spin rounded-full border-2 border-bs-secondary border-t-transparent" role="status">
+          <div
+            className="ml-2 h-5 w-5 animate-spin rounded-full border-2 border-bs-secondary border-t-transparent"
+            role="status"
+          >
             <span className="sr-only">Loading...</span>
           </div>
         </div>

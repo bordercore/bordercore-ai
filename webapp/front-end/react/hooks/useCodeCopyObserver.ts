@@ -19,8 +19,7 @@ async function copyCodeToClipboard(codeElement: HTMLElement): Promise<void> {
     document.body.appendChild(textArea);
 
     const selection = document.getSelection();
-    const originalRange =
-      selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    const originalRange = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
 
     textArea.select();
     textArea.setSelectionRange(0, textArea.value.length);
@@ -52,7 +51,7 @@ function addCopyButtonsToCodeBlocks(container: HTMLElement | null) {
   if (!container) return;
 
   const codeBlocks = container.querySelectorAll("pre > code");
-  codeBlocks.forEach((codeElement) => {
+  codeBlocks.forEach(codeElement => {
     const preElement = codeElement.parentElement;
     if (!preElement || preElement.dataset.copyButtonAttached === "true") {
       return;
@@ -64,7 +63,7 @@ function addCopyButtonsToCodeBlocks(container: HTMLElement | null) {
     copyButton.textContent = "Copy";
     copyButton.setAttribute("aria-label", "Copy code to clipboard");
 
-    copyButton.addEventListener("click", (event) => {
+    copyButton.addEventListener("click", event => {
       event.preventDefault();
       event.stopPropagation();
       copyButton.disabled = true;
@@ -94,9 +93,7 @@ function addCopyButtonsToCodeBlocks(container: HTMLElement | null) {
 /**
  * MutationObserver that watches a container ref and adds copy buttons to code blocks.
  */
-export default function useCodeCopyObserver(
-  containerRef: React.RefObject<HTMLElement | null>
-) {
+export default function useCodeCopyObserver(containerRef: React.RefObject<HTMLElement | null>) {
   const observerRef = useRef<MutationObserver | null>(null);
 
   useEffect(() => {
@@ -107,7 +104,7 @@ export default function useCodeCopyObserver(
     addCopyButtonsToCodeBlocks(container);
 
     // Watch for new code blocks
-    observerRef.current = new MutationObserver((mutations) => {
+    observerRef.current = new MutationObserver(mutations => {
       for (const mutation of mutations) {
         if (mutation.type === "childList") {
           addCopyButtonsToCodeBlocks(container);

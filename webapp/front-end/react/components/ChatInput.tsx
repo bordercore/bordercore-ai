@@ -43,11 +43,11 @@ export default function ChatInput({
   }
 
   return (
-    <form onSubmit={(e) => e.preventDefault()}>
+    <form onSubmit={e => e.preventDefault()}>
       <div className="chat-input-wrapper">
         <input
           value={prompt}
-          onChange={(e) => onPromptChange(e.target.value)}
+          onChange={e => onPromptChange(e.target.value)}
           id="prompt"
           type="text"
           placeholder="Type your message..."
@@ -58,28 +58,16 @@ export default function ChatInput({
 
         {showRegenerate && (
           <>
-            <div
-              className="input-action"
-              onClick={onRegenerate}
-              title="Regenerate Response"
-            >
+            <div className="input-action" onClick={onRegenerate} title="Regenerate Response">
               <FontAwesomeIcon icon={faRotateLeft} />
             </div>
-            <div
-              className="input-action"
-              onClick={onNewChat}
-              title="New Chat"
-            >
+            <div className="input-action" onClick={onNewChat} title="New Chat">
               <FontAwesomeIcon icon={faPlus} />
             </div>
           </>
         )}
         {isGenerating && (
-          <div
-            className="input-action"
-            onClick={onStopGeneration}
-            title="Stop Response"
-          >
+          <div className="input-action" onClick={onStopGeneration} title="Stop Response">
             <FontAwesomeIcon icon={faCircleStop} />
           </div>
         )}
@@ -94,9 +82,14 @@ export default function ChatInput({
         )}
         <div
           className="input-action"
-          onClick={() => { if (prompt.trim() && !inputIsDisabled) onSend(); }}
+          onClick={() => {
+            if (prompt.trim() && !inputIsDisabled) onSend();
+          }}
           title="Send"
-          style={{ color: prompt.trim() ? "var(--accent-cyan)" : undefined, opacity: prompt.trim() ? 1 : 0.4 }}
+          style={{
+            color: prompt.trim() ? "var(--accent-cyan)" : undefined,
+            opacity: prompt.trim() ? 1 : 0.4,
+          }}
         >
           <FontAwesomeIcon icon={faPaperPlane} />
         </div>

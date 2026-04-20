@@ -49,12 +49,23 @@ export default function PreferencesMenu({
 
   return (
     <div id="menu">
-      <h4 style={{ color: "var(--accent-cyan)", fontSize: "0.9rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: "1rem" }}>
+      <h4
+        style={{
+          color: "var(--accent-cyan)",
+          fontSize: "0.9rem",
+          fontWeight: 700,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase" as const,
+          marginBottom: "1rem",
+        }}
+      >
         Preferences
       </h4>
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         <div>
-          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Temperature</div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+            Temperature
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <Slider
               value={temperature}
@@ -68,7 +79,9 @@ export default function PreferencesMenu({
           </div>
         </div>
         <div>
-          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Audio Speed</div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+            Audio Speed
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <Slider
               value={audioSpeed}
@@ -82,20 +95,24 @@ export default function PreferencesMenu({
           </div>
         </div>
         <div>
-          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>TTS Host</div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+            TTS Host
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <input
               type="text"
               className="w-full rounded-lg border border-border-subtle bg-bg-input px-3 py-2 text-sm text-txt-primary focus:border-accent-cyan focus:outline-none"
               value={ttsHost}
-              onChange={(e) => onTtsHostChange(e.target.value)}
+              onChange={e => onTtsHostChange(e.target.value)}
               size={20}
             />
             <span className="pref-hint">Hostname and port for TTS</span>
           </div>
         </div>
         <div>
-          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Aurora</div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+            Aurora
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <Switch
               checked={auroraEnabled}
@@ -117,7 +134,9 @@ export default function PreferencesMenu({
           </div>
         </div>
         <div>
-          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Panel Opacity</div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+            Panel Opacity
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <Slider
               value={panelOpacity}
@@ -131,7 +150,9 @@ export default function PreferencesMenu({
           </div>
         </div>
         <div>
-          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Starfield</div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+            Starfield
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <Switch
               checked={starfieldEnabled}
@@ -153,7 +174,9 @@ export default function PreferencesMenu({
           </div>
         </div>
         <div>
-          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Cursor Effect</div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+            Cursor Effect
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <Switch
               checked={cursorEffect}
@@ -177,7 +200,9 @@ export default function PreferencesMenu({
         {cursorEffect && (
           <>
             <div>
-              <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Cursor Density</div>
+              <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+                Cursor Density
+              </div>
               <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                 <Slider
                   value={cursorDensity}
@@ -191,7 +216,9 @@ export default function PreferencesMenu({
               </div>
             </div>
             <div>
-              <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Cursor Speed</div>
+              <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+                Cursor Speed
+              </div>
               <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                 <Slider
                   value={cursorSpeed}

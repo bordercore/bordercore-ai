@@ -50,11 +50,9 @@ export default function useVAD(options: UseVADOptions) {
         formData.append("audio", blob);
         setNotice("Waiting for speech to text");
 
-        axios
-          .post("/speech2text", formData)
-          .then((response) => {
-            onSpeechResult(response.data.input);
-          });
+        axios.post("/speech2text", formData).then(response => {
+          onSpeechResult(response.data.input);
+        });
       },
     });
 

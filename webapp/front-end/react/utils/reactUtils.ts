@@ -21,7 +21,7 @@ export function doGet(
 ) {
   axios
     .get(url, { responseType: responseType })
-    .then((response) => {
+    .then(response => {
       if (response.data.status && response.data.status !== "OK") {
         EventBus.$emit("toast", {
           title: "Error!",
@@ -34,7 +34,7 @@ export function doGet(
         return callback(response);
       }
     })
-    .catch((error) => {
+    .catch(error => {
       EventBus.$emit("toast", {
         title: "Error!",
         body: `${errorMsg}: ${error.message}`,
@@ -65,7 +65,7 @@ export function doPost(
     method: "POST",
     data: bodyFormData,
   })
-    .then((response) => {
+    .then(response => {
       if (response.data.status && response.data.status !== "OK") {
         EventBus.$emit("toast", {
           title: "Error",
@@ -87,7 +87,7 @@ export function doPost(
         callback(response);
       }
     })
-    .catch((error) => {
+    .catch(error => {
       EventBus.$emit("toast", {
         title: "Error",
         body: error.message,

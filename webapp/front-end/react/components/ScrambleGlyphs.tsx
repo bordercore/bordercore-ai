@@ -1,14 +1,79 @@
 import React, { useEffect, useRef, useState } from "react";
 
 const GLYPH_POOL = [
-  "ア", "イ", "ウ", "エ", "オ", "カ", "キ", "ク", "ケ", "コ",
-  "サ", "シ", "ス", "セ", "ソ", "タ", "チ", "ツ", "テ", "ト",
-  "ナ", "ニ", "ヌ", "ネ", "ノ", "ハ", "ヒ", "フ", "ヘ", "ホ",
-  "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-  "A", "B", "C", "D", "E", "F",
-  "◊", "◆", "▲", "△", "◇", "⧫", "⟡", "▸", "★", "✦",
-  "∆", "∇", "Σ", "Ω", "λ", "φ", "ψ", "≡", "⇌",
-  "⠁", "⠃", "⠇", "⠏", "⠟", "⠿", "⡿", "⣿",
+  "ア",
+  "イ",
+  "ウ",
+  "エ",
+  "オ",
+  "カ",
+  "キ",
+  "ク",
+  "ケ",
+  "コ",
+  "サ",
+  "シ",
+  "ス",
+  "セ",
+  "ソ",
+  "タ",
+  "チ",
+  "ツ",
+  "テ",
+  "ト",
+  "ナ",
+  "ニ",
+  "ヌ",
+  "ネ",
+  "ノ",
+  "ハ",
+  "ヒ",
+  "フ",
+  "ヘ",
+  "ホ",
+  "0",
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "A",
+  "B",
+  "C",
+  "D",
+  "E",
+  "F",
+  "◊",
+  "◆",
+  "▲",
+  "△",
+  "◇",
+  "⧫",
+  "⟡",
+  "▸",
+  "★",
+  "✦",
+  "∆",
+  "∇",
+  "Σ",
+  "Ω",
+  "λ",
+  "φ",
+  "ψ",
+  "≡",
+  "⇌",
+  "⠁",
+  "⠃",
+  "⠇",
+  "⠏",
+  "⠟",
+  "⠿",
+  "⡿",
+  "⣿",
 ];
 
 function randomGlyph(): string {
@@ -20,9 +85,7 @@ interface ScrambleGlyphsProps {
 }
 
 export default function ScrambleGlyphs({ length = 10 }: ScrambleGlyphsProps) {
-  const [glyphs, setGlyphs] = useState<string[]>(() =>
-    Array.from({ length }, () => randomGlyph())
-  );
+  const [glyphs, setGlyphs] = useState<string[]>(() => Array.from({ length }, () => randomGlyph()));
   const intervalsRef = useRef<number[]>([]);
   const lastSwapRef = useRef<number[]>([]);
   const rafRef = useRef<number | null>(null);
@@ -32,7 +95,7 @@ export default function ScrambleGlyphs({ length = 10 }: ScrambleGlyphsProps) {
     lastSwapRef.current = Array.from({ length }, () => performance.now());
 
     function tick(now: number) {
-      setGlyphs((prev) => {
+      setGlyphs(prev => {
         let changed = false;
         const next = prev.slice();
         for (let i = 0; i < length; i++) {
@@ -57,11 +120,7 @@ export default function ScrambleGlyphs({ length = 10 }: ScrambleGlyphsProps) {
   return (
     <div className="scramble-glyphs" role="status" aria-label="AI thinking">
       {glyphs.map((g, i) => (
-        <span
-          key={i}
-          className="scramble-glyph"
-          style={{ animationDelay: `${(i * 90) % 1400}ms` }}
-        >
+        <span key={i} className="scramble-glyph" style={{ animationDelay: `${(i * 90) % 1400}ms` }}>
           {g}
         </span>
       ))}

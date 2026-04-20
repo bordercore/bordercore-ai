@@ -25,12 +25,7 @@ export default function ImagePreview({
       className="p-2"
       style={{ display: visionImage === null ? "none" : undefined }}
     >
-      <img
-        id="image-preview"
-        className="w-full p-1"
-        src={imageSrc}
-        alt="Image preview"
-      />
+      <img id="image-preview" className="w-full p-1" src={imageSrc} alt="Image preview" />
     </div>
   );
 }

@@ -19,7 +19,12 @@ const variantColorMap: Record<string, string> = {
   info: "text-bs-info",
 };
 
-export default function MessageList({ messages, waiting, waitingAnimation, error }: MessageListProps) {
+export default function MessageList({
+  messages,
+  waiting,
+  waitingAnimation,
+  error,
+}: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   useCodeCopyObserver(containerRef);
 
@@ -32,7 +37,7 @@ export default function MessageList({ messages, waiting, waitingAnimation, error
 
   return (
     <div id="message-container" className="items-start" ref={containerRef}>
-      {messages.map((message) => (
+      {messages.map(message => (
         <MessageItem key={message.id} message={message} />
       ))}
       {waiting && <WaitingIndicator animation={waitingAnimation} />}

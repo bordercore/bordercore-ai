@@ -50,7 +50,7 @@ export default function useGpuStats({ active }: UseGpuStatsOptions) {
 
     let errorCount = 0;
 
-    es.onmessage = (event) => {
+    es.onmessage = event => {
       errorCount = 0;
       try {
         const data: GpuStats = JSON.parse(event.data);

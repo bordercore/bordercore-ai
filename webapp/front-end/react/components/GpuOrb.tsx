@@ -134,7 +134,11 @@ function lerpTo(current: number, target: number, speed: number, dt: number): num
 }
 
 // ─── OrbMesh ────────────────────────────────────────────────────
-function OrbMesh({ statsRef, available, active }: {
+function OrbMesh({
+  statsRef,
+  available,
+  active,
+}: {
   statsRef: React.MutableRefObject<GpuStats>;
   available: boolean;
   active: boolean;
@@ -143,13 +147,16 @@ function OrbMesh({ statsRef, available, active }: {
   const matRef = useRef<THREE.ShaderMaterial>(null);
   const smoothed = useRef({ gpuUtil: 0, memPressure: 0, temperature: 30, powerDraw: 0 });
 
-  const uniforms = useMemo(() => ({
-    uTime: { value: 0 },
-    uGpuUtil: { value: 0 },
-    uTemperature: { value: 30 },
-    uMemPressure: { value: 0 },
-    uPowerDraw: { value: 0 },
-  }), []);
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uGpuUtil: { value: 0 },
+      uTemperature: { value: 30 },
+      uMemPressure: { value: 0 },
+      uPowerDraw: { value: 0 },
+    }),
+    []
+  );
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05);
@@ -202,7 +209,11 @@ function OrbMesh({ statsRef, available, active }: {
 }
 
 // ─── ParticleRing ───────────────────────────────────────────────
-function ParticleRing({ statsRef, available, active }: {
+function ParticleRing({
+  statsRef,
+  available,
+  active,
+}: {
   statsRef: React.MutableRefObject<GpuStats>;
   available: boolean;
   active: boolean;
@@ -223,9 +234,7 @@ function ParticleRing({ statsRef, available, active }: {
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
-    const speed = available
-      ? 0.5 + (statsRef.current.clock_mhz / 2000) * 2.0
-      : active ? 0.8 : 0.2;
+    const speed = available ? 0.5 + (statsRef.current.clock_mhz / 2000) * 2.0 : active ? 0.8 : 0.2;
     groupRef.current.rotation.y += delta * speed;
   });
 
@@ -255,7 +264,11 @@ function ParticleRing({ statsRef, available, active }: {
 }
 
 // ─── OuterGlow ──────────────────────────────────────────────────
-function OuterGlow({ statsRef, available, active }: {
+function OuterGlow({
+  statsRef,
+  available,
+  active,
+}: {
   statsRef: React.MutableRefObject<GpuStats>;
   available: boolean;
   active: boolean;
@@ -268,7 +281,9 @@ function OuterGlow({ statsRef, available, active }: {
     const powerLimit = statsRef.current.power_limit || 350;
     const target = available
       ? 0.03 + Math.min(statsRef.current.power_draw / powerLimit, 1.0) * 0.12
-      : active ? 0.06 + 0.03 * Math.sin(state.clock.elapsedTime) : 0.02;
+      : active
+        ? 0.06 + 0.03 * Math.sin(state.clock.elapsedTime)
+        : 0.02;
     smoothedOpacity.current = lerpTo(smoothedOpacity.current, target, 2.0, delta);
     matRef.current.opacity = smoothedOpacity.current;
   });
@@ -290,7 +305,11 @@ function OuterGlow({ statsRef, available, active }: {
 }
 
 // ─── Scene ──────────────────────────────────────────────────────
-function OrbScene({ statsRef, available, active }: {
+function OrbScene({
+  statsRef,
+  available,
+  active,
+}: {
   statsRef: React.MutableRefObject<GpuStats>;
   available: boolean;
   active: boolean;

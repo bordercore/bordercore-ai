@@ -24,7 +24,7 @@ export default function ThinkingIcon({
         const prev = prevTime ?? tsNow;
         const dt = Math.min(32, tsNow - prev);
         prevTime = tsNow;
-        setDashOffset((prev) => (prev + speed * dt) % 120);
+        setDashOffset(prev => (prev + speed * dt) % 120);
         rafIdRef.current = requestAnimationFrame(animateRing);
       }
 
@@ -130,7 +130,14 @@ export default function ThinkingIcon({
         {gridLines}
 
         {/* Pulsing core */}
-        <circle cx="50" cy="50" r="16" fill="url(#coreGrad)" filter="url(#softGlow)" className="core" />
+        <circle
+          cx="50"
+          cy="50"
+          r="16"
+          fill="url(#coreGrad)"
+          filter="url(#softGlow)"
+          className="core"
+        />
 
         {/* Rotating circuit ring */}
         <g className="ring" filter="url(#softGlow)">
@@ -150,29 +157,61 @@ export default function ThinkingIcon({
 
         {/* Scanning arcs */}
         <g className="scanner" filter="url(#softGlow)">
-          <path d="M80,50 A30,30 0 0,0 20,50" fill="none" stroke="#ff00e6" strokeWidth="2" strokeLinecap="round" opacity="0.8" />
-          <path d="M78,50 A28,28 0 0,0 22,50" fill="none" stroke="#00fff0" strokeWidth="1.6" strokeLinecap="round" opacity="0.6" />
+          <path
+            d="M80,50 A30,30 0 0,0 20,50"
+            fill="none"
+            stroke="#ff00e6"
+            strokeWidth="2"
+            strokeLinecap="round"
+            opacity="0.8"
+          />
+          <path
+            d="M78,50 A28,28 0 0,0 22,50"
+            fill="none"
+            stroke="#00fff0"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            opacity="0.6"
+          />
         </g>
 
         {/* Orbiting particles */}
         <g className="particles">
           <circle r="2.2" fill="#00fff0" filter="url(#outerGlow)">
             {active && (
-              <animateMotion dur="2.8s" repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1" calcMode="linear">
+              <animateMotion
+                dur="2.8s"
+                repeatCount="indefinite"
+                keyPoints="0;1"
+                keyTimes="0;1"
+                calcMode="linear"
+              >
                 <mpath xlinkHref="#orbitPath" />
               </animateMotion>
             )}
           </circle>
           <circle r="1.8" fill="#ff00e6" filter="url(#outerGlow)">
             {active && (
-              <animateMotion dur="3.6s" repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1" calcMode="linear">
+              <animateMotion
+                dur="3.6s"
+                repeatCount="indefinite"
+                keyPoints="0;1"
+                keyTimes="0;1"
+                calcMode="linear"
+              >
                 <mpath xlinkHref="#orbitPath" />
               </animateMotion>
             )}
           </circle>
           <circle r="1.6" fill="#7a00ff" filter="url(#outerGlow)">
             {active && (
-              <animateMotion dur="4.2s" repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1" calcMode="linear">
+              <animateMotion
+                dur="4.2s"
+                repeatCount="indefinite"
+                keyPoints="0;1"
+                keyTimes="0;1"
+                calcMode="linear"
+              >
                 <mpath xlinkHref="#orbitPath" />
               </animateMotion>
             )}

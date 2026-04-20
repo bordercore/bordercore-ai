@@ -76,14 +76,14 @@ export default function useAudio(options: UseAudioOptions) {
 
       navigator.mediaDevices
         .getUserMedia({ audio: true, video: false })
-        .then((stream) => {
+        .then(stream => {
           connectStream(stream);
 
           const recorder = new MediaRecorder(stream);
           mediaRecorderRef.current = recorder;
           recorder.start();
 
-          recorder.ondataavailable = (event) => {
+          recorder.ondataavailable = event => {
             audioChunksRef.current.push(event.data);
           };
 
@@ -94,16 +94,14 @@ export default function useAudio(options: UseAudioOptions) {
             formData.append("audio", blob);
             setNotice("Waiting for speech to text");
 
-            axios
-              .post("/speech2text", formData)
-              .then((response) => {
-                setNotice("");
-                onSpeechResult(response.data.input);
-                audioChunksRef.current = [];
-              });
+            axios.post("/speech2text", formData).then(response => {
+              setNotice("");
+              onSpeechResult(response.data.input);
+              audioChunksRef.current = [];
+            });
           };
         })
-        .catch((err) => {
+        .catch(err => {
           alert("Microphone access denied by user: " + err);
         });
     },
