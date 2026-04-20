@@ -18,6 +18,8 @@ interface PreferencesMenuProps {
   onCursorSpeedChange: (value: number) => void;
   auroraEnabled: boolean;
   onAuroraEnabledChange: (value: boolean) => void;
+  panelOpacity: number;
+  onPanelOpacityChange: (value: number) => void;
   starfieldEnabled: boolean;
   onStarfieldEnabledChange: (value: boolean) => void;
 }
@@ -38,6 +40,8 @@ export default function PreferencesMenu({
   onCursorSpeedChange,
   auroraEnabled,
   onAuroraEnabledChange,
+  panelOpacity,
+  onPanelOpacityChange,
   starfieldEnabled,
   onStarfieldEnabledChange,
 }: PreferencesMenuProps) {
@@ -110,6 +114,20 @@ export default function PreferencesMenu({
               width={46}
             />
             <span className="pref-hint">Drifting glow behind the UI</span>
+          </div>
+        </div>
+        <div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>Panel Opacity</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <Slider
+              value={panelOpacity}
+              onChange={onPanelOpacityChange}
+              min={0}
+              max={1}
+              step={0.1}
+              showInput={false}
+            />
+            <span className="pref-hint">0 (Transparent) to 1 (Opaque)</span>
           </div>
         </div>
         <div>

@@ -30,6 +30,8 @@
   --shadow-panel: 0 4px 24px rgba(0, 0, 0, 0.4);
   --shadow-glow: 0 0 20px rgba(0, 234, 255, 0.08);
 
+  // Panels
+  --panel-opacity: 0.38;
 }
 
 // ─── Base ────────────────────────────────────────────────────
@@ -184,7 +186,7 @@ body {
 
 // ─── Panels ──────────────────────────────────────────────────
 .panel-card {
-  background: rgba(13, 19, 49, 0.38);
+  background: rgba(13, 19, 49, var(--panel-opacity));
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border: 1px solid var(--border-panel);

@@ -53,6 +53,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     cursorDensity, setCursorDensity,
     cursorSpeed, setCursorSpeed,
     auroraEnabled, setAuroraEnabled,
+    panelOpacity, setPanelOpacity,
     starfieldEnabled, setStarfieldEnabled,
     waitingAnimation, setWaitingAnimation,
     prompt, setPrompt,
@@ -857,6 +858,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           onCursorSpeedChange={setCursorSpeed}
           auroraEnabled={auroraEnabled}
           onAuroraEnabledChange={setAuroraEnabled}
+          panelOpacity={panelOpacity}
+          onPanelOpacityChange={setPanelOpacity}
           starfieldEnabled={starfieldEnabled}
           onStarfieldEnabledChange={setStarfieldEnabled}
         />

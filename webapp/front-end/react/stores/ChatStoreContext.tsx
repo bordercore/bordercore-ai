@@ -87,6 +87,8 @@ interface ChatStoreContextType {
   setCursorSpeed: (n: number) => void;
   auroraEnabled: boolean;
   setAuroraEnabled: (enabled: boolean) => void;
+  panelOpacity: number;
+  setPanelOpacity: (n: number) => void;
   starfieldEnabled: boolean;
   setStarfieldEnabled: (enabled: boolean) => void;
   waitingAnimation: WaitingAnimation;
@@ -176,6 +178,11 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   const [auroraEnabled, setAuroraEnabled] = useState<boolean>(
     () => (typeof window !== "undefined" ? window.localStorage.getItem("auroraEnabled") !== "false" : true)
   );
+  const [panelOpacity, setPanelOpacity] = useState<number>(() => {
+    if (typeof window === "undefined") return 0.38;
+    const v = Number(window.localStorage.getItem("panelOpacity"));
+    return Number.isFinite(v) && v >= 0 && v <= 1 ? v : 0.38;
+  });
   const [starfieldEnabled, setStarfieldEnabled] = useState<boolean>(
     () => (typeof window !== "undefined" ? window.localStorage.getItem("starfieldEnabled") !== "false" : true)
   );
@@ -192,6 +199,10 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   useEffect(() => {
     window.localStorage.setItem("auroraEnabled", String(auroraEnabled));
   }, [auroraEnabled]);
+  useEffect(() => {
+    window.localStorage.setItem("panelOpacity", String(panelOpacity));
+    document.documentElement.style.setProperty("--panel-opacity", String(panelOpacity));
+  }, [panelOpacity]);
   useEffect(() => {
     window.localStorage.setItem("starfieldEnabled", String(starfieldEnabled));
   }, [starfieldEnabled]);
@@ -275,6 +286,8 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       setCursorSpeed,
       auroraEnabled,
       setAuroraEnabled,
+      panelOpacity,
+      setPanelOpacity,
       starfieldEnabled,
       setStarfieldEnabled,
       waitingAnimation,
@@ -336,6 +349,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       cursorDensity,
       cursorSpeed,
       auroraEnabled,
+      panelOpacity,
       starfieldEnabled,
       waitingAnimation,
       prompt,
