@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef, useState } from "react";
+import React, { useEffect, useCallback, useRef, useState, Suspense, lazy } from "react";
 import axios from "axios";
 import Modal from "./components/Modal";
 
@@ -11,12 +11,15 @@ import Nav from "./components/Nav";
 import ChatInput from "./components/ChatInput";
 import MessageList from "./components/MessageList";
 import ModelSelect from "./components/ModelSelect";
-import GpuOrb from "./components/GpuOrb";
 import ThinkingIcon from "./components/ThinkingIcon";
-import NexusViz from "./components/NexusViz";
-import CursorLines from "./components/CursorLines";
 import AuroraBackground from "./components/AuroraBackground";
-import Starfield from "./components/Starfield";
+
+// Decorative / opt-in visualizations are code-split so initial load
+// doesn't pay for them (notably three.js via GpuOrb, ~170 kB gzipped).
+const GpuOrb = lazy(() => import("./components/GpuOrb"));
+const NexusViz = lazy(() => import("./components/NexusViz"));
+const CursorLines = lazy(() => import("./components/CursorLines"));
+const Starfield = lazy(() => import("./components/Starfield"));
 import Options from "./components/Options";
 import FileUpload from "./components/FileUpload";
 import ImagePreview from "./components/ImagePreview";
@@ -683,8 +686,10 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   return (
     <>
       {auroraEnabled && <AuroraBackground />}
-      {starfieldEnabled && <Starfield />}
-      {cursorEffect && <CursorLines density={cursorDensity} speed={cursorSpeed} />}
+      <Suspense fallback={null}>
+        {starfieldEnabled && <Starfield />}
+        {cursorEffect && <CursorLines density={cursorDensity} speed={cursorSpeed} />}
+      </Suspense>
 
       {/* ─── Top Header Bar ─── */}
       <header className="app-header">
@@ -789,11 +794,13 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
           <div className="sidebar-section">
             <div className="thinking-area">
-              {visualization === "gpuOrb" && <GpuOrb active={isGenerating} size={140} />}
+              <Suspense fallback={null}>
+                {visualization === "gpuOrb" && <GpuOrb active={isGenerating} size={140} />}
+                {visualization === "nexus" && <NexusViz active={isGenerating} size={140} />}
+              </Suspense>
               {visualization === "thinkingIcon" && (
                 <ThinkingIcon active={isGenerating} size={140} />
               )}
-              {visualization === "nexus" && <NexusViz active={isGenerating} size={140} />}
             </div>
             {notice && (
               <div className="notice animate__animated animate__pulse animate__slower animate__infinite">
