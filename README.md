@@ -10,7 +10,7 @@ Bordercore AI is a web-based AI chatbot and voice assistant supporting multiple 
 
 ## Text to Speech (TTS)
 
-Two TTS engines are supported: [Kokoro](https://kokorottsai.com/) and [AllTalk TTS](https://github.com/erew123/alltalk_tts).
+Two TTS engines are supported: [Kokoro](https://kokorottsai.com/) and [Chatterbox](https://github.com/resemble-ai/chatterbox).
 
 ## Speech to Text (STT)
 
@@ -26,11 +26,11 @@ Upload audio files to convert them to text, then ask questions based on the gene
 
 ## Multimodality
 
-Support for the **Qwen2-VL** vision models for analyzing images. Upload images or drag-and-drop them into the UI.
+Support for the **Qwen2.5-VL** vision models for analyzing images. Upload images or drag-and-drop them into the UI.
 
 ## Tool Calling
 
-Supports using Wolfram Alpha for mathematical calculations.
+Built-in tools include Wolfram Alpha (math), weather lookup, Govee smart-light control, music playback, and Google Calendar. Additional tools can be exposed via [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers — see `MCP_SERVERS` in `settings_template.py`.
 
 ## Thinking
 
@@ -62,11 +62,7 @@ python3 -m modules.chatbot -m chatgpt
 
 ## Sensor Support
 
-Experimental support for reading real-time sensor data. This can be used, for example, to activate Speech to Text by waving a hand in front of a sensor like the HLK-LD2410B. To install the required Bluetooth packages:
-
-```bash
-pip install requirements.txt
-```
+Experimental support for reading real-time sensor data. This can be used, for example, to activate Speech to Text by waving a hand in front of a sensor like the HLK-LD2410B.
 
 To run the sensor webapp:
 
@@ -76,10 +72,16 @@ python3 -m sensor
 
 # Installation
 
-First create and activate a virtual environment. Then:
+Dependencies are managed with [uv](https://github.com/astral-sh/uv). From the project root:
 
 ```bash
-pip install requirements.txt
+uv sync
+```
+
+Alternatively, create and activate a virtual environment and install the project in editable mode:
+
+```bash
+pip install -e .
 ```
 
 Build the front-end package:
@@ -110,7 +112,7 @@ The **template** is the chat template type used by the model (eg ChatML, Alpaca,
 The **type** specifies an API-based (as opposed to local) model.
 The **vendor** specifies the vendor for commercial models. Can be set to *openai* or *anthropic*.
 Set **quantize: true** to automatically quantize models to 4bits using the bitsandbytes library.
-Set **qwen_vision: true** to enable vision support for the Qwen2-VL models.
+Set **qwen_vision: true** to enable vision support for the Qwen2.5-VL models.
 Set **do_sample: false** to disable sampling via `temperature`, `top_p`, and `top_k`.
 Set **add_bos_token: true** to prepend a beginning-of-sequence (BOS) token to the input text.
 
@@ -120,17 +122,12 @@ To run:
 python3 -m webapp
 ```
 
-To access: http://localhost:5000/
+To access: https://localhost:5010/
 
 ## PostgreSQL MCP server (pg-mcp-server)
 
-Use your existing virtualenv (no uv required).
-
 1. Configure `pg_mcp_server.toml` with your local Postgres connection string. Leave `allow_writes = false` to keep sessions read-only.
-2. With your venv active, install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+2. Make sure project dependencies are installed (see [Installation](#installation)).
 3. Start the MCP server (defaults to HTTP transport on `127.0.0.1:8000/mcp`):
    ```bash
    python run_pg_mcp_server.py
@@ -162,7 +159,7 @@ Options:
 To use RAG with a local file:
 
 ```bash
-python3 ./rag.py -f <filename>
+python3 -m modules.rag -f <filename>
 ```
 
 # Usage
@@ -173,19 +170,26 @@ Type your text into the input box to send a message to the chatbot.
 
 To the immediate right of the input box are two buttons. The first is **Regenerate Response**, which will re-send the last message to the chatbot, presumably in hopes that a different response will result. The second is **New Chat**, which will clear the chat history.
 
-Click the **MIC** switch to enable microphone voice input. Click it off to submit the result to send the result to the chatbot via STT.
-
-Click the **VAD** switch to enable **Voice Activation Detection**. This will turn on the microphone and use VAD to detect when you're done talking to the chatbot, initiating a back-and-forth conversation.
-
 The **Selected Model** dropdown lets you choose which LLM the API uses to respond to your prompt.
 
-The hamburger menu to the upper-right lets you adjust the following:
+### Options panel
 
-**Temperature**: The "temperature" of the LLM, which controls the randomness of the model's output.
+Toggle features on and off:
 
-**Audio Speed**: How fast the TTS audio plays.
+- **Voice Features**: Text to Speech, Speech to Text, and VAD (Voice Activation Detection — auto-detects when you're done speaking to initiate a back-and-forth conversation).
+- **Reasoning**: Wolfram Alpha tool calling.
 
-**TTS Host**: The hostname and port for the TTS server.
+### Preferences menu
+
+The hamburger menu to the upper-right lets you adjust:
+
+- **Temperature**: Controls the randomness of the model's output (0 = predictable, 1 = random).
+- **Audio Speed**: Playback speed of the TTS audio.
+- **TTS Host**: Hostname and port for the TTS server.
+- **Aurora**: Toggle the drifting glow background.
+- **Panel Opacity**: Transparency of UI panels.
+- **Starfield**: Toggle floating particle effects.
+- **Cursor Effect**: Toggle animated streaks that follow the cursor (with density and speed sub-controls).
 
 # Tests
 
