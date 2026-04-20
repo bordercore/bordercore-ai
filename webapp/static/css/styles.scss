@@ -858,6 +858,22 @@ body {
 // ─── Sliders ─────────────────────────────────────────────────
 .custom-slider {
   width: 10rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  input[type="range"] {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .slider-value {
+    flex: 0 0 auto;
+    min-width: 2.5rem;
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 
