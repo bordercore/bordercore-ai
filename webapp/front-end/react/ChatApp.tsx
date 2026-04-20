@@ -678,17 +678,12 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       {starfieldEnabled && <Starfield />}
       {cursorEffect && <CursorLines density={cursorDensity} speed={cursorSpeed} />}
 
-      {/* Shooting stars background */}
-      <div className="animation-container">
-        {Array.from({ length: settings.num_stars || 7 }, (_, i) => (
-          <div key={i} className="c"></div>
-        ))}
-      </div>
-
       {/* ─── Top Header Bar ─── */}
       <header className="app-header">
         <div className="app-header-left">
-          <img src="/static/img/logo.png" className="header-logo" alt="Bordercore AI" />
+          <div className="header-logo" data-text="BORDERCORE AI" aria-label="Bordercore AI">
+            BORDERCORE AI
+          </div>
         </div>
 
         <div className="app-header-center"></div>

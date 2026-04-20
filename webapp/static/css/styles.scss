@@ -1113,13 +1113,61 @@ media-volume-range {
   flex: 1 0 100%;
 }
 
-// ─── Logo (small version for new header) ─────────────────────
+// ─── Logo (neon + gradient scan) ─────────────────────────────
 .header-logo {
-  height: 3.5rem;
-  width: auto;
-  object-fit: contain;
   position: relative;
   z-index: 2;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: #7fd8e6;
+  padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+  user-select: none;
+  text-shadow:
+    0 0 3px rgba(127, 216, 230, 0.6),
+    0 0 8px rgba(0, 234, 255, 0.45),
+    0 0 20px rgba(0, 234, 255, 0.3);
+}
+
+.header-logo::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  right: 0.5rem;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    transparent 44%,
+    rgba(0, 234, 255, 0.95) 48%,
+    #ffffff 50%,
+    rgba(0, 234, 255, 0.95) 52%,
+    transparent 56%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+          color: transparent;
+  filter: drop-shadow(0 0 8px var(--accent-cyan)) drop-shadow(0 0 18px var(--accent-cyan));
+  animation: logo-scan 3s linear infinite;
+}
+
+@keyframes logo-scan {
+  0%   { background-position: 150% 0; }
+  100% { background-position: -150% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-logo::after {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 // ─── Toasts ─────────────────────────────────────────────────
