@@ -66,7 +66,7 @@ export default function useStreamingChat() {
         body: formData,
         signal: abortController.signal,
       })
-        .then((response) => {
+        .then(response => {
           if (!response.ok) {
             throw new Error("Network response was not ok");
           }
@@ -137,7 +137,7 @@ export default function useStreamingChat() {
                     controller.enqueue(value);
                     push();
                   })
-                  .catch((error) => {
+                  .catch(error => {
                     if (error.name === "AbortError") {
                       controller.close();
                       return;
@@ -150,10 +150,10 @@ export default function useStreamingChat() {
             },
           });
         })
-        .then((stream) => {
+        .then(stream => {
           return new Response(stream).text();
         })
-        .then((result) => {
+        .then(result => {
           const elapsed = Date.now() - start!;
           const wordCount = result.trim().split(/\s+/).length;
           const speed = Math.round(wordCount / (elapsed / 1000));
@@ -161,7 +161,7 @@ export default function useStreamingChat() {
 
           onStreamEnd(result, buffer);
         })
-        .catch((exception) => {
+        .catch(exception => {
           if (exception.name === "AbortError") {
             onAbort(buffer.length > 0);
             return;

@@ -6,7 +6,7 @@ export const animateCSS = (
   animation: string,
   prefix = "animate__"
 ): Promise<string> =>
-  new Promise((resolve) => {
+  new Promise(resolve => {
     const animationName = `${prefix}${animation}`;
     node.classList.add(`${prefix}animated`, animationName);
 

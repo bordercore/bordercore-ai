@@ -22,7 +22,7 @@ export default function useSensor(options: UseSensorOptions) {
     const es = new EventSource(sensorUri);
     eventSourceRef.current = es;
 
-    es.onmessage = (event) => {
+    es.onmessage = event => {
       const data = JSON.parse(event.data);
       onSensorData(data);
     };

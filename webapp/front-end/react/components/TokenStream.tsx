@@ -16,10 +16,10 @@ type Particle = {
 };
 
 const COLORS: [number, number, number][] = [
-  [0, 234, 255],    // cyan
-  [168, 85, 247],   // purple
-  [236, 72, 153],   // pink
-  [103, 232, 249],  // light cyan
+  [0, 234, 255], // cyan
+  [168, 85, 247], // purple
+  [236, 72, 153], // pink
+  [103, 232, 249], // light cyan
 ];
 
 export default function TokenStream({ width = 180, height = 26 }: TokenStreamProps) {

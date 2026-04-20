@@ -23,8 +23,12 @@ export default function CursorLines({ density = 3, speed = 0.3 }: CursorLinesPro
   const densityRef = useRef(density);
   const speedRef = useRef(speed);
 
-  useEffect(() => { densityRef.current = density; }, [density]);
-  useEffect(() => { speedRef.current = speed; }, [speed]);
+  useEffect(() => {
+    densityRef.current = density;
+  }, [density]);
+  useEffect(() => {
+    speedRef.current = speed;
+  }, [speed]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

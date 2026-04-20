@@ -3,7 +3,7 @@ import hljs from "highlight.js";
 import { katex } from "@mdit/plugin-katex";
 import DOMPurify from "dompurify";
 
-import "highlight.js/styles/dracula.css";
+import "highlight.js/styles/base16/dracula.css";
 
 // highlightAuto's relevance scoring mis-labels short Python snippets as C++,
 // so restrict auto-detection to languages likely to appear in AI chat responses

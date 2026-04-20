@@ -22,15 +22,12 @@ export default function AudioPlayer({
 }: AudioPlayerProps) {
   const songIndex = useMemo(() => {
     if (!musicInfo) return -1;
-    return musicInfo.findIndex((x) => x === currentSong);
+    return musicInfo.findIndex(x => x === currentSong);
   }, [musicInfo, currentSong]);
 
   return (
     <div id="audioPlayer" style={{ display: audioIsPlayingOrPaused ? "flex" : "none" }}>
-      <div
-        id="audioPlayerInfo"
-        className="relative flex items-center justify-center w-full"
-      >
+      <div id="audioPlayerInfo" className="relative flex items-center justify-center w-full">
         {audioIsPlayingOrPaused && (
           <div className="flex">
             <img
@@ -42,29 +39,18 @@ export default function AudioPlayer({
             />
             {musicInfo ? (
               <div>
-                Playing{" "}
-                <span className="text-bs-info">{currentSong.title}</span> by{" "}
+                Playing <span className="text-bs-info">{currentSong.title}</span> by{" "}
                 <span className="text-bs-info">{currentSong.artist}</span>
                 <div id="songIndex">
-                  <span
-                    className={`mr-3 ${songIndex > 0 ? "text-bs-info" : "text-bs-secondary"}`}
-                  >
-                    <FontAwesomeIcon
-                      icon={faBackward}
-                      className="glow"
-                      onClick={onSongBackward}
-                    />
+                  <span className={`mr-3 ${songIndex > 0 ? "text-bs-info" : "text-bs-secondary"}`}>
+                    <FontAwesomeIcon icon={faBackward} className="glow" onClick={onSongBackward} />
                   </span>
                   <span className="font-bold">{songIndex + 1}</span> /{" "}
                   <span className="font-bold">{musicInfo.length}</span>
                   <span
                     className={`ml-3 ${songIndex < musicInfo.length - 1 ? "text-bs-info" : "text-bs-secondary"}`}
                   >
-                    <FontAwesomeIcon
-                      icon={faForward}
-                      className="glow"
-                      onClick={onSongForward}
-                    />
+                    <FontAwesomeIcon icon={faForward} className="glow" onClick={onSongForward} />
                   </span>
                 </div>
               </div>

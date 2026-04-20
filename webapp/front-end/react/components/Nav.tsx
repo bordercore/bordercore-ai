@@ -15,7 +15,7 @@ interface NavProps {
 export default function Nav({ active, onModeChange }: NavProps) {
   return (
     <div className="nav-tabs-custom">
-      {navItems.map((item) => (
+      {navItems.map(item => (
         <button
           key={item.link}
           className={`nav-tab${item.label === active ? " active" : ""}`}

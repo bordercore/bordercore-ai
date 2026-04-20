@@ -13,18 +13,19 @@ $dotSize: .6;
   position: relative;
   width: $width+px;
   height: 100%;
-  margin-left: -$width+px;
   margin-top: 10px;
-  &:after {
-    content: "";
+  margin-left: -$width+px;
+
+  &::after {
     position: absolute;
+    top: -1px; // Use this to center the head
+    bottom: - calc($dotSize/2)+vw;
+    left: 100%;
     width: $dotSize+vw;
     height: $dotSize+vw;
     border-radius: 50%;
-    left: 100%;
-    bottom: - calc($dotSize/2)+vw;
-    top: -1px; // Use this to center the head
     margin-left: - calc($dotSize/2)+vw;
+    content: "";
   }
 }
 
@@ -32,11 +33,12 @@ $dotSize: .6;
   $hue: random(50) + 234;
   $time: random(20) + 20;
   .c:nth-child(#{$i}) {
-    background-image: linear-gradient(to right, black, hsla($hue, 100%, 30%, .8));
     animation: drop $time+s infinite ease-in;
     animation-delay: random($total) * calc($time/$total) * -1s;
-    &:after {
-      background: hsla($hue, 100%, 50%, 1);
+    background-image: linear-gradient(to right, black, hsla($hue, 100%, 30%, 80%));
+
+    &::after {
+      background: hsla($hue, 100%, 50%, 100%);
     }
   }
 }
@@ -45,8 +47,9 @@ $dotSize: .6;
   80% {
     opacity: 1;
   }
+
   100% {
-    transform: translate3d(40vw, 0, 0);
     opacity: 0;
+    transform: translate3d(40vw, 0, 0);
   }
 }

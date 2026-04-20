@@ -16,9 +16,30 @@ export default function RadarSweep() {
         </defs>
 
         <circle cx="30" cy="30" r="26" fill="url(#radar-core-gradient)" />
-        <circle cx="30" cy="30" r="26" fill="none" stroke="rgba(0, 234, 255, 0.45)" strokeWidth="1" />
-        <circle cx="30" cy="30" r="17" fill="none" stroke="rgba(0, 234, 255, 0.22)" strokeWidth="0.6" />
-        <circle cx="30" cy="30" r="9" fill="none" stroke="rgba(0, 234, 255, 0.2)" strokeWidth="0.6" />
+        <circle
+          cx="30"
+          cy="30"
+          r="26"
+          fill="none"
+          stroke="rgba(0, 234, 255, 0.45)"
+          strokeWidth="1"
+        />
+        <circle
+          cx="30"
+          cy="30"
+          r="17"
+          fill="none"
+          stroke="rgba(0, 234, 255, 0.22)"
+          strokeWidth="0.6"
+        />
+        <circle
+          cx="30"
+          cy="30"
+          r="9"
+          fill="none"
+          stroke="rgba(0, 234, 255, 0.2)"
+          strokeWidth="0.6"
+        />
 
         <line x1="4" y1="30" x2="56" y2="30" stroke="rgba(0, 234, 255, 0.15)" strokeWidth="0.5" />
         <line x1="30" y1="4" x2="30" y2="56" stroke="rgba(0, 234, 255, 0.15)" strokeWidth="0.5" />

@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install dependencies
+      run: |
+        sudo apt install portaudio19-dev
+        python -m pip install --upgrade pip
+        pip install --upgrade setuptools wheel
+        pip install .
+        pip install pytest
+
+    - name: Create settings.py
+      run: |
+        echo "openai_api_key = 'dummy'" >> settings.py
+
+    - name: Run tests
+      run: |
+        pytest -vv
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webapp
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+        cache-dependency-path: webapp/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Lint (ESLint)
+      run: npm run lint:react
+
+    - name: Format check (Prettier)
+      run: npm run format:check:react
+
+    - name: Build
+      run: npm run vite:build
+
+    - name: Typecheck (warn-only)
+      continue-on-error: true
+      run: npm run typecheck
+
+    - name: Lint SCSS (stylelint, warn-only)
+      continue-on-error: true
+      run: npm run stylelint

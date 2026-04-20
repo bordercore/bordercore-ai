@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  ReactNode,
+} from "react";
 
 export interface ChatMessage {
   id: number;
@@ -160,12 +168,14 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
     wolframAlpha: false,
     enableThinking: session.enable_thinking !== undefined ? session.enable_thinking : false,
   });
-  const [visualization, setVisualization] = useState<VisualizationType>(session.visualization || "gpuOrb");
+  const [visualization, setVisualization] = useState<VisualizationType>(
+    session.visualization || "gpuOrb"
+  );
   const [temperature, setTemperature] = useState(session.temperature || 0.7);
   const [audioSpeed, setAudioSpeed] = useState(session.audio_speed || 1);
   const [ttsHost, setTtsHost] = useState(session.tts_host || "");
-  const [cursorEffect, setCursorEffect] = useState<boolean>(
-    () => (typeof window !== "undefined" ? window.localStorage.getItem("cursorEffect") !== "false" : true)
+  const [cursorEffect, setCursorEffect] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.localStorage.getItem("cursorEffect") !== "false" : true
   );
   const [cursorDensity, setCursorDensity] = useState<number>(() => {
     const v = Number(window?.localStorage.getItem("cursorDensity"));
@@ -175,16 +185,18 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
     const v = Number(window?.localStorage.getItem("cursorSpeed"));
     return Number.isFinite(v) && v >= 0 ? v : 0.3;
   });
-  const [auroraEnabled, setAuroraEnabled] = useState<boolean>(
-    () => (typeof window !== "undefined" ? window.localStorage.getItem("auroraEnabled") !== "false" : true)
+  const [auroraEnabled, setAuroraEnabled] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.localStorage.getItem("auroraEnabled") !== "false" : true
   );
   const [panelOpacity, setPanelOpacity] = useState<number>(() => {
     if (typeof window === "undefined") return 0.38;
     const v = Number(window.localStorage.getItem("panelOpacity"));
     return Number.isFinite(v) && v >= 0 && v <= 1 ? v : 0.38;
   });
-  const [starfieldEnabled, setStarfieldEnabled] = useState<boolean>(
-    () => (typeof window !== "undefined" ? window.localStorage.getItem("starfieldEnabled") !== "false" : true)
+  const [starfieldEnabled, setStarfieldEnabled] = useState<boolean>(() =>
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("starfieldEnabled") !== "false"
+      : true
   );
   const [waitingAnimation, setWaitingAnimation] = useState<WaitingAnimation>(loadWaitingAnimation);
   useEffect(() => {
@@ -237,7 +249,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   }, []);
 
   const filteredChatHistory = useMemo(
-    () => chatHistory.filter((x) => x.role !== "system"),
+    () => chatHistory.filter(x => x.role !== "system"),
     [chatHistory]
   );
 

@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+#
+# Git pre-commit hook
+#
+# Purpose:
+# 1. Block commits with unused Python imports (flake8 F401).
+# 2. Block commits with frontend lint/format violations (ESLint + Prettier via lint-staged).
+# 3. Block commits with mypy type errors.
+#
+# Usage:
+#   git config core.hooksPath .githooks
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+WEBAPP_DIR="$REPO_ROOT/webapp"
+
+echo "--- Starting Pre-commit Checks ---"
+
+# ----------------------------------------------------------------------
+# 1. Python Linting (Unused Imports)
+# ----------------------------------------------------------------------
+echo "Checking for unused Python imports..."
+if command -v flake8 >/dev/null 2>&1; then
+  flake8 \
+    --extend-exclude="node_modules,webapp/node_modules,webapp/static,.venv,.mypy_cache,.pytest_cache" \
+    --select F401 \
+    modules webapp sensor tts
+  echo "Python linting passed."
+else
+  echo "Warning: flake8 not found. Skipping Python linting."
+fi
+
+# ----------------------------------------------------------------------
+# 2. Frontend Linting (lint-staged)
+# ----------------------------------------------------------------------
+echo "Running lint-staged (ESLint, Prettier)..."
+cd "$WEBAPP_DIR"
+if [ -d "node_modules" ]; then
+  npm run -s lint:staged
+  echo "Frontend linting passed."
+else
+  echo "Warning: node_modules not found. Skipping frontend linting."
+fi
+
+# ----------------------------------------------------------------------
+# 3. Type Checking (mypy)
+# ----------------------------------------------------------------------
+echo "Running mypy type checking..."
+cd "$REPO_ROOT"
+if command -v uv >/dev/null 2>&1; then
+  uv run mypy --config-file pyproject.toml .
+else
+  mypy --config-file pyproject.toml .
+fi
+echo "mypy type checking passed."
+
+echo "--- Pre-commit Checks Finished Successfully ---"
+exit 0

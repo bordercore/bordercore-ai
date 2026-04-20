@@ -33,20 +33,20 @@ export default function ToastContainer() {
 
   const addToast = useCallback((data: Omit<ToastData, "id">) => {
     const id = nextId.current++;
-    setToasts((prev) => {
+    setToasts(prev => {
       const next = [...prev, { ...data, id }];
       return next.length > 5 ? next.slice(-5) : next;
     });
 
     if (data.autoHide !== false) {
       setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
+        setToasts(prev => prev.filter(t => t.id !== id));
       }, 5000);
     }
   }, []);
 
   const removeToast = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function ToastContainer() {
 
   return (
     <div className="notify-container">
-      {toasts.map((toast) => {
+      {toasts.map(toast => {
         const style = VARIANT_STYLES[toast.variant] || VARIANT_STYLES.info;
         return (
           <div

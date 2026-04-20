@@ -17,7 +17,7 @@ export default function ModelSelect({
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const selectedModel = modelList.find((m) => m.model === value) || null;
+  const selectedModel = modelList.find(m => m.model === value) || null;
   const selectedModelName = selectedModel ? selectedModel.name : "Select a model";
   const selectedModelIcon = selectedModel ? getModelIcon(selectedModel) : "";
 
@@ -71,7 +71,7 @@ export default function ModelSelect({
 
       {isOpen && (
         <div className="model-dropdown-menu" role="listbox">
-          {modelList.map((model) => (
+          {modelList.map(model => (
             <div
               key={model.model}
               className={`model-dropdown-item${model.model === value ? " is-active" : ""}`}
@@ -79,7 +79,7 @@ export default function ModelSelect({
               aria-selected={model.model === value}
               tabIndex={0}
               onClick={() => selectModel(model)}
-              onKeyDown={(e) => handleKeydown(e, model)}
+              onKeyDown={e => handleKeydown(e, model)}
             >
               <div className="model-option-content">
                 <span className="model-option-name">{model.name}</span>

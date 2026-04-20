@@ -12,6 +12,19 @@ const optionalModulePath = fs.existsSync(path.resolve(__dirname, "local/optional
   ? path.resolve(__dirname, "local/optional.js")
   : path.resolve(__dirname, "fallback.js");
 
+// SSL certs are gitignored and only exist in local dev environments; skip
+// HTTPS config entirely when they're missing so CI (build-only) can load this
+// file without ENOENT.
+const sslKeyPath = path.resolve(__dirname, "ssl/server.key");
+const sslCertPath = path.resolve(__dirname, "ssl/server.crt");
+const httpsConfig =
+  fs.existsSync(sslKeyPath) && fs.existsSync(sslCertPath)
+    ? {
+        key: fs.readFileSync(sslKeyPath),
+        cert: fs.readFileSync(sslCertPath),
+      }
+    : undefined;
+
 export default defineConfig({
   plugins: [tailwindcss()],
   esbuild: {
@@ -28,10 +41,7 @@ export default defineConfig({
     // (only IPv4 and *.localhost are auto-allowed). Without this, HMR
     // breaks for custom hostnames like ai.bordercore.com.
     allowedHosts: ["ai.bordercore.com", "deepvirtual"],
-    https: {
-      key: fs.readFileSync(path.resolve(__dirname, "ssl/server.key")),
-      cert: fs.readFileSync(path.resolve(__dirname, "ssl/server.crt")),
-    },
+    https: httpsConfig,
     hmr: {
       port: 5180,
     },

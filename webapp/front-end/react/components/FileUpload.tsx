@@ -1,12 +1,6 @@
 import React from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faPaperclip,
-  faFileAlt,
-  faLink,
-  faCheck,
-  faCopy,
-} from "@fortawesome/free-solid-svg-icons";
+import { faPaperclip, faFileAlt, faLink, faCheck, faCopy } from "@fortawesome/free-solid-svg-icons";
 import { formatBytes } from "../utils/formatBytes";
 
 interface FileUploadProps {
@@ -44,8 +38,8 @@ export default function FileUpload({
     <>
       {mode === "Audio" && !url && (
         <div className="file-input-wrapper">
-          <FontAwesomeIcon icon={faPaperclip} className="fa-lg text-bs-primary ml-3 mr-1" />
-          {" "}Add audio file
+          <FontAwesomeIcon icon={faPaperclip} className="fa-lg text-bs-primary ml-3 mr-1" /> Add
+          audio file
           <input type="file" className="file-input" onChange={onTranscribeAudio} />
         </div>
       )}
@@ -64,8 +58,8 @@ export default function FileUpload({
       {mode === "Vision" && (
         <div className="flex items-center mb-3">
           <div className="file-input-wrapper">
-            <FontAwesomeIcon icon={faPaperclip} className="fa-lg text-bs-primary ml-3 mr-1" />
-            {" "}Add image
+            <FontAwesomeIcon icon={faPaperclip} className="fa-lg text-bs-primary ml-3 mr-1" /> Add
+            image
             <input
               type="file"
               name="image"
@@ -90,8 +84,8 @@ export default function FileUpload({
       {mode === "RAG" && (
         <div className="flex items-center mb-3">
           <div className="file-input-wrapper">
-            <FontAwesomeIcon icon={faPaperclip} className="fa-lg text-bs-primary ml-3 mr-1" />
-            {" "}Add content
+            <FontAwesomeIcon icon={faPaperclip} className="fa-lg text-bs-primary ml-3 mr-1" /> Add
+            content
             <input type="file" className="file-input" onChange={onFileUpload} />
           </div>
           {ragFileUploaded && (
@@ -119,11 +113,7 @@ export default function FileUpload({
       {mode === "Audio" && audioFileTranscript && (
         <div className="transcript-container">
           <div id="transcript" className="relative">
-            <div
-              id="copyIcon"
-              className="hover-target hidden"
-              onClick={onCopyText}
-            >
+            <div id="copyIcon" className="hover-target hidden" onClick={onCopyText}>
               <FontAwesomeIcon
                 icon={copyIcon === "check" ? faCheck : faCopy}
                 className="fa-lg ml-3"

@@ -41,7 +41,7 @@ export default function Modal({ isOpen, onClose, size = "sm", children }: ModalP
           width: "100%",
           maxWidth: size === "sm" ? "24rem" : "32rem",
         }}
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {children}
       </div>
