@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+#
+# Git pre-push hook
+#
+# Purpose:
+# 1. Warn (do not block) on frontend TypeScript type errors.
+#    Typecheck is currently warn-only pending a cleanup of the existing
+#    TypeScript debt; flip this to blocking once `npm run typecheck` is green.
+#
+# Usage:
+#   git config core.hooksPath .githooks
+
+set -uo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+WEBAPP_DIR="$REPO_ROOT/webapp"
+
+echo "--- Starting Pre-push Checks ---"
+
+cd "$WEBAPP_DIR"
+if [ -d "node_modules" ]; then
+  echo "Running TypeScript typecheck (warn-only)..."
+  if npm run -s typecheck; then
+    echo "TypeScript typecheck passed."
+  else
+    echo "Warning: TypeScript typecheck reported errors — push not blocked." >&2
+  fi
+else
+  echo "Warning: node_modules not found. Skipping typecheck."
+fi
+
+echo "--- Pre-push Checks Finished ---"
+exit 0

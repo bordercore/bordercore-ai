@@ -199,6 +199,35 @@ To run the unit tests:
 pytest
 ```
 
+# Development
+
+## Git hooks
+
+The repository ships with shared Git hooks in `.githooks/`:
+
+- **pre-commit**: flake8 F401 (unused Python imports), ESLint + Prettier on staged frontend files (via `lint-staged`), and mypy.
+- **pre-push**: TypeScript typecheck (`tsc --noEmit`), warn-only.
+
+Enable them once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+## Frontend linting / formatting
+
+From `webapp/`:
+
+```bash
+npm run lint:react           # ESLint
+npm run format:react         # Prettier --write
+npm run format:check:react   # Prettier --check
+npm run typecheck            # tsc --noEmit
+npm run stylelint            # stylelint
+```
+
+`typecheck` and `stylelint` are currently warn-only in CI pending a cleanup pass; ESLint, Prettier, and the Vite build are blocking.
+
 ---
 
-[![Run Pytest](https://github.com/bordercore/bordercoreai/actions/workflows/pytest.yml/badge.svg)](https://github.com/bordercore/bordercoreai/actions/workflows/pytest.yml)
+[![CI](https://github.com/bordercore/bordercoreai/actions/workflows/ci.yml/badge.svg)](https://github.com/bordercore/bordercoreai/actions/workflows/ci.yml)

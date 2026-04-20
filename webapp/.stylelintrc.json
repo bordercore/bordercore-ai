@@ -1,0 +1,32 @@
+{
+  "customSyntax": "postcss-scss",
+  "extends": [
+    "stylelint-config-standard-scss",
+    "stylelint-config-idiomatic-order"
+  ],
+  "plugins": [
+    "stylelint-scss",
+    "stylelint-order"
+  ],
+  "ignoreFiles": [
+    "**/themes/**",
+    "**/theme-*"
+  ],
+  "rules": {
+    "order/order": [
+      "custom-properties",
+      "declarations"
+    ],
+    "property-no-unknown": [
+      true,
+      {
+        "ignoreProperties": [
+          "/^-animation$/",
+          "/^accent-color$/",
+          "/^webkit-transform$/",
+          "/^ms-transform$/"
+        ]
+      }
+    ]
+  }
+}
