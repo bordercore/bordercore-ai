@@ -10,7 +10,7 @@ Bordercore AI is a web-based AI chatbot and voice assistant supporting multiple 
 
 ## Text to Speech (TTS)
 
-Two TTS engines are supported: [Kokoro](https://kokorottsai.com/) and [Chatterbox](https://github.com/resemble-ai/chatterbox).
+Three TTS engines are supported: [Kokoro](https://kokorottsai.com/), [Chatterbox](https://github.com/resemble-ai/chatterbox), and [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base).
 
 ## Speech to Text (STT)
 
