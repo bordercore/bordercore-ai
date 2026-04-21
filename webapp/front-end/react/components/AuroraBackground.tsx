@@ -12,7 +12,7 @@ const vertex = /* glsl */ `
 `;
 
 const fragment = /* glsl */ `
-  precision mediump float;
+  precision highp float;
   uniform vec2 uResolution;
   uniform float uTime;
   varying vec2 vUv;

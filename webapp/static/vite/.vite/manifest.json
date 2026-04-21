@@ -20,7 +20,7 @@
     "name": "three"
   },
   "front-end/entries/chatbot.tsx": {
-    "file": "dist/js/chatbot-B3d4beQk.js",
+    "file": "dist/js/chatbot-96qe-jKo.js",
     "name": "dist/js/chatbot",
     "src": "front-end/entries/chatbot.tsx",
     "isEntry": true,
@@ -43,16 +43,16 @@
     ]
   },
   "front-end/entries/styles-css.js": {
-    "file": "dist/css/styles-sEg0X-kv.js",
+    "file": "dist/css/styles-ByHxey3y.js",
     "name": "dist/css/styles",
     "src": "front-end/entries/styles-css.js",
     "isEntry": true,
     "css": [
-      "styles-DOSn3FNq.css"
+      "styles-Cg831DyK.css"
     ]
   },
   "front-end/react/components/CursorLines.tsx": {
-    "file": "assets/CursorLines-B6nj8B65.js",
+    "file": "assets/CursorLines-B-RHDA4R.js",
     "name": "CursorLines",
     "src": "front-end/react/components/CursorLines.tsx",
     "isDynamicEntry": true,
@@ -66,7 +66,7 @@
     ]
   },
   "front-end/react/components/GpuOrb.tsx": {
-    "file": "assets/GpuOrb-DKUTQMO5.js",
+    "file": "assets/GpuOrb-BRm0oIfr.js",
     "name": "GpuOrb",
     "src": "front-end/react/components/GpuOrb.tsx",
     "isDynamicEntry": true,
@@ -81,7 +81,7 @@
     ]
   },
   "front-end/react/components/NexusViz.tsx": {
-    "file": "assets/NexusViz-ppIrh--Z.js",
+    "file": "assets/NexusViz-CRj5U62I.js",
     "name": "NexusViz",
     "src": "front-end/react/components/NexusViz.tsx",
     "isDynamicEntry": true,
@@ -95,7 +95,7 @@
     ]
   },
   "front-end/react/components/Starfield.tsx": {
-    "file": "assets/Starfield-BO7lv9sQ.js",
+    "file": "assets/Starfield-DHZi4euX.js",
     "name": "Starfield",
     "src": "front-end/react/components/Starfield.tsx",
     "isDynamicEntry": true,
@@ -109,7 +109,7 @@
     ]
   },
   "local/optional.js": {
-    "file": "assets/optional-DnNKMRjE.js",
+    "file": "assets/optional-CFHd4sy9.js",
     "name": "optional",
     "src": "local/optional.js",
     "isDynamicEntry": true,
