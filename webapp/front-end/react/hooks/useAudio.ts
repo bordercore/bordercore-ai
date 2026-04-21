@@ -139,7 +139,7 @@ export default function useAudio(options: UseAudioOptions) {
 
         const concat = (
           a: Uint8Array<ArrayBufferLike>,
-          b: Uint8Array<ArrayBufferLike>,
+          b: Uint8Array<ArrayBufferLike>
         ): Uint8Array<ArrayBufferLike> => {
           const out = new Uint8Array(a.length + b.length);
           out.set(a, 0);
