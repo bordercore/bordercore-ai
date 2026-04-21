@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+
+echo "Running mypy type check…"
+if ! mypy .; then
+  echo "mypy reported type errors — aborting commit." >&2
+  exit 1
+fi
+
+echo "Running lint-staged (prettier/eslint/stylelint on staged files)…"
+if ! (cd webapp && npx lint-staged); then
+  echo "lint-staged failed — aborting commit." >&2
+  exit 1
+fi
