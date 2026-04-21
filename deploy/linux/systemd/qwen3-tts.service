@@ -1,0 +1,16 @@
+[Unit]
+Description=Qwen3-TTS Service
+After=network.target
+Conflicts=kokoro-tts.service chatterbox-tts.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/jerrell/dev/bordercoreai/tts
+ExecStart=/home/jerrell/dev/envs/bordercoreai/bin/python -m qwen3_tts
+StandardOutput=journal
+StandardError=journal
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

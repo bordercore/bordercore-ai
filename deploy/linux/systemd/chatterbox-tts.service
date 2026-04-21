@@ -1,0 +1,16 @@
+[Unit]
+Description=Chatterbox TTS Service
+After=network.target
+Conflicts=kokoro-tts.service qwen3-tts.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/jerrell/dev/bordercoreai/tts
+ExecStart=/home/jerrell/dev/bordercoreai/tts/chatterbox_tts/.venv/bin/python -m chatterbox_tts
+StandardOutput=journal
+StandardError=journal
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
