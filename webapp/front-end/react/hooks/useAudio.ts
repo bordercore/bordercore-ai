@@ -21,6 +21,11 @@ export default function useAudio(options: UseAudioOptions) {
   // scheduled sources so a new request or pauseAudio() can cancel in flight.
   const ttsAbortRef = useRef<AbortController | null>(null);
   const ttsSourcesRef = useRef<AudioBufferSourceNode[]>([]);
+  // Fallback AudioContext used when the AudioMotionAnalyzer isn't present
+  // (its canvas-container element isn't rendered in the current UI, so
+  // audioMotionRef.current is usually null). Lazily initialized on first
+  // TTS playback — that's always after a user gesture.
+  const ttsCtxRef = useRef<AudioContext | null>(null);
 
   // The HTMLAudioElement is retained only because AudioMotionAnalyzer wants a
   // source node at construction time. It's idle for TTS playback now (TTS goes
@@ -61,12 +66,14 @@ export default function useAudio(options: UseAudioOptions) {
       } catch {
         /* already stopped */
       }
-      if (motion) {
-        try {
+      try {
+        if (motion) {
           motion.disconnectInput(src, true);
-        } catch {
-          /* not connected */
+        } else {
+          src.disconnect();
         }
+      } catch {
+        /* not connected */
       }
     }
     ttsSourcesRef.current = [];
@@ -75,8 +82,6 @@ export default function useAudio(options: UseAudioOptions) {
   const doTTS = useCallback(
     (response: string, speak: boolean, ttsHost: string, voice: string, audioSpeed: number) => {
       if (!speak) return;
-      const motion = audioMotionRef.current;
-      if (!motion) return;
 
       // Cancel any in-flight TTS before starting a new one.
       cancelTTSPlayback();
@@ -84,14 +89,25 @@ export default function useAudio(options: UseAudioOptions) {
       const outputFile = "stream_output.wav";
       const url = `${ttsHost}/?text=${encodeURIComponent(response)}&voice=${encodeURIComponent(voice)}&language=en&output_file=${outputFile}`;
 
-      const ctx = motion.audioCtx;
+      // Prefer the analyzer's AudioContext if it exists (so visualization
+      // stays hooked up); otherwise fall back to a lazily-created context.
+      const motion = audioMotionRef.current;
+      let ctx: AudioContext;
+      if (motion) {
+        ctx = motion.audioCtx;
+        motion.gradient = "steelblue";
+        motion.volume = 1;
+      } else {
+        if (!ttsCtxRef.current) {
+          ttsCtxRef.current = new AudioContext();
+        }
+        ctx = ttsCtxRef.current;
+      }
       if (ctx.state === "suspended") {
         ctx.resume().catch(() => {
           /* no user gesture yet; will play silently until resumed */
         });
       }
-      motion.gradient = "steelblue";
-      motion.volume = 1;
 
       const abort = new AbortController();
       ttsAbortRef.current = abort;
@@ -183,7 +199,11 @@ export default function useAudio(options: UseAudioOptions) {
           const source = ctx.createBufferSource();
           source.buffer = audioBuffer;
           source.playbackRate.value = audioSpeed;
-          motion.connectInput(source);
+          if (motion) {
+            motion.connectInput(source);
+          } else {
+            source.connect(ctx.destination);
+          }
 
           // If the prior buffer already finished (we fell behind — the gen
           // pipeline couldn't keep up), reset to currentTime so the new chunk
@@ -195,7 +215,11 @@ export default function useAudio(options: UseAudioOptions) {
           ttsSourcesRef.current.push(source);
           source.onended = () => {
             try {
-              motion.disconnectInput(source, true);
+              if (motion) {
+                motion.disconnectInput(source, true);
+              } else {
+                source.disconnect();
+              }
             } catch {
               /* noop */
             }
