@@ -43,12 +43,11 @@ export default function useAudio(options: UseAudioOptions) {
   }, []);
 
   const doTTS = useCallback(
-    (response: string, speak: boolean, ttsHost: string, audioSpeed: number) => {
+    (response: string, speak: boolean, ttsHost: string, voice: string, audioSpeed: number) => {
       if (!speak) return;
 
-      const voice = session.tts_voice;
       const outputFile = "stream_output.wav";
-      const streamingUrl = `${ttsHost}/?text=${encodeURIComponent(response)}&voice=${voice}&language=en&output_file=${outputFile}`;
+      const streamingUrl = `${ttsHost}/?text=${encodeURIComponent(response)}&voice=${encodeURIComponent(voice)}&language=en&output_file=${outputFile}`;
       audioElementRef.current!.src = streamingUrl;
       if (audioMotionRef.current) {
         audioMotionRef.current.gradient = "steelblue";
@@ -57,7 +56,7 @@ export default function useAudio(options: UseAudioOptions) {
       audioElementRef.current!.playbackRate = audioSpeed;
       audioElementRef.current!.play();
     },
-    [session]
+    []
   );
 
   const handleListen = useCallback(

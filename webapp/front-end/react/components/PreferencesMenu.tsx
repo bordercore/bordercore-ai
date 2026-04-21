@@ -10,6 +10,9 @@ interface PreferencesMenuProps {
   onAudioSpeedChange: (value: number) => void;
   ttsHost: string;
   onTtsHostChange: (value: string) => void;
+  ttsVoice: string;
+  onTtsVoiceChange: (value: string) => void;
+  voiceList: string[];
   cursorEffect: boolean;
   onCursorEffectChange: (value: boolean) => void;
   cursorDensity: number;
@@ -32,6 +35,9 @@ export default function PreferencesMenu({
   onAudioSpeedChange,
   ttsHost,
   onTtsHostChange,
+  ttsVoice,
+  onTtsVoiceChange,
+  voiceList,
   cursorEffect,
   onCursorEffectChange,
   cursorDensity,
@@ -107,6 +113,29 @@ export default function PreferencesMenu({
               size={20}
             />
             <span className="pref-hint">Hostname and port for TTS</span>
+          </div>
+        </div>
+        <div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+            Voice
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <select
+              className="w-full rounded-lg border border-border-subtle bg-bg-input px-3 py-2 text-sm text-txt-primary focus:border-accent-cyan focus:outline-none"
+              value={ttsVoice}
+              onChange={e => onTtsVoiceChange(e.target.value)}
+            >
+              {voiceList.length === 0 && <option value="">(no voices found)</option>}
+              {ttsVoice && !voiceList.includes(ttsVoice) && (
+                <option value={ttsVoice}>{ttsVoice}</option>
+              )}
+              {voiceList.map(name => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <span className="pref-hint">Reference voice for cloning TTS (ignored by Kokoro)</span>
           </div>
         </div>
         <div>

@@ -61,6 +61,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     setAudioSpeed,
     ttsHost,
     setTtsHost,
+    ttsVoice,
+    setTtsVoice,
     cursorEffect,
     setCursorEffect,
     cursorDensity,
@@ -653,7 +655,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           }
         }
 
-        audioHook.doTTS(result, switches.text2speech, ttsHost, audioSpeed);
+        audioHook.doTTS(result, switches.text2speech, ttsHost, ttsVoice, audioSpeed);
       },
       onStreamError: (err: Error) => {
         setError({ body: "Error communicating with webapp.", variant: "danger" });
@@ -844,6 +846,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           onAudioSpeedChange={setAudioSpeed}
           ttsHost={ttsHost}
           onTtsHostChange={setTtsHost}
+          ttsVoice={ttsVoice}
+          onTtsVoiceChange={setTtsVoice}
+          voiceList={session.voice_list || []}
           cursorEffect={cursorEffect}
           onCursorEffectChange={setCursorEffect}
           cursorDensity={cursorDensity}

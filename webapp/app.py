@@ -54,6 +54,18 @@ from modules.rag import RAG
 
 NUM_STARS = 5
 SENSOR_THRESHOLD_DEFAULT = 100
+VOICES_DIR = Path(__file__).resolve().parent.parent / "voices"
+VOICE_EXTENSIONS = {".wav", ".mp3"}
+
+
+def _list_voice_files() -> list[str]:
+    """Return sorted filenames of voice clips available for TTS cloning."""
+    if not VOICES_DIR.is_dir():
+        return []
+    return sorted(
+        p.name for p in VOICES_DIR.iterdir()
+        if p.is_file() and p.suffix.lower() in VOICE_EXTENSIONS
+    )
 
 class LargeRequest(Request):
     """Werkzeug/Flask request subclass that bumps upload limits.
@@ -88,6 +100,7 @@ def before_request_func() -> None:
     """
     session["tts_host"] = settings.tts_host
     session["tts_voice"] = settings.tts_voice
+    session["voice_list"] = _list_voice_files()
 
 
 def _get_vite_js() -> str:

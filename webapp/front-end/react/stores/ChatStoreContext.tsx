@@ -87,6 +87,8 @@ interface ChatStoreContextType {
   setAudioSpeed: (speed: number) => void;
   ttsHost: string;
   setTtsHost: (host: string) => void;
+  ttsVoice: string;
+  setTtsVoice: (voice: string) => void;
   cursorEffect: boolean;
   setCursorEffect: (enabled: boolean) => void;
   cursorDensity: number;
@@ -174,6 +176,10 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   const [temperature, setTemperature] = useState(session.temperature || 0.7);
   const [audioSpeed, setAudioSpeed] = useState(session.audio_speed || 1);
   const [ttsHost, setTtsHost] = useState(session.tts_host || "");
+  const [ttsVoice, setTtsVoice] = useState<string>(() => {
+    const saved = typeof window !== "undefined" ? window.localStorage.getItem("ttsVoice") : null;
+    return saved || session.tts_voice || "";
+  });
   const [cursorEffect, setCursorEffect] = useState<boolean>(() =>
     typeof window !== "undefined" ? window.localStorage.getItem("cursorEffect") !== "false" : true
   );
@@ -221,6 +227,9 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   useEffect(() => {
     window.localStorage.setItem("waitingAnimation", waitingAnimation);
   }, [waitingAnimation]);
+  useEffect(() => {
+    window.localStorage.setItem("ttsVoice", ttsVoice);
+  }, [ttsVoice]);
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState<any>("");
   const [clipboard, setClipboard] = useState<ClipboardData | null>(null);
@@ -290,6 +299,8 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       setAudioSpeed,
       ttsHost,
       setTtsHost,
+      ttsVoice,
+      setTtsVoice,
       cursorEffect,
       setCursorEffect,
       cursorDensity,
@@ -357,6 +368,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       temperature,
       audioSpeed,
       ttsHost,
+      ttsVoice,
       cursorEffect,
       cursorDensity,
       cursorSpeed,
