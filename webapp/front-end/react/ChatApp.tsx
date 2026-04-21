@@ -846,6 +846,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           onAudioSpeedChange={setAudioSpeed}
           ttsHost={ttsHost}
           onTtsHostChange={setTtsHost}
+          ttsHostPresets={session.tts_host_presets || []}
           ttsVoice={ttsVoice}
           onTtsVoiceChange={setTtsVoice}
           voiceList={session.voice_list || []}

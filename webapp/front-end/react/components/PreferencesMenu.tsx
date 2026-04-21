@@ -10,6 +10,7 @@ interface PreferencesMenuProps {
   onAudioSpeedChange: (value: number) => void;
   ttsHost: string;
   onTtsHostChange: (value: string) => void;
+  ttsHostPresets: Array<{ label: string; host: string }>;
   ttsVoice: string;
   onTtsVoiceChange: (value: string) => void;
   voiceList: string[];
@@ -35,6 +36,7 @@ export default function PreferencesMenu({
   onAudioSpeedChange,
   ttsHost,
   onTtsHostChange,
+  ttsHostPresets,
   ttsVoice,
   onTtsVoiceChange,
   voiceList,
@@ -105,14 +107,22 @@ export default function PreferencesMenu({
             TTS Host
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <input
-              type="text"
+            <select
               className="w-full rounded-lg border border-border-subtle bg-bg-input px-3 py-2 text-sm text-txt-primary focus:border-accent-cyan focus:outline-none"
               value={ttsHost}
               onChange={e => onTtsHostChange(e.target.value)}
-              size={20}
-            />
-            <span className="pref-hint">Hostname and port for TTS</span>
+            >
+              {ttsHostPresets.length === 0 && <option value="">(no presets configured)</option>}
+              {ttsHost && !ttsHostPresets.some(p => p.host === ttsHost) && (
+                <option value={ttsHost}>{ttsHost}</option>
+              )}
+              {ttsHostPresets.map(p => (
+                <option key={p.host} value={p.host}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+            <span className="pref-hint">Which TTS service to hit</span>
           </div>
         </div>
         <div>

@@ -175,7 +175,10 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   );
   const [temperature, setTemperature] = useState(session.temperature || 0.7);
   const [audioSpeed, setAudioSpeed] = useState(session.audio_speed || 1);
-  const [ttsHost, setTtsHost] = useState(session.tts_host || "");
+  const [ttsHost, setTtsHost] = useState<string>(() => {
+    const saved = typeof window !== "undefined" ? window.localStorage.getItem("ttsHost") : null;
+    return saved || session.tts_host || "";
+  });
   const [ttsVoice, setTtsVoice] = useState<string>(() => {
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("ttsVoice") : null;
     return saved || session.tts_voice || "";
@@ -230,6 +233,9 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   useEffect(() => {
     window.localStorage.setItem("ttsVoice", ttsVoice);
   }, [ttsVoice]);
+  useEffect(() => {
+    window.localStorage.setItem("ttsHost", ttsHost);
+  }, [ttsHost]);
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState<any>("");
   const [clipboard, setClipboard] = useState<ClipboardData | null>(null);

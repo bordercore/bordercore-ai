@@ -16,6 +16,16 @@ discord_channel_id = ""
 tts_host = ""
 tts_voice = "voice.wav"
 
+# Presets shown in the frontend's "TTS Host" dropdown. Each entry maps a
+# human-readable label to a base URL for the TTS service. The frontend
+# persists the user's chosen host in localStorage and uses it to reach the
+# engine directly from the browser, so the hostnames here must have a valid
+# cert and resolve to the host that's actually running the engine.
+tts_host_presets = [
+    {"label": "Kokoro (wumpus)", "host": "https://kokoro-tts.bordercore.com:5001"},
+    {"label": "Chatterbox / Qwen3 (deepvirtual)", "host": "https://tts.bordercore.com:5001"},
+]
+
 anthropic_api_key = ""
 openai_api_key = ""
 govee_api_key = ""

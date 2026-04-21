@@ -101,6 +101,7 @@ def before_request_func() -> None:
     session["tts_host"] = settings.tts_host
     session["tts_voice"] = settings.tts_voice
     session["voice_list"] = _list_voice_files()
+    session["tts_host_presets"] = getattr(settings, "tts_host_presets", [])
 
 
 def _get_vite_js() -> str:
