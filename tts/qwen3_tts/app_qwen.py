@@ -1,36 +1,40 @@
 """
 Qwen3-TTS Audio Generator Web Service
 
-This module provides a Flask web service that generates text-to-speech audio
-using the Qwen3-TTS-12Hz-0.6B-Base model (0.6B params, multilingual, voice
-cloning). It streams the generated audio as a WAV file response.
+Flask service that streams text-to-speech audio produced by
+Qwen3-TTS-12Hz-0.6B-Base. Long inputs are split by sentence and generated one
+at a time; the first chunk returns as soon as the first sentence is ready,
+and subsequent chunks are appended to the same WAV stream while later
+sentences generate. This collapses first-audio latency from "total
+generation time" to "first-sentence generation time" — see ``LATENCY.md`` for
+the profile.
 
-Qwen3-TTS-Base requires reference audio to clone a voice. A matching transcript
-(``ref_text``) yields the best quality; when omitted, ``x_vector_only_mode=True``
-is used so only the speaker embedding is consumed.
+Qwen3-TTS-Base requires reference audio to clone a voice. A matching
+transcript (``ref_text``) yields the best quality; when omitted the server
+looks for a ``<stem>.txt`` sidecar next to the reference audio, and falls
+back to ``x_vector_only_mode=True`` (speaker embedding only, lower fidelity)
+if that's also missing.
 
 Command line arguments:
     --audio_prompt: Default reference audio path (default: voices/shadowheart.wav)
-    --ref_text: Optional transcript of the reference audio
     --language: Synthesis language (default: auto)
-    --debug: Enable debug mode for saving audio files and Flask debugging
+    --debug: Enable Flask debug mode
     --device: cuda/cpu selection (default: cuda)
 
 Usage:
     python -m qwen3_tts --device cuda
-    python -m qwen3_tts --audio_prompt voices/shadowheart.wav --ref_text "..."
+    python -m qwen3_tts --audio_prompt voices/shadowheart.wav
 """
 
 import argparse
-import hashlib
-import io
 import logging
-import os
+import re
+import struct
 import time
 from pathlib import Path
 from typing import Any, Iterator
 
-import soundfile as sf
+import numpy as np
 import torch
 from flask import Flask, Response, request
 from flask_cors import CORS
@@ -104,13 +108,73 @@ def load_ref_text_for(audio_path: str) -> str | None:
     return None
 
 
+_SENT_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+
+
+def split_sentences(text: str) -> list[str]:
+    """Split ``text`` into sentence-ish chunks suitable for per-chunk generation.
+
+    Simple heuristic: break on whitespace that follows ``.``, ``!``, or ``?``.
+    Abbreviations like ``Mr.`` will cause mid-sentence splits, but the model
+    handles short fragments fine — the only user-visible effect is a slightly
+    different prosodic contour between chunks. Preserves the original text if
+    there are no sentence-ending marks.
+    """
+    parts = [s.strip() for s in _SENT_SPLIT_RE.split(text.strip()) if s.strip()]
+    return parts or [text.strip()]
+
+
+def streaming_wav_header(sample_rate: int,
+                         num_channels: int = 1,
+                         bits_per_sample: int = 16) -> bytes:
+    """Build a WAV header whose RIFF and data chunk sizes are the 0xFFFFFFFF
+    sentinel, signaling "unknown/streaming length" to players.
+
+    Browsers' HTMLAudioElement accepts this and plays progressively as bytes
+    arrive. The duration displayed by UI players is garbage (~6 hours) until
+    the stream ends, but for fire-and-forget playback that's irrelevant.
+    """
+    byte_rate = sample_rate * num_channels * bits_per_sample // 8
+    block_align = num_channels * bits_per_sample // 8
+    sentinel = 0xFFFFFFFF
+    return (
+        b"RIFF" + struct.pack("<I", sentinel)
+        + b"WAVE"
+        + b"fmt " + struct.pack("<I", 16)
+        + struct.pack(
+            "<HHIIHH",
+            1,  # PCM
+            num_channels,
+            sample_rate,
+            byte_rate,
+            block_align,
+            bits_per_sample,
+        )
+        + b"data" + struct.pack("<I", sentinel)
+    )
+
+
+def to_pcm16_bytes(audio: np.ndarray) -> bytes:
+    """Convert a float waveform in [-1, 1] to little-endian 16-bit PCM bytes."""
+    clipped = np.clip(audio, -1.0, 1.0)
+    return (clipped * 32767.0).astype("<i2").tobytes()
+
+
+def _audio_to_numpy(wav: Any) -> np.ndarray:
+    """Normalize whatever ``generate_voice_clone`` returns for one clip into a
+    1-D float32 numpy array on CPU."""
+    if hasattr(wav, "cpu"):
+        wav = wav.squeeze().cpu().numpy()
+    return np.asarray(wav, dtype=np.float32).reshape(-1)
+
+
 parser = argparse.ArgumentParser(description="Qwen3-TTS audio generator")
 parser.add_argument("--audio_prompt", dest="audio_prompt", default=DEFAULT_AUDIO_PROMPT,
                     help="Default reference audio path for voice cloning")
 parser.add_argument("--language", dest="language", default="auto",
                     help="Synthesis language (auto, english, chinese, japanese, ...)")
 parser.add_argument("--debug", dest="debug", action="store_true", default=False,
-                    help="Enable debug mode for saving audio files")
+                    help="Enable Flask debug mode")
 parser.add_argument("--device", dest="device", default="cuda",
                     help="Device to use for inference (cuda/cpu)")
 args = parser.parse_args()
@@ -118,6 +182,7 @@ args = parser.parse_args()
 app = Flask(__name__)
 CORS(app)
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 AUDIO_PROMPT = args.audio_prompt
 LANGUAGE = normalize_language(args.language)
@@ -137,6 +202,14 @@ def generate_tts_audio() -> Response:
     """
     **/ (GET)** – Generate text-to-speech audio using Qwen3-TTS.
 
+    The text is split into sentences and each sentence is synthesized
+    sequentially. The first sentence is generated synchronously (so
+    generation errors produce a clean 500 with CORS headers), then subsequent
+    sentences are streamed as raw PCM frames appended to a single
+    streaming-WAV body. The browser's ``<audio>`` element plays the stream
+    progressively, so first-audio latency drops from "total generation time"
+    to "first-sentence generation time".
+
     Expected query parameters
     -------------------------
     text : str
@@ -146,16 +219,17 @@ def generate_tts_audio() -> Response:
     audio_prompt : str, optional
         Explicit path to reference audio (overrides ``voice``).
     ref_text : str, optional
-        Transcript of the reference audio. When omitted, the model runs in
-        x-vector-only mode (speaker embedding only, lower fidelity).
+        Transcript of the reference audio. When omitted, the sidecar
+        ``<stem>.txt`` next to the reference audio is used. When that's also
+        missing, falls back to ``x_vector_only_mode=True`` (lower fidelity).
     language : str, optional
         Target synthesis language. Accepts full names or ISO codes.
 
     Returns
     -------
     flask.Response
-        ``audio/wav`` body on success, JSON error body on failure. All
-        responses carry CORS headers via flask-cors.
+        ``audio/wav`` streaming body on success, plain-text error body on
+        failure. All responses carry CORS headers via flask-cors.
     """
     payload = request.args
     text = payload.get("text", "")
@@ -178,71 +252,76 @@ def generate_tts_audio() -> Response:
     ref_text = payload.get("ref_text") or load_ref_text_for(audio_prompt_path)
     language = normalize_language(payload.get("language", LANGUAGE))
 
-    save_path: str | None = None
-    if DEBUG:
-        timestamp = int(time.time())
-        text_hash = hashlib.md5(text.encode()).hexdigest()[:8]
-        filename = f"tts_{timestamp}_{text_hash}.wav"
-        save_path = os.path.join("saved_audio", filename)
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-    clone_kwargs: dict[str, Any] = {
-        "text": text,
+    base_kwargs: dict[str, Any] = {
         "language": language,
         "ref_audio": audio_prompt_path,
     }
     if ref_text:
-        clone_kwargs["ref_text"] = ref_text
+        base_kwargs["ref_text"] = ref_text
     else:
-        clone_kwargs["x_vector_only_mode"] = True
+        base_kwargs["x_vector_only_mode"] = True
 
+    sentences = split_sentences(text)
+    mode = "full_clone" if ref_text else "x_vector_only"
+    req_start = time.perf_counter()
+
+    # Generate the first sentence synchronously so that a generation failure
+    # produces a proper 500 Response (with CORS headers from flask-cors)
+    # instead of truncating an already-streaming audio body.
     t0 = time.perf_counter()
     try:
-        wavs, sample_rate = model.generate_voice_clone(**clone_kwargs)
+        first_wavs, sample_rate = model.generate_voice_clone(
+            text=sentences[0], **base_kwargs
+        )
     except Exception as exc:
-        logger.exception("Qwen3-TTS generation failed: %s", exc)
+        logger.exception("Qwen3-TTS first-sentence generation failed: %s", exc)
         return Response(
             f"TTS generation failed: {exc}",
             status=500,
             mimetype="text/plain",
         )
-    t_gen = time.perf_counter() - t0
-
-    t0 = time.perf_counter()
-    audio_data = wavs[0]
-    if hasattr(audio_data, "cpu"):
-        audio_data = audio_data.squeeze().cpu().numpy()
-    t_tensor = time.perf_counter() - t0
-
-    if DEBUG and save_path:
-        sf.write(save_path, audio_data, sample_rate, format="WAV")
-
-    t0 = time.perf_counter()
-    wav_buffer = io.BytesIO()
-    sf.write(wav_buffer, audio_data, sample_rate, format="WAV")
-    wav_buffer.seek(0)
-    t_encode = time.perf_counter() - t0
-
-    audio_seconds = len(audio_data) / sample_rate if sample_rate else 0
+    first_audio = _audio_to_numpy(first_wavs[0])
+    t_first = time.perf_counter() - t0
     logger.warning(
-        "TTS timing | chars=%d audio=%.2fs | gen=%.3fs tensor=%.3fs encode=%.3fs | mode=%s",
+        "TTS stream start | sentences=%d chars=%d mode=%s | "
+        "first_gen=%.3fs first_audio=%.2fs sr=%d",
+        len(sentences),
         len(text),
-        audio_seconds,
-        t_gen,
-        t_tensor,
-        t_encode,
-        "full_clone" if ref_text else "x_vector_only",
+        mode,
+        t_first,
+        len(first_audio) / sample_rate if sample_rate else 0,
+        sample_rate,
     )
 
-    def generate_audio_chunks() -> Iterator[bytes]:
-        chunk_size = 1024
-        while True:
-            data = wav_buffer.read(chunk_size)
-            if not data:
-                break
-            yield data
+    def stream() -> Iterator[bytes]:
+        yield streaming_wav_header(sample_rate)
+        yield to_pcm16_bytes(first_audio)
+        total_audio = len(first_audio) / sample_rate
+        for i, sent in enumerate(sentences[1:], start=2):
+            t_sent = time.perf_counter()
+            try:
+                wavs, _ = model.generate_voice_clone(text=sent, **base_kwargs)
+            except Exception as exc:
+                # Can't signal an error after the header is sent; log and close.
+                logger.exception(
+                    "Qwen3-TTS sentence %d/%d failed mid-stream: %s",
+                    i, len(sentences), exc,
+                )
+                return
+            audio = _audio_to_numpy(wavs[0])
+            dt = time.perf_counter() - t_sent
+            total_audio += len(audio) / sample_rate
+            logger.warning(
+                "TTS stream chunk %d/%d | chars=%d gen=%.3fs audio=%.2fs",
+                i, len(sentences), len(sent), dt, len(audio) / sample_rate,
+            )
+            yield to_pcm16_bytes(audio)
+        logger.warning(
+            "TTS stream done | sentences=%d total_audio=%.2fs wall=%.3fs",
+            len(sentences), total_audio, time.perf_counter() - req_start,
+        )
 
-    return Response(generate_audio_chunks(), mimetype="audio/wav")
+    return Response(stream(), mimetype="audio/wav")
 
 
 if __name__ == "__main__":
