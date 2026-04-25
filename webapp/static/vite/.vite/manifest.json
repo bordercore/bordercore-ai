@@ -1,6 +1,6 @@
 {
-  "_highlight.js-FWXpMJ8B.js": {
-    "file": "assets/highlight.js-FWXpMJ8B.js",
+  "_highlight.js-tT4pTLLQ.js": {
+    "file": "assets/highlight.js-tT4pTLLQ.js",
     "name": "highlight.js"
   },
   "_katex-BTvXRZlT.js": {
@@ -11,24 +11,24 @@
     "file": "assets/markdown-it-CX5YUr_g.js",
     "name": "markdown-it"
   },
-  "_ogl-CwQ26FrP.js": {
-    "file": "assets/ogl-CwQ26FrP.js",
+  "_ogl-C63Tp3O1.js": {
+    "file": "assets/ogl-C63Tp3O1.js",
     "name": "ogl"
   },
-  "_three-DUzPAr7Q.js": {
-    "file": "assets/three-DUzPAr7Q.js",
+  "_three-Cbvz6gRA.js": {
+    "file": "assets/three-Cbvz6gRA.js",
     "name": "three"
   },
   "front-end/entries/chatbot.tsx": {
-    "file": "dist/js/chatbot-96qe-jKo.js",
+    "file": "dist/js/chatbot-Cq3OLWR2.js",
     "name": "dist/js/chatbot",
     "src": "front-end/entries/chatbot.tsx",
     "isEntry": true,
     "imports": [
-      "_highlight.js-FWXpMJ8B.js",
+      "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-CX5YUr_g.js",
       "_katex-BTvXRZlT.js",
-      "_ogl-CwQ26FrP.js",
+      "_ogl-C63Tp3O1.js",
       "front-end/entries/styles-css.js"
     ],
     "dynamicImports": [
@@ -39,86 +39,86 @@
       "local/optional.js"
     ],
     "css": [
-      "chatbot-CHYWotTq.css"
+      "chatbot-D3MNriw7.css"
     ]
   },
   "front-end/entries/styles-css.js": {
-    "file": "dist/css/styles-ByHxey3y.js",
+    "file": "dist/css/styles-Bq-K-3lN.js",
     "name": "dist/css/styles",
     "src": "front-end/entries/styles-css.js",
     "isEntry": true,
     "css": [
-      "styles-Cg831DyK.css"
+      "styles-DzIQMJz3.css"
     ]
   },
   "front-end/react/components/CursorLines.tsx": {
-    "file": "assets/CursorLines-B-RHDA4R.js",
+    "file": "assets/CursorLines-ClBViX51.js",
     "name": "CursorLines",
     "src": "front-end/react/components/CursorLines.tsx",
     "isDynamicEntry": true,
     "imports": [
       "front-end/entries/chatbot.tsx",
-      "_highlight.js-FWXpMJ8B.js",
+      "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-CX5YUr_g.js",
       "_katex-BTvXRZlT.js",
-      "_ogl-CwQ26FrP.js",
+      "_ogl-C63Tp3O1.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "front-end/react/components/GpuOrb.tsx": {
-    "file": "assets/GpuOrb-BRm0oIfr.js",
+    "file": "assets/GpuOrb-9RDjp00X.js",
     "name": "GpuOrb",
     "src": "front-end/react/components/GpuOrb.tsx",
     "isDynamicEntry": true,
     "imports": [
       "front-end/entries/chatbot.tsx",
-      "_three-DUzPAr7Q.js",
-      "_highlight.js-FWXpMJ8B.js",
+      "_three-Cbvz6gRA.js",
+      "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-CX5YUr_g.js",
       "_katex-BTvXRZlT.js",
-      "_ogl-CwQ26FrP.js",
+      "_ogl-C63Tp3O1.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "front-end/react/components/NexusViz.tsx": {
-    "file": "assets/NexusViz-CRj5U62I.js",
+    "file": "assets/NexusViz-DNRIiRqN.js",
     "name": "NexusViz",
     "src": "front-end/react/components/NexusViz.tsx",
     "isDynamicEntry": true,
     "imports": [
       "front-end/entries/chatbot.tsx",
-      "_highlight.js-FWXpMJ8B.js",
+      "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-CX5YUr_g.js",
       "_katex-BTvXRZlT.js",
-      "_ogl-CwQ26FrP.js",
+      "_ogl-C63Tp3O1.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "front-end/react/components/Starfield.tsx": {
-    "file": "assets/Starfield-DHZi4euX.js",
+    "file": "assets/Starfield-C6b0YNeq.js",
     "name": "Starfield",
     "src": "front-end/react/components/Starfield.tsx",
     "isDynamicEntry": true,
     "imports": [
       "front-end/entries/chatbot.tsx",
-      "_highlight.js-FWXpMJ8B.js",
+      "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-CX5YUr_g.js",
       "_katex-BTvXRZlT.js",
-      "_ogl-CwQ26FrP.js",
+      "_ogl-C63Tp3O1.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "local/optional.js": {
-    "file": "assets/optional-CFHd4sy9.js",
+    "file": "assets/optional-i7MeFKr6.js",
     "name": "optional",
     "src": "local/optional.js",
     "isDynamicEntry": true,
     "imports": [
       "front-end/entries/chatbot.tsx",
-      "_highlight.js-FWXpMJ8B.js",
+      "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-CX5YUr_g.js",
       "_katex-BTvXRZlT.js",
-      "_ogl-CwQ26FrP.js",
+      "_ogl-C63Tp3O1.js",
       "front-end/entries/styles-css.js"
     ]
   }
