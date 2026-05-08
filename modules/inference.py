@@ -212,7 +212,7 @@ class Inference:
             if llama_cpp is None:
                 raise ImportError(
                     "The 'llama-cpp-python' package is required for GGUF models. "
-                    "Please install it with: pip install llama-cpp-python"
+                    "Please install it with: uv pip install llama-cpp-python"
                 )
 
             # For GGUF models, determine if model_path is a file or directory

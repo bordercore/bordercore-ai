@@ -21,7 +21,6 @@ dependencies = [
     "numpy",
     "oauth2client",
     "openai",
-    "pip>=26.0.1",
     "pypdf",
     "pysbd",
     "python-dateutil",
