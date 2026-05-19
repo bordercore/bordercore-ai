@@ -18,6 +18,7 @@ import AuroraBackground from "./components/AuroraBackground";
 // doesn't pay for them (notably three.js via GpuOrb, ~170 kB gzipped).
 const GpuOrb = lazy(() => import("./components/GpuOrb"));
 const NexusViz = lazy(() => import("./components/NexusViz"));
+const WaveformViz = lazy(() => import("./components/WaveformViz"));
 const CursorLines = lazy(() => import("./components/CursorLines"));
 const Starfield = lazy(() => import("./components/Starfield"));
 import Options from "./components/Options";
@@ -799,6 +800,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               <Suspense fallback={null}>
                 {visualization === "gpuOrb" && <GpuOrb active={isGenerating} size={140} />}
                 {visualization === "nexus" && <NexusViz active={isGenerating} size={140} />}
+                {visualization === "waveform" && <WaveformViz active={isGenerating} size={140} />}
               </Suspense>
               {visualization === "thinkingIcon" && (
                 <ThinkingIcon active={isGenerating} size={140} />

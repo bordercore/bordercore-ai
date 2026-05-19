@@ -23,7 +23,17 @@ export interface Switches {
   enableThinking: boolean;
 }
 
-export type VisualizationType = "gpuOrb" | "thinkingIcon" | "nexus";
+export type VisualizationType = "gpuOrb" | "thinkingIcon" | "nexus" | "waveform";
+
+const VISUALIZATIONS: VisualizationType[] = ["gpuOrb", "thinkingIcon", "nexus", "waveform"];
+
+function loadVisualization(fallback: VisualizationType): VisualizationType {
+  if (typeof window === "undefined") return fallback;
+  const saved = window.localStorage.getItem("visualization");
+  return VISUALIZATIONS.includes(saved as VisualizationType)
+    ? (saved as VisualizationType)
+    : fallback;
+}
 
 export type WaitingAnimation =
   | "spinner"
@@ -170,8 +180,8 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
     wolframAlpha: false,
     enableThinking: session.enable_thinking !== undefined ? session.enable_thinking : false,
   });
-  const [visualization, setVisualization] = useState<VisualizationType>(
-    session.visualization || "gpuOrb"
+  const [visualization, setVisualization] = useState<VisualizationType>(() =>
+    loadVisualization(session.visualization || "gpuOrb")
   );
   const [temperature, setTemperature] = useState(session.temperature || 0.7);
   const [audioSpeed, setAudioSpeed] = useState(session.audio_speed || 1);
@@ -230,6 +240,9 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   useEffect(() => {
     window.localStorage.setItem("waitingAnimation", waitingAnimation);
   }, [waitingAnimation]);
+  useEffect(() => {
+    window.localStorage.setItem("visualization", visualization);
+  }, [visualization]);
   useEffect(() => {
     window.localStorage.setItem("ttsVoice", ttsVoice);
   }, [ttsVoice]);

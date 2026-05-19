@@ -688,6 +688,14 @@ body {
   justify-content: center;
 }
 
+.waveform-viz {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 10px rgb(168 85 247 / 35%))
+    drop-shadow(0 0 6px rgb(0 234 255 / 25%));
+}
+
 .nexus-brackets {
   opacity: 0.35;
 }

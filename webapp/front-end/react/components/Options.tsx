@@ -23,71 +23,12 @@ const WAITING_ANIMATION_OPTIONS: { value: WaitingAnimation; label: string }[] = 
   { value: "radarSweep", label: "Radar Sweep" },
 ];
 
-const VISUALIZATION_OPTIONS: { value: VisualizationType; label: string; icon: React.ReactNode }[] =
-  [
-    {
-      value: "gpuOrb",
-      label: "GPU Orb",
-      icon: (
-        <svg viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
-          <circle cx="12" cy="12" r="4" fill="currentColor" />
-        </svg>
-      ),
-    },
-    {
-      value: "thinkingIcon",
-      label: "Thinking",
-      icon: (
-        <svg viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" />
-          <circle cx="12" cy="12" r="4" fill="currentColor" />
-          <line x1="12" y1="2" x2="12" y2="6" stroke="currentColor" strokeWidth="1.5" />
-          <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" strokeWidth="1.5" />
-          <line x1="2" y1="12" x2="6" y2="12" stroke="currentColor" strokeWidth="1.5" />
-          <line x1="18" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
-      ),
-    },
-    {
-      value: "nexus",
-      label: "Nexus",
-      icon: (
-        <svg viewBox="0 0 24 24">
-          <ellipse
-            cx="12"
-            cy="12"
-            rx="10"
-            ry="4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          />
-          <ellipse
-            cx="12"
-            cy="12"
-            rx="10"
-            ry="4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            transform="rotate(60, 12, 12)"
-          />
-          <ellipse
-            cx="12"
-            cy="12"
-            rx="10"
-            ry="4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            transform="rotate(-60, 12, 12)"
-          />
-          <circle cx="12" cy="12" r="2" fill="currentColor" />
-        </svg>
-      ),
-    },
-  ];
+const VISUALIZATION_OPTIONS: { value: VisualizationType; label: string }[] = [
+  { value: "gpuOrb", label: "GPU Orb" },
+  { value: "thinkingIcon", label: "Thinking" },
+  { value: "nexus", label: "Nexus" },
+  { value: "waveform", label: "Waveform" },
+];
 
 export default function Options({
   switches,
@@ -170,23 +111,18 @@ export default function Options({
         <div className="option-group-title">Display</div>
         <div className="visualization-selector">
           <div className="toggle-label">Visualization</div>
-          <div className="segmented-control" role="radiogroup" aria-label="Visualization style">
+          <select
+            className="waiting-animation-select"
+            value={visualization}
+            onChange={e => onVisualizationChange(e.target.value as VisualizationType)}
+            aria-label="Visualization style"
+          >
             {VISUALIZATION_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                role="radio"
-                className={`segmented-option${visualization === opt.value ? " is-active" : ""}`}
-                onClick={() => onVisualizationChange(opt.value)}
-                aria-checked={visualization === opt.value}
-                type="button"
-              >
-                <span className="toggle-badge" aria-hidden="true">
-                  {opt.icon}
-                </span>
-                <span>{opt.label}</span>
-              </button>
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
             ))}
-          </div>
+          </select>
         </div>
         <div className="visualization-selector">
           <div className="toggle-label">Waiting Animation</div>
