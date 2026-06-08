@@ -17,7 +17,10 @@ set -euo pipefail
 
 REMOTE=${CERT_REMOTE:-ec2}                             # ssh alias for the cert host
 LIVE=/etc/letsencrypt/live/ai.bordercore.com           # certbot lineage on the remote
-SERVICE=${CERT_SERVICE:-bordercoreai-backend.service}  # --user unit serving :5010
+# Both the Flask backend (:5010) and the Vite frontend (:5180) read this cert
+# and load it at startup, so both must be restarted for a renewal to take hold.
+SERVICES=${CERT_SERVICES:-"bordercoreai-backend.service bordercoreai-frontend.service"}
+VERIFY_PORTS=${CERT_VERIFY_PORTS:-"5010 5180"}
 
 # Cert dir is resolved relative to this script so the same file works on every
 # checkout regardless of username or clone path.
@@ -66,27 +69,39 @@ install -m 644 "$TMP/crt" "$DEST/server.crt"
 install -m 600 "$TMP/key" "$DEST/server.key"
 echo "Installed new cert (backup of previous in $DEST/old/, suffix $ts)."
 
-# Only restart where the dashboard service actually exists (i.e. the server
-# host). On the authoritative checkout there is nothing to restart.
-if ! systemctl --user cat "$SERVICE" >/dev/null 2>&1; then
-    echo "No $SERVICE on this host — cert staged only (no restart)."
+# Restart every dashboard service that exists on this host. On the authoritative
+# checkout none exist, so the cert is simply staged for the next sync.
+restarted=0
+for svc in $SERVICES; do
+    if systemctl --user cat "$svc" >/dev/null 2>&1; then
+        echo "Restarting $svc ..."
+        systemctl --user restart "$svc"
+        restarted=1
+    fi
+done
+
+if [ "$restarted" -eq 0 ]; then
+    echo "No dashboard services on this host — cert staged only (no restart)."
     exit 0
 fi
 
-echo "Restarting $SERVICE ..."
-systemctl --user restart "$SERVICE"
-
-# Wait for the listener to come back, then confirm what's served on the wire.
-for _ in $(seq 1 20); do
-    ss -tln 2>/dev/null | grep -q :5010 && break
-    sleep 1
+# Confirm each port now serves the new cert on the wire.
+rc=0
+for port in $VERIFY_PORTS; do
+    for _ in $(seq 1 20); do
+        ss -tln 2>/dev/null | grep -q ":$port" && break
+        sleep 1
+    done
+    served=$(echo | openssl s_client -connect 127.0.0.1:"$port" -servername ai.bordercore.com 2>/dev/null \
+             | openssl x509 -noout -fingerprint -sha256 2>/dev/null || true)
+    if [ "$served" = "$new" ]; then
+        echo "OK: :$port now serving the new cert."
+    else
+        echo "WARNING: :$port is not serving the new cert. Check: systemctl --user status $SERVICES" >&2
+        rc=1
+    fi
 done
-served=$(echo | openssl s_client -connect 127.0.0.1:5010 -servername ai.bordercore.com 2>/dev/null \
-         | openssl x509 -noout -fingerprint -sha256 2>/dev/null || true)
-if [ "$served" = "$new" ]; then
-    exp=$(openssl x509 -in "$DEST/server.crt" -noout -enddate | cut -d= -f2)
-    echo "OK: :5010 now serving the new cert (expires ${exp})."
-else
-    echo "WARNING: :5010 is not yet serving the new cert. Check: systemctl --user status $SERVICE" >&2
-    exit 1
-fi
+
+exp=$(openssl x509 -in "$DEST/server.crt" -noout -enddate | cut -d= -f2)
+[ "$rc" -eq 0 ] && echo "All dashboard ports serving cert valid until ${exp}."
+exit "$rc"
