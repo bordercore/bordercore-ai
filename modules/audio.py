@@ -34,7 +34,7 @@ import argparse
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, TypedDict
+from typing import Any, Dict, List, Tuple, TypedDict, cast
 
 import torch
 import yt_dlp
@@ -177,7 +177,9 @@ class Audio:
         }
 
         try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # yt-dlp types ``params`` as a private TypedDict; our plain options
+            # dict is structurally compatible but not assignable to it.
+            with yt_dlp.YoutubeDL(cast(Any, ydl_opts)) as ydl:
                 info_dict = ydl.extract_info(url, download=True)
                 audio_file = ydl.prepare_filename(info_dict)
 
