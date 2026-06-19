@@ -111,6 +111,8 @@ interface ChatStoreContextType {
   setPanelOpacity: (n: number) => void;
   starfieldEnabled: boolean;
   setStarfieldEnabled: (enabled: boolean) => void;
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean) => void;
   waitingAnimation: WaitingAnimation;
   setWaitingAnimation: (v: WaitingAnimation) => void;
   prompt: string;
@@ -217,7 +219,15 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       ? window.localStorage.getItem("starfieldEnabled") !== "false"
       : true
   );
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() =>
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("sidebarCollapsed") === "true"
+      : false
+  );
   const [waitingAnimation, setWaitingAnimation] = useState<WaitingAnimation>(loadWaitingAnimation);
+  useEffect(() => {
+    window.localStorage.setItem("sidebarCollapsed", String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
   useEffect(() => {
     window.localStorage.setItem("cursorEffect", String(cursorEffect));
   }, [cursorEffect]);
@@ -332,6 +342,8 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       setPanelOpacity,
       starfieldEnabled,
       setStarfieldEnabled,
+      sidebarCollapsed,
+      setSidebarCollapsed,
       waitingAnimation,
       setWaitingAnimation,
       prompt,
@@ -394,6 +406,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       auroraEnabled,
       panelOpacity,
       starfieldEnabled,
+      sidebarCollapsed,
       waitingAnimation,
       prompt,
       error,

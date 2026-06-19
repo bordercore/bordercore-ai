@@ -181,6 +181,21 @@ body {
   flex: 1;
   gap: 0.75rem;
   grid-template-columns: 1fr 340px;
+  transition:
+    grid-template-columns 0.3s ease,
+    gap 0.3s ease;
+}
+
+// When the sidebar is collapsed, the right grid track shrinks to zero so the
+// chat panel widens to fill the gap. The sidebar fades out as it closes.
+.chatbot-container.sidebar-collapsed {
+  gap: 0;
+  grid-template-columns: 1fr 0;
+}
+
+.chatbot-container.sidebar-collapsed .sidebar-panel {
+  opacity: 0;
+  pointer-events: none;
 }
 
 // ─── Panels ──────────────────────────────────────────────────
@@ -224,6 +239,36 @@ body {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.chat-panel-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sidebar-toggle {
+  display: flex;
+  width: 1.75rem;
+  height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border-panel);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+
+  &:hover {
+    border-color: var(--text-secondary);
+    background: rgb(255 255 255 / 6%);
+    color: var(--text-primary);
+  }
 }
 
 // ─── Message Container ───────────────────────────────────────
@@ -476,6 +521,7 @@ body {
     rgb(6 9 24 / 100%) 100%
   );
   overflow-y: auto;
+  transition: opacity 0.3s ease;
 }
 
 .sidebar-section {

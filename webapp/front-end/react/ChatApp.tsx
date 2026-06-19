@@ -1,5 +1,7 @@
 import React, { useEffect, useCallback, useRef, useState, Suspense, lazy } from "react";
 import axios from "axios";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faChevronLeft, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import Modal from "./components/Modal";
 
 import { useChatStore, Switches } from "./stores/ChatStoreContext";
@@ -76,6 +78,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     setPanelOpacity,
     starfieldEnabled,
     setStarfieldEnabled,
+    sidebarCollapsed,
+    setSidebarCollapsed,
     waitingAnimation,
     setWaitingAnimation,
     prompt,
@@ -715,7 +719,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       </header>
 
       {/* ─── Main Two-Panel Layout ─── */}
-      <div className="chatbot-container">
+      <div className={`chatbot-container${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
         {/* Left Panel — Chat */}
         <div className="panel-card chat-panel">
           <div className="chat-panel-header">
@@ -723,9 +727,21 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               <span className="status-dot online"></span>
               Conversation
             </span>
-            <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-              {model.name || "No model loaded"}
-            </span>
+            <div className="chat-panel-header-right">
+              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                {model.name || "No model loaded"}
+              </span>
+              <button
+                type="button"
+                className="sidebar-toggle"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                aria-label={sidebarCollapsed ? "Show controls panel" : "Hide controls panel"}
+                aria-expanded={!sidebarCollapsed}
+                title={sidebarCollapsed ? "Show controls panel" : "Hide controls panel"}
+              >
+                <FontAwesomeIcon icon={sidebarCollapsed ? faChevronLeft : faChevronRight} />
+              </button>
+            </div>
           </div>
 
           <div
