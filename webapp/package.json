@@ -37,7 +37,7 @@
     "animate.css": "^4.1.1",
     "audiomotion-analyzer": "^4.3.0",
     "axios": "^1.15.1",
-    "dompurify": "^3.4.1",
+    "dompurify": "^3.4.11",
     "highlight.js": "^11.9.0",
     "katex": "^0.16.25",
     "markdown-it": "^14.1.0",

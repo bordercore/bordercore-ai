@@ -7,8 +7,8 @@
     "file": "assets/katex-BTvXRZlT.js",
     "name": "katex"
   },
-  "_markdown-it-CX5YUr_g.js": {
-    "file": "assets/markdown-it-CX5YUr_g.js",
+  "_markdown-it-BG4auIie.js": {
+    "file": "assets/markdown-it-BG4auIie.js",
     "name": "markdown-it"
   },
   "_ogl-C63Tp3O1.js": {
@@ -20,13 +20,13 @@
     "name": "three"
   },
   "front-end/entries/chatbot.tsx": {
-    "file": "dist/js/chatbot-DRXc7xAX.js",
+    "file": "dist/js/chatbot-B0XhDL7g.js",
     "name": "dist/js/chatbot",
     "src": "front-end/entries/chatbot.tsx",
     "isEntry": true,
     "imports": [
       "_highlight.js-tT4pTLLQ.js",
-      "_markdown-it-CX5YUr_g.js",
+      "_markdown-it-BG4auIie.js",
       "_katex-BTvXRZlT.js",
       "_ogl-C63Tp3O1.js",
       "front-end/entries/styles-css.js"
@@ -44,30 +44,30 @@
     ]
   },
   "front-end/entries/styles-css.js": {
-    "file": "dist/css/styles-MEetz-U_.js",
+    "file": "dist/css/styles-P7LHsOZ_.js",
     "name": "dist/css/styles",
     "src": "front-end/entries/styles-css.js",
     "isEntry": true,
     "css": [
-      "styles-CooJ0Xen.css"
+      "styles-BSL9Mw7U.css"
     ]
   },
   "front-end/react/components/CursorLines.tsx": {
-    "file": "assets/CursorLines-DHf3emU_.js",
+    "file": "assets/CursorLines-cx850yTl.js",
     "name": "CursorLines",
     "src": "front-end/react/components/CursorLines.tsx",
     "isDynamicEntry": true,
     "imports": [
       "front-end/entries/chatbot.tsx",
       "_highlight.js-tT4pTLLQ.js",
-      "_markdown-it-CX5YUr_g.js",
+      "_markdown-it-BG4auIie.js",
       "_katex-BTvXRZlT.js",
       "_ogl-C63Tp3O1.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "front-end/react/components/GpuOrb.tsx": {
-    "file": "assets/GpuOrb-8LC07OkD.js",
+    "file": "assets/GpuOrb-BFbTP8tf.js",
     "name": "GpuOrb",
     "src": "front-end/react/components/GpuOrb.tsx",
     "isDynamicEntry": true,
@@ -75,63 +75,63 @@
       "front-end/entries/chatbot.tsx",
       "_three-Cbvz6gRA.js",
       "_highlight.js-tT4pTLLQ.js",
-      "_markdown-it-CX5YUr_g.js",
+      "_markdown-it-BG4auIie.js",
       "_katex-BTvXRZlT.js",
       "_ogl-C63Tp3O1.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "front-end/react/components/NexusViz.tsx": {
-    "file": "assets/NexusViz-NxHs5JN4.js",
+    "file": "assets/NexusViz-CBMinGbM.js",
     "name": "NexusViz",
     "src": "front-end/react/components/NexusViz.tsx",
     "isDynamicEntry": true,
     "imports": [
       "front-end/entries/chatbot.tsx",
       "_highlight.js-tT4pTLLQ.js",
-      "_markdown-it-CX5YUr_g.js",
+      "_markdown-it-BG4auIie.js",
       "_katex-BTvXRZlT.js",
       "_ogl-C63Tp3O1.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "front-end/react/components/Starfield.tsx": {
-    "file": "assets/Starfield-Ch76JzD_.js",
+    "file": "assets/Starfield-Bilm0bXR.js",
     "name": "Starfield",
     "src": "front-end/react/components/Starfield.tsx",
     "isDynamicEntry": true,
     "imports": [
       "front-end/entries/chatbot.tsx",
       "_highlight.js-tT4pTLLQ.js",
-      "_markdown-it-CX5YUr_g.js",
+      "_markdown-it-BG4auIie.js",
       "_katex-BTvXRZlT.js",
       "_ogl-C63Tp3O1.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "front-end/react/components/WaveformViz.tsx": {
-    "file": "assets/WaveformViz-UnwDyBdm.js",
+    "file": "assets/WaveformViz-B-ACxDGZ.js",
     "name": "WaveformViz",
     "src": "front-end/react/components/WaveformViz.tsx",
     "isDynamicEntry": true,
     "imports": [
       "front-end/entries/chatbot.tsx",
       "_highlight.js-tT4pTLLQ.js",
-      "_markdown-it-CX5YUr_g.js",
+      "_markdown-it-BG4auIie.js",
       "_katex-BTvXRZlT.js",
       "_ogl-C63Tp3O1.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "local/optional.js": {
-    "file": "assets/optional-DewcDPFD.js",
+    "file": "assets/optional-BJmP5-8V.js",
     "name": "optional",
     "src": "local/optional.js",
     "isDynamicEntry": true,
     "imports": [
       "front-end/entries/chatbot.tsx",
       "_highlight.js-tT4pTLLQ.js",
-      "_markdown-it-CX5YUr_g.js",
+      "_markdown-it-BG4auIie.js",
       "_katex-BTvXRZlT.js",
       "_ogl-C63Tp3O1.js",
       "front-end/entries/styles-css.js"
