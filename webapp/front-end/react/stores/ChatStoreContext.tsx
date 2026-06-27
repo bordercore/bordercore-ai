@@ -23,9 +23,15 @@ export interface Switches {
   enableThinking: boolean;
 }
 
-export type VisualizationType = "gpuOrb" | "thinkingIcon" | "nexus" | "waveform";
+export type VisualizationType = "gpuOrb" | "thinkingIcon" | "nexus" | "waveform" | "sentinelOrb";
 
-const VISUALIZATIONS: VisualizationType[] = ["gpuOrb", "thinkingIcon", "nexus", "waveform"];
+const VISUALIZATIONS: VisualizationType[] = [
+  "gpuOrb",
+  "thinkingIcon",
+  "nexus",
+  "waveform",
+  "sentinelOrb",
+];
 
 function loadVisualization(fallback: VisualizationType): VisualizationType {
   if (typeof window === "undefined") return fallback;

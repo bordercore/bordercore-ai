@@ -533,6 +533,15 @@ body {
   }
 }
 
+// Visualization section: let the orb bleed to the panel edges.
+.sidebar-section--viz {
+  padding: 0;
+
+  .notice {
+    padding: 0 1rem 0.75rem;
+  }
+}
+
 .sidebar-section-title {
   margin-bottom: 0.75rem;
   color: var(--text-muted);
@@ -645,7 +654,6 @@ body {
   display: flex;
   min-height: 160px;
   justify-content: center;
-  padding: 1rem 0;
 }
 
 // ─── Status / Notice ─────────────────────────────────────────

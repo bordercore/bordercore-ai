@@ -14,6 +14,7 @@ import ChatInput from "./components/ChatInput";
 import MessageList from "./components/MessageList";
 import ModelSelect from "./components/ModelSelect";
 import ThinkingIcon from "./components/ThinkingIcon";
+import SentinelOrb from "./components/SentinelOrb";
 import AuroraBackground from "./components/AuroraBackground";
 
 // Decorative / opt-in visualizations are code-split so initial load
@@ -811,7 +812,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
             />
           </div>
 
-          <div className="sidebar-section">
+          <div className="sidebar-section sidebar-section--viz">
             <div className="thinking-area">
               <Suspense fallback={null}>
                 {visualization === "gpuOrb" && <GpuOrb active={isGenerating} size={140} />}
@@ -820,6 +821,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               </Suspense>
               {visualization === "thinkingIcon" && (
                 <ThinkingIcon active={isGenerating} size={140} />
+              )}
+              {visualization === "sentinelOrb" && (
+                <SentinelOrb working={isGenerating} size={320} tendrils={5} quality="high" />
               )}
             </div>
             {notice && (

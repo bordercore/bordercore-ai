@@ -28,6 +28,7 @@ const VISUALIZATION_OPTIONS: { value: VisualizationType; label: string }[] = [
   { value: "thinkingIcon", label: "Thinking" },
   { value: "nexus", label: "Nexus" },
   { value: "waveform", label: "Waveform" },
+  { value: "sentinelOrb", label: "Sentinel Orb" },
 ];
 
 export default function Options({
