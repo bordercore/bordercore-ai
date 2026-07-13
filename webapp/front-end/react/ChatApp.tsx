@@ -294,7 +294,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   function handleChangeModel(modelName: string) {
     const modelType = getModelAttribute(modelName, "type");
-    if (modelType !== "api") {
+    const requiresModelLoad =
+      modelType !== "api" || Boolean(getModelAttribute(modelName, "vllm_profile"));
+    if (requiresModelLoad) {
       setShowProcessingModal(true);
     }
     doPost(
@@ -302,13 +304,13 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       { model: modelName },
       () => {
         getModelInfo();
-        if (modelType !== "api") {
+        if (requiresModelLoad) {
           setTimeout(() => setShowProcessingModal(false), 500);
         }
       },
       "",
       () => {
-        if (modelType !== "api") {
+        if (requiresModelLoad) {
           setTimeout(() => setShowProcessingModal(false), 500);
         }
       }

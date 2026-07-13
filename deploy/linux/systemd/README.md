@@ -94,8 +94,11 @@ Switching stops the current container first, which unloads its weights and KV
 cache from GPU memory. The command then selects the requested profile, starts
 the service, waits for the exact model ID on `/v1/models`, and runs a minimal
 completion. If the new model does not become healthy, it restores and starts
-the previous profile. Only select the matching vLLM model in Bordercore after a
-successful switch; both UI entries share the same single-model endpoint.
+the previous profile. Selecting either managed vLLM model in Bordercore invokes
+this same command through `/load`; the UI keeps its processing modal open until
+the switch succeeds or fails. The selected model is updated only after a
+successful health and completion check. Both UI entries share the same
+single-model endpoint, so only one is active at a time.
 
 Measured on deepvirtual on July 13, 2026, with Qwen3 TTS still active:
 

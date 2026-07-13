@@ -48,6 +48,7 @@ from modules.chatbot import CONTROL_VALUE, ChatBot
 from modules.model_manager import ModelManager
 from modules.music import MusicServiceError
 from modules.rag import RAG
+from modules.vllm_manager import switch_vllm_model
 
 # warnings.filterwarnings("ignore", message=".*The 'nopython' keyword.*")
 
@@ -512,7 +513,11 @@ def list_models() -> Response:
 @app.route("/load", methods=["POST"])
 def load() -> Response:
     """
-    Loads a model into memory if it is not an API-based model.
+    Selects an API model or loads a locally managed model.
+
+    API models with a ``vllm_profile`` attribute first switch the host vLLM
+    service and complete its health checks. Other API models remain simple
+    client-side selections.
 
     Args:
         None (expects form-data containing the model name under the "model" key).
@@ -522,22 +527,26 @@ def load() -> Response:
     """
     model_name: str = request.form["model"]
     model_type: str | None = ChatBot.get_model_attribute(model_name, "type")
+    vllm_profile: Any | None = ChatBot.get_model_attribute(model_name, "vllm_profile")
 
-    settings.model_name = model_name
-
-    if model_type == "api":
-        response_data: Dict[str, Any] = {"status": "OK"}
-    else:
-        try:
+    try:
+        message = ""
+        if model_type == "api":
+            if vllm_profile is not None:
+                if not isinstance(vllm_profile, str):
+                    raise RuntimeError(f"Invalid vLLM profile configured for {model_name}")
+                switch_output = switch_vllm_model(vllm_profile)
+                logger.info("vLLM model switch completed: %s", switch_output)
+                message = f"{model_name} is ready."
+        else:
             manager = app.config["model_manager"]
             manager.unload()
             manager.load(model_name)
-            status = "OK"
-            message = ""
-        except Exception as e:
-            status = "Error"
-            message = str(e)
-        response_data =  {"status": status, "message": message}
+        settings.model_name = model_name
+        response_data: Dict[str, Any] = {"status": "OK", "message": message}
+    except Exception as e:
+        logger.exception("Unable to load model %s", model_name)
+        response_data = {"status": "Error", "message": str(e)}
 
     return jsonify(response_data)
 
