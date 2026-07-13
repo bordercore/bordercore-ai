@@ -50,8 +50,8 @@ systemctl --user enable --now qwen3-tts
 
 The service runs one allow-listed checkpoint at a time on the loopback-only
 OpenAI-compatible endpoint `http://127.0.0.1:8001/v1`. The included profiles
-cover Qwen3 8B/14B, Qwen3.5 4B/9B, Qwen2.5 7B Instruct/Coder,
-Qwen2.5-VL 3B/7B, and Llama 3 Instruct; Qwen3 8B is the default. Profiles use
+cover Qwen3 8B/14B, Qwen3.5 4B/9B, Qwen3-VL 4B/8B, Qwen2.5 7B
+Instruct/Coder, and Llama 3 Instruct; Qwen3 8B is the default. Profiles use
 at most 55% of the RTX 3090's memory except Qwen3.5 9B AWQ, which needs 60% to
 leave usable KV cache after its mixed quantized and unquantized weights load.
 The Docker image is pinned by digest and currently contains vLLM 0.25.0 and
@@ -74,13 +74,13 @@ that boundary has a managed profile and has passed an appropriate smoke test:
 | Checkpoint | Disk size | Managed | Smoke test |
 |------------|-----------|---------|------------|
 | Llama 3 Instruct AWQ | 5.4 GB | Yes | Text passed |
-| Qwen2.5-VL 3B Instruct AWQ | 6.4 GB | Yes | Vision passed |
+| Qwen3-VL 8B Instruct AWQ | 7.1 GB | Yes | Text and vision passed |
+| Qwen3-VL 4B Instruct BF16 | 8.3 GB | Yes | Text and vision passed |
 | Qwen3.5 4B BF16 | 8.8 GB | Yes | Text and vision passed |
 | Qwen2.5 7B Instruct AWQ | 11 GB | Yes | Text passed |
 | Qwen2.5 Coder 7B Instruct AWQ | 11 GB | Yes | Code passed |
 | Qwen3 8B AWQ | 12 GB | Yes | Text passed |
 | Qwen3.5 9B AWQ | 12 GB | Yes | Text and vision passed at 60% VRAM cap |
-| Qwen2.5-VL 7B Instruct AWQ | 13 GB | Yes | Vision passed |
 | Qwen3 14B AWQ | 19 GB | Yes | Text passed |
 
 The remaining large checkpoints are deliberately outside the managed profile
@@ -166,7 +166,6 @@ transitions and inactive for the vision transition:
 |------------|--------------------|-----------|--------------|
 | 8B to 14B, first load | 153 seconds | 12,176 MiB | 0.105 seconds |
 | 14B to 8B, cached | 56 seconds | 13,484 MiB | 0.51 seconds through Bordercore |
-| 8B to Qwen2.5-VL 3B, cached | 74 seconds | 13,824 MiB | 1.50-second image request through Bordercore |
 
 The additional profiles were verified with Qwen3 TTS inactive:
 
@@ -175,14 +174,16 @@ The additional profiles were verified with Qwen3 TTS inactive:
 | Qwen3 8B to Llama 3 Instruct | 122 seconds | 12,632 MiB | 0.14 seconds |
 | Llama 3 to Qwen2.5 7B Instruct | 104 seconds | 12,620 MiB | 0.04 seconds |
 | Qwen2.5 7B Instruct to Coder | 104 seconds | 12,620 MiB | 0.14 seconds |
-| Qwen2.5 Coder to VL 7B | 152 seconds | 13,892 MiB | 1.60-second image request |
-| VL 7B to Qwen2.5 7B through Bordercore | 56 seconds | — | UI load and `/info` verified |
 | Qwen2.5 7B to default Qwen3 8B through Bordercore | 58 seconds | — | UI load and `/info` verified |
 | Qwen3 8B to Qwen3.5 4B BF16 | 189 seconds | 12,070 MiB | 0.24-second image request |
 | Qwen3.5 4B to Qwen3.5 9B AWQ trial and retry | 376 seconds | 13,120 MiB | 55% rejected; 60% passed in the same rollback window |
 | Qwen3 8B to Qwen3.5 4B through Bordercore | 219 seconds | — | UI load and `/info` verified |
 | Qwen3.5 4B to 9B AWQ through Bordercore | 241 seconds | — | UI load and `/info` verified |
 | Qwen3.5 9B AWQ to default Qwen3 8B through Bordercore | 98 seconds | — | UI load and `/info` verified |
+| Qwen3.6 27B to Qwen3-VL 4B, first load | 131 seconds | 14,115 MiB | 0.14-second text; 1.01-second vision |
+| Qwen3-VL 4B to 8B AWQ, first load | 142 seconds | 14,233 MiB | 0.10-second text; 1.09-second vision |
+| Qwen3-VL 8B to 4B through Bordercore | 138 seconds | 14,115 MiB | 1.72-second Bordercore vision request |
+| Qwen3-VL 4B to 8B through Bordercore | 150 seconds | 14,233 MiB | 1.19-second Bordercore vision request |
 
 Stopping either text model returned total GPU use to approximately 2,959 MiB
 before the replacement started, demonstrating that its GPU allocation was
@@ -191,12 +192,13 @@ use to 492 MiB.
 Each additional profile transition returned GPU use to approximately 490–495
 MiB before loading its replacement.
 
-The Qwen2.5-VL checkpoints store `model.visual` in their AWQ exclusion lists,
-while vLLM names the same modules `visual`. Their profiles supply an
-`--hf-overrides` value that corrects this prefix without modifying the shared
-checkpoints. The vision encoders remain unquantized and use FlashAttention; the
-language layers use AWQ with Marlin. Direct and Bordercore image tests correctly
-read the text from `logo.jpg` with both sizes.
+The Qwen3-VL 4B profile uses the official `Qwen/Qwen3-VL-4B-Instruct` BF16
+checkpoint. The 8B profile uses
+`cyankiwi/Qwen3-VL-8B-Instruct-AWQ-4bit`, a compressed-tensors 4-bit AWQ
+checkpoint whose metadata leaves its vision encoder unquantized. Both run at
+the standard 55% memory cap with an 8K context and two-sequence limit. Direct
+and Bordercore image tests correctly read the text from `logo.jpg` with both
+sizes.
 
 The Qwen3.5 profiles use their native unified vision-language architecture.
 The 4B BF16 and 9B AWQ profiles also correctly read `BORDERCORE AI` from
