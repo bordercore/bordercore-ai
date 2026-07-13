@@ -17,7 +17,7 @@ executed directly from the command line::
 
 How to improve performance:
 
-Use torch_dtype = 16 instead of leaving it set to the default of 32.
+Use a 16-bit dtype instead of leaving it set to the default of 32 bits.
 Use the distil-whisper models instead of the openai/whisper-* ones.
 Set the batch_size when creating the pipeline.
 
@@ -111,11 +111,11 @@ class Audio:
         start_time = time.time()
 
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+        dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
             self.model_name,
-            torch_dtype=torch_dtype,
+            dtype=dtype,
             low_cpu_mem_usage=True,
             use_safetensors=True,
             attn_implementation="eager",
@@ -129,7 +129,7 @@ class Audio:
             model=model,
             tokenizer=processor.tokenizer,
             feature_extractor=processor.feature_extractor,
-            torch_dtype=torch_dtype,
+            dtype=dtype,
             device=device,
             generate_kwargs={"max_new_tokens": 128}
         )

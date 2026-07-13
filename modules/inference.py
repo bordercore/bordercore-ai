@@ -185,13 +185,11 @@ class Inference:
         This method determines the type of model to load based on the configuration
         and model name, then initializes it using the Hugging Face `from_pretrained()`
         interface. It supports standard causal language models, Qwen2-VL vision models,
-        4-bit AWQ quantized models, and GGUF models.
+        and GGUF models. AWQ checkpoints are served externally by vLLM.
 
         Behavior:
           - For GGUF models: uses `AutoModelForCausalLM` with `gguf_file` parameter.
           - For Qwen2-VL models: uses `Qwen2_5_VLForConditionalGeneration`.
-          - For models containing 'awq' in their name: dynamically imports and loads
-            `AutoAWQForCausalLM` with quantization-specific arguments.
           - For all other models: uses `AutoModelForCausalLM`.
         """
         print(f"load_model() called for model_path: {self.model_path}", flush=True)
@@ -300,35 +298,9 @@ class Inference:
                     logger.error(f"Error loading GGUF model with llama-cpp-python: {e}")
                     raise RuntimeError(f"Failed to load GGUF model: {e}") from e
         elif self._is_vision_model():
-            if "awq" in self.model_name.lower():
-                # Fix modules_to_not_convert in the on-disk config.json.
-                # The model ships with short names like "visual" but transformers
-                # uses re.match (anchored at start), so the pattern must be the
-                # full module path prefix "model.visual" to match names like
-                # "model.visual.blocks.0.mlp.gate_proj".
-                self._fix_awq_modules_to_not_convert()
-
             self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
                 self.model_path, **model_config_args
             )
-        elif "awq" in self.model_name.lower():
-            # Dynamically import for AWQ models to avoid hard dependency
-            try:
-                from awq import AutoAWQForCausalLM
-            except ImportError as e:
-                raise ImportError(
-                    "The 'awq' package is required for this model but is not installed."
-                ) from e
-
-            awq_args = {
-                "fuse_layers": self.get_config_option("fuse_layers", True),
-                "safetensors": True,
-                "batch_size": 1,
-                "max_memory": {0: "8000MiB", "cpu": "99GiB"},
-            }
-            self.model = AutoAWQForCausalLM.from_quantized(
-                self.model_path, **awq_args, **model_config_args
-            ).model
         else:
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.model_path, **model_config_args
@@ -1173,48 +1145,6 @@ class Inference:
                   otherwise ``False``.
         """
         return self.get_config_option("qwen_vision", False)
-
-    def _fix_awq_modules_to_not_convert(self) -> None:
-        """
-        Patch the model's config.json so ``modules_to_not_convert`` uses full
-        module-path prefixes that transformers' ``re.match``-based filtering
-        can actually match.
-
-        Many AWQ vision models ship with short names like ``["visual"]`` but
-        the runtime module paths are ``model.visual.blocks.…``.  Because
-        ``re.match`` is anchored at the start of the string, ``"visual"`` never
-        matches ``"model.visual.…"`` and the visual layers are incorrectly
-        quantized — causing a crash when their dimensions aren't divisible by
-        the AWQ group size.
-
-        This method rewrites config.json in-place (idempotently) to prefix
-        entries with ``model.`` where needed, and ensures ``model.visual`` is
-        always present for vision models.
-        """
-        config_path = Path(self.model_path) / "config.json"
-        if not config_path.is_file():
-            return
-
-        with open(config_path, "r", encoding="utf-8") as f:
-            config = json.load(f)
-
-        quant_cfg = config.get("quantization_config")
-        if not quant_cfg:
-            return
-
-        modules = quant_cfg.get("modules_to_not_convert", [])
-        fixed = [f"model.{m}" if not m.startswith("model.") else m for m in modules]
-
-        # Ensure visual layers are always excluded for vision models
-        if not any("visual" in m for m in fixed):
-            fixed.append("model.visual")
-
-        if fixed != modules:
-            quant_cfg["modules_to_not_convert"] = fixed
-            with open(config_path, "w", encoding="utf-8") as f:
-                json.dump(config, f, indent=2, ensure_ascii=False)
-                f.write("\n")
-            logger.info("Patched AWQ config modules_to_not_convert: %s", fixed)
 
     def _get_model_config_from_file(self) -> Dict[str, Any]:
         """
