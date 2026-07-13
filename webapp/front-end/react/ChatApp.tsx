@@ -732,7 +732,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
             </span>
             <div className="chat-panel-header-right">
               <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                {model.name || "No model loaded"}
+                {model.display_name || model.name || "No model loaded"}
               </span>
               <button
                 type="button"
@@ -812,6 +812,11 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               getModelIcon={getModelIcon}
               onChange={handleChangeModel}
             />
+            {model.vllm_profile && (
+              <div style={{ marginTop: "0.35rem", fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                Active vLLM profile: {model.vllm_profile}
+              </div>
+            )}
           </div>
 
           <div className="sidebar-section sidebar-section--viz">

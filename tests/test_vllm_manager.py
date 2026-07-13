@@ -5,7 +5,36 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from modules.vllm_manager import VLLM_SWITCH_COMMAND, switch_vllm_model
+from modules.vllm_manager import (
+    VLLM_SWITCH_COMMAND,
+    get_active_vllm_model,
+    hide_managed_checkpoint_duplicates,
+    switch_vllm_model,
+)
+
+
+def test_get_active_vllm_model_returns_advertised_id() -> None:
+    """The running server's model ID is read from its OpenAI models endpoint."""
+    response = Mock()
+    response.json.return_value = {"data": [{"id": "Qwen3-8B-AWQ-vLLM"}]}
+
+    with patch("modules.vllm_manager.requests.get", return_value=response) as get:
+        model = get_active_vllm_model("http://127.0.0.1:8001/v1")
+
+    assert model == "Qwen3-8B-AWQ-vLLM"
+    get.assert_called_once_with("http://127.0.0.1:8001/v1/models", timeout=2)
+    response.raise_for_status.assert_called_once_with()
+
+
+def test_hide_managed_checkpoint_duplicates() -> None:
+    """Managed API entries replace their same-named local checkpoints."""
+    models = [
+        {"model": "Qwen3-8B-AWQ-vLLM", "vllm_profile": "Qwen3-8B-AWQ"},
+        {"model": "Qwen3-8B-AWQ"},
+        {"model": "unmanaged-local-model"},
+    ]
+
+    assert hide_managed_checkpoint_duplicates(models) == [models[0], models[2]]
 
 
 def test_switch_vllm_model_invokes_allowlisted_profile() -> None:

@@ -34,6 +34,7 @@ import openai
 
 import ffmpeg
 import numpy as np
+import requests
 import sounddevice  # Adding this eliminates an annoying warning
 from flask import (Flask, Request, Response, abort, jsonify, render_template,
                    request, session, stream_with_context)
@@ -48,7 +49,12 @@ from modules.chatbot import CONTROL_VALUE, ChatBot
 from modules.model_manager import ModelManager
 from modules.music import MusicServiceError
 from modules.rag import RAG
-from modules.vllm_manager import switch_vllm_model
+from modules.util import get_model_info
+from modules.vllm_manager import (
+    get_active_vllm_model,
+    hide_managed_checkpoint_duplicates,
+    switch_vllm_model,
+)
 
 # warnings.filterwarnings("ignore", message=".*The 'nopython' keyword.*")
 
@@ -503,8 +509,28 @@ def info() -> Response:
         A JSON response containing model details such as size, type, and other
         attributes.
     """
-    model_info = {"name": settings.model_name}
-    return jsonify(model_info)
+    configured_models = get_model_info()
+    current_name = settings.model_name
+    current_metadata = configured_models.get(current_name, {})
+
+    if current_metadata.get("vllm_profile"):
+        base_url = current_metadata.get("base_url")
+        if isinstance(base_url, str):
+            try:
+                active_name = get_active_vllm_model(base_url)
+                active_metadata = configured_models.get(active_name or "", {})
+                if active_name and active_metadata.get("vllm_profile"):
+                    current_name = active_name
+                    current_metadata = active_metadata
+                    settings.model_name = active_name
+            except (requests.RequestException, ValueError) as e:
+                logger.warning("Unable to reconcile active vLLM model: %s", e)
+
+    return jsonify({
+        "name": current_name,
+        "display_name": current_metadata.get("name", current_name),
+        "vllm_profile": current_metadata.get("vllm_profile"),
+    })
 
 
 @app.route("/list")
@@ -515,7 +541,7 @@ def list_models() -> Response:
     Returns:
         A JSON response with a list of model names.
     """
-    model_list = ChatBot.get_model_list()
+    model_list = hide_managed_checkpoint_duplicates(ChatBot.get_model_list())
     return jsonify(model_list)
 
 

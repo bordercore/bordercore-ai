@@ -1,6 +1,6 @@
 # GPU service systemd units
 
-User-scope units for the TTS engines and the deepvirtual vLLM trial:
+User-scope units for the TTS engines and the deepvirtual vLLM service:
 
 | Unit                        | Engine     | Host         | Runtime                                          |
 |-----------------------------|------------|--------------|--------------------------------------------------|
@@ -45,9 +45,9 @@ systemctl --user daemon-reload
 systemctl --user enable --now qwen3-tts
 ```
 
-### deepvirtual vLLM trial
+### deepvirtual vLLM service
 
-The trial serves one allow-listed AWQ checkpoint at a time on the loopback-only
+The service runs one allow-listed AWQ checkpoint at a time on the loopback-only
 OpenAI-compatible endpoint `http://127.0.0.1:8001/v1`. The included profiles
 cover `Qwen3-8B-AWQ`, `Qwen3-14B-AWQ`, and
 `Qwen2.5-VL-3B-Instruct-AWQ`; the 8B profile is the initial default. All use at
@@ -121,7 +121,7 @@ vision encoder remains unquantized and uses FlashAttention; the language layers
 use AWQ with Marlin. Direct and Bordercore image tests both correctly read the
 text from `logo.jpg`.
 
-To stop the trial and remove its container without affecting the model files or
+To stop vLLM and remove its container without affecting the model files or
 other GPU services:
 
 ```sh
@@ -157,7 +157,10 @@ systemctl --user stop qwen3-tts
   backstop — if somehow both tried to start, the second would fail on bind.
 - The vLLM unit has no `Conflicts=` relationship with the TTS units. Its 55%
   GPU-memory ceiling is intentionally conservative, but concurrent peak loads
-  should still be monitored during the trial.
+  should still be monitored.
 - Add new checkpoints by creating another reviewed profile under
   `vllm-profiles/`. The switch command does not accept arbitrary model paths or
   models that are absent from `~/models`.
+- Managed vLLM entries are canonical in Bordercore: matching local checkpoint
+  entries are hidden, Qwen3 8B is the default, and `/info` reconciles managed
+  UI state with the model ID currently advertised by vLLM.

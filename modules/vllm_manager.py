@@ -3,6 +3,9 @@
 import re
 import subprocess
 from pathlib import Path
+from typing import Any
+
+import requests
 
 
 VLLM_SWITCH_COMMAND = (
@@ -10,6 +13,34 @@ VLLM_SWITCH_COMMAND = (
 )
 VLLM_SWITCH_TIMEOUT_SECONDS = 900
 VLLM_PROFILE_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
+VLLM_STATUS_TIMEOUT_SECONDS = 2
+
+
+def get_active_vllm_model(base_url: str) -> str | None:
+    """Return the model ID currently advertised by a vLLM endpoint."""
+    response = requests.get(
+        f"{base_url.rstrip('/')}/models",
+        timeout=VLLM_STATUS_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    if not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
+        return None
+
+    for item in payload["data"]:
+        if isinstance(item, dict) and isinstance(item.get("id"), str):
+            return item["id"]
+    return None
+
+
+def hide_managed_checkpoint_duplicates(models: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Hide local checkpoints represented by canonical managed vLLM entries."""
+    managed_profiles = {
+        model["vllm_profile"]
+        for model in models
+        if isinstance(model.get("vllm_profile"), str)
+    }
+    return [model for model in models if model.get("model") not in managed_profiles]
 
 
 def switch_vllm_model(profile: str) -> str:

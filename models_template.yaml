@@ -1,7 +1,7 @@
 meta-llama_Meta-Llama-3.1-8B-Instruct:
   name: Llama 3.1 8B Instruct
 Qwen3-8B-AWQ-vLLM:
-  name: Qwen3 8B AWQ (vLLM trial)
+  name: Qwen3 8B AWQ
   type: api
   vendor: openai
   base_url: http://127.0.0.1:8001/v1
@@ -9,7 +9,7 @@ Qwen3-8B-AWQ-vLLM:
   thinking: true
   vllm_profile: Qwen3-8B-AWQ
 Qwen3-14B-AWQ-vLLM:
-  name: Qwen3 14B AWQ (vLLM trial)
+  name: Qwen3 14B AWQ
   type: api
   vendor: openai
   base_url: http://127.0.0.1:8001/v1
@@ -17,7 +17,7 @@ Qwen3-14B-AWQ-vLLM:
   thinking: true
   vllm_profile: Qwen3-14B-AWQ
 Qwen2.5-VL-3B-Instruct-AWQ-vLLM:
-  name: Qwen2.5 VL 3B Instruct AWQ (vLLM trial)
+  name: Qwen2.5 VL 3B Instruct AWQ
   type: api
   vendor: openai
   base_url: http://127.0.0.1:8001/v1

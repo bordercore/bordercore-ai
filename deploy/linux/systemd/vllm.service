@@ -1,5 +1,5 @@
 [Unit]
-Description=vLLM AWQ inference trial
+Description=vLLM AWQ inference service
 After=network-online.target
 Wants=network-online.target
 
