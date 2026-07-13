@@ -8,13 +8,31 @@ Bordercore AI is a web-based AI chatbot and voice assistant supporting multiple 
 
 # Features
 
+## Inference engines and providers
+
+| Engine or provider | Use | Models and formats |
+|--------------------|-----|--------------------|
+| [vLLM](https://docs.vllm.ai/) | Primary local GPU inference server | Managed Hugging Face/Safetensors checkpoints, including AWQ text and Qwen2.5-VL models |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) | In-process local inference through `llama-cpp-python` | GGUF models |
+| [Transformers](https://huggingface.co/docs/transformers/) | In-process non-AWQ model loading and speech recognition | Hugging Face text, vision, and Whisper-compatible checkpoints |
+| OpenAI-compatible APIs | Hosted or local API inference | OpenAI and compatible endpoints, including vLLM and API proxies |
+| Anthropic API | Hosted Claude inference | Anthropic models |
+
+AWQ checkpoints are served exclusively through vLLM; the application no longer
+loads them in-process with AutoAWQ. Managed vLLM profiles switch one model at a
+time and expose a loopback OpenAI-compatible endpoint. See
+[`deploy/linux/systemd/README.md`](deploy/linux/systemd/README.md) for the
+current profile inventory and deepvirtual service setup.
+
 ## Text to Speech (TTS)
 
 Three TTS engines are supported: [Kokoro](https://kokorottsai.com/), [Chatterbox](https://github.com/resemble-ai/chatterbox), and [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base).
 
 ## Speech to Text (STT)
 
-[Whisper MIC](https://github.com/mallorbc/whisper_mic) is used for STT, which is based on OpenAI's [Whisper](https://github.com/openai/whisper).
+Speech recognition uses Hugging Face Transformers with
+[Distil-Whisper](https://huggingface.co/distil-whisper/distil-large-v3), based
+on OpenAI's [Whisper](https://github.com/openai/whisper).
 
 ## RAG (Retrieval Augmented Generation)
 
@@ -22,7 +40,7 @@ Chat with your uploaded documents.
 
 ## Audio Transcription
 
-Upload audio files to convert them to text, then ask questions based on the generated transcription. Also supports pasting in Youtube URLs.
+Upload audio files to convert them to text, then ask questions based on the generated transcription. YouTube URLs are also supported.
 
 ## Multimodality
 
@@ -84,37 +102,51 @@ Alternatively, create and activate a virtual environment and install the project
 pip install -e .
 ```
 
-Build the front-end package:
+Build the frontend package:
 
 ```bash
-npm run build
+cd webapp
+npm run vite:build
 ```
 
 Copy `settings_template.py` to `settings.py` and set the following:
 
-**model_name**: default model to load
-**model_dir**: the relative directory containing your models
+- **model_name**: default model to load.
+- **model_dir**: absolute or relative path containing local model checkpoints.
 
 Edit `models.yaml` to add configuration options for your models. Use `models_template.yaml` as a guide. Example:
 
 ```yaml
-NousResearch_Nous-Hermes-2-Mistral-7B-DPO:
-  name: Nous Research Hermes 2 Mistral 7B DPO
-  template: chatml
-gpt-4o:
-  name: ChatGPT-4o
+Qwen3-8B-AWQ-vLLM:
+  name: Qwen3 8B AWQ
   type: api
   vendor: openai
+  base_url: http://127.0.0.1:8001/v1
+  api_key: not-needed
+  thinking: true
+  vllm_profile: Qwen3-8B-AWQ
+
+example-model.gguf:
+  name: Example GGUF model
+  template: chatml
 ```
 
-The **name** is a human-friendly alias used in the UI.
-The **template** is the chat template type used by the model (eg ChatML, Alpaca, Llama2, etc).
-The **type** specifies an API-based (as opposed to local) model.
-The **vendor** specifies the vendor for commercial models. Can be set to *openai* or *anthropic*.
-Set **quantize: true** to automatically quantize models to 4bits using the bitsandbytes library.
-Set **qwen_vision: true** to enable vision support for the Qwen2.5-VL models.
-Set **do_sample: false** to disable sampling via `temperature`, `top_p`, and `top_k`.
-Set **add_bos_token: true** to prepend a beginning-of-sequence (BOS) token to the input text.
+- **name** is the human-friendly label used in the UI.
+- **template** selects the fallback local-model chat template, such as `chatml`
+  or `llama2`; a tokenizer's built-in template takes precedence.
+- **type: api** identifies an API-backed model instead of an in-process local
+  checkpoint.
+- **vendor** selects the API client: `openai` for OpenAI-compatible endpoints or
+  `anthropic` for Anthropic.
+- **base_url** and **api_key** override the configured OpenAI-compatible endpoint
+  and credentials for that model.
+- **vllm_profile** connects a model entry to an allow-listed managed vLLM
+  profile.
+- **quantize: true** requests 4-bit bitsandbytes quantization for a compatible
+  non-AWQ Transformers model; bitsandbytes must be installed separately.
+- **qwen_vision: true** enables Qwen vision request handling.
+- **do_sample: false** disables sampling via `temperature`, `top_p`, and `top_k`.
+- **add_bos_token: true** prepends a beginning-of-sequence token.
 
 To run:
 
@@ -153,8 +185,8 @@ python3 -m modules.chatbot -m interactive
 
 Options:
 
-- --tts: enable AllTalk TTS (Text to Speech)
-- --stt: enable STT (Speech to Text)
+- `--tts`: enable the configured TTS service.
+- `--stt`: enable speech-to-text input.
 
 To use RAG with a local file:
 
@@ -177,7 +209,8 @@ The **Selected Model** dropdown lets you choose which LLM the API uses to respon
 Toggle features on and off:
 
 - **Voice Features**: Text to Speech, Speech to Text, and VAD (Voice Activation Detection — auto-detects when you're done speaking to initiate a back-and-forth conversation).
-- **Reasoning**: Wolfram Alpha tool calling.
+- **Reasoning**: Wolfram Alpha tool calling and model thinking output.
+- **Display**: Thinking visualization and waiting-animation styles.
 
 ### Preferences menu
 
@@ -196,7 +229,7 @@ The hamburger menu to the upper-right lets you adjust:
 To run the unit tests:
 
 ```bash
-pytest
+uv run pytest
 ```
 
 # Development
@@ -230,4 +263,4 @@ All frontend checks are blocking in CI: ESLint, Prettier, `typecheck`, `stylelin
 
 ---
 
-[![CI](https://github.com/bordercore/bordercoreai/actions/workflows/ci.yml/badge.svg)](https://github.com/bordercore/bordercoreai/actions/workflows/ci.yml)
+[![CI](https://github.com/bordercore/bordercore-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/bordercore/bordercore-ai/actions/workflows/ci.yml)
