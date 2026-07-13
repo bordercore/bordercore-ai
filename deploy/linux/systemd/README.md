@@ -49,12 +49,12 @@ systemctl --user enable --now qwen3-tts
 
 The trial serves one allow-listed AWQ checkpoint at a time on the loopback-only
 OpenAI-compatible endpoint `http://127.0.0.1:8001/v1`. The included profiles
-cover `Qwen3-8B-AWQ` and `Qwen3-14B-AWQ`; the 8B profile is the initial default.
-Both use at most 55% of the RTX 3090's memory so they can coexist with the
-current TTS process. The Docker image is pinned by digest and currently
-contains vLLM 0.25.0 and Transformers 5.13.0. The unit persists vLLM's
-compilation cache under `~/.cache/vllm` so subsequent starts avoid recompiling
-unchanged model graphs.
+cover `Qwen3-8B-AWQ`, `Qwen3-14B-AWQ`, and
+`Qwen2.5-VL-3B-Instruct-AWQ`; the 8B profile is the initial default. All use at
+most 55% of the RTX 3090's memory. The Docker image is pinned by digest and
+currently contains vLLM 0.25.0 and Transformers 5.13.0. The unit persists
+vLLM's compilation cache under `~/.cache/vllm` so subsequent starts avoid
+recompiling unchanged model graphs.
 
 ```sh
 docker pull vllm/vllm-openai@sha256:fc56161ee42a011aeee78b65d0a81b6683c7d04402fd40503d14d4d6c98f07cb
@@ -100,16 +100,26 @@ the switch succeeds or fails. The selected model is updated only after a
 successful health and completion check. Both UI entries share the same
 single-model endpoint, so only one is active at a time.
 
-Measured on deepvirtual on July 13, 2026, with Qwen3 TTS still active:
+Measured on deepvirtual on July 13, 2026. Qwen3 TTS was active for the two text
+transitions and inactive for the vision transition:
 
 | Transition | Ready and verified | vLLM VRAM | Warm request |
 |------------|--------------------|-----------|--------------|
 | 8B to 14B, first load | 153 seconds | 12,176 MiB | 0.105 seconds |
 | 14B to 8B, cached | 56 seconds | 13,484 MiB | 0.51 seconds through Bordercore |
+| 8B to Qwen2.5-VL 3B, cached | 74 seconds | 13,824 MiB | 1.50-second image request through Bordercore |
 
-Stopping either model returned total GPU use to approximately 2,959 MiB before
-the replacement started, demonstrating that the old model's GPU allocation was
-released. The remaining use was primarily Qwen3 TTS.
+Stopping either text model returned total GPU use to approximately 2,959 MiB
+before the replacement started, demonstrating that its GPU allocation was
+released. With TTS stopped, unloading Qwen3 before the vision test returned GPU
+use to 492 MiB.
+
+The Qwen2.5-VL checkpoint stores `model.visual` in its AWQ exclusion list, while
+vLLM names the same modules `visual`. Its profile supplies an `--hf-overrides`
+value that corrects this prefix without modifying the shared checkpoint. The
+vision encoder remains unquantized and uses FlashAttention; the language layers
+use AWQ with Marlin. Direct and Bordercore image tests both correctly read the
+text from `logo.jpg`.
 
 To stop the trial and remove its container without affecting the model files or
 other GPU services:

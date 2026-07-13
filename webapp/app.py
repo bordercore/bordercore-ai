@@ -460,13 +460,22 @@ def chat() -> Response:
 
     if "image" in request.form:
         prompt = message[-1]["content"]
-        message[-1]["content"] = [
-            {
-                "type": "image",
-                "image": request.form["image"],
-            },
-            {"type": "text", "text": prompt},
-        ]
+        if ChatBot.get_model_attribute(model_name, "vendor") == "openai":
+            message[-1]["content"] = [
+                {
+                    "type": "image_url",
+                    "image_url": {"url": request.form["image"]},
+                },
+                {"type": "text", "text": prompt},
+            ]
+        else:
+            message[-1]["content"] = [
+                {
+                    "type": "image",
+                    "image": request.form["image"],
+                },
+                {"type": "text", "text": prompt},
+            ]
 
     chatbot = ChatBot(
         model_name=model_name,

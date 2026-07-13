@@ -16,6 +16,14 @@ Qwen3-14B-AWQ-vLLM:
   api_key: not-needed
   thinking: true
   vllm_profile: Qwen3-14B-AWQ
+Qwen2.5-VL-3B-Instruct-AWQ-vLLM:
+  name: Qwen2.5 VL 3B Instruct AWQ (vLLM trial)
+  type: api
+  vendor: openai
+  base_url: http://127.0.0.1:8001/v1
+  api_key: not-needed
+  qwen_vision: true
+  vllm_profile: Qwen2.5-VL-3B-Instruct-AWQ
 gpt-4o:
   name: ChatGPT-4o
   type: api
