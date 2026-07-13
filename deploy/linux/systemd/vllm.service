@@ -2,6 +2,7 @@
 Description=vLLM AWQ inference service
 After=network-online.target
 Wants=network-online.target
+Conflicts=llama-cpp.service
 
 [Service]
 Type=simple

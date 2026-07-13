@@ -1,6 +1,6 @@
 # GPU service systemd units
 
-User-scope units for the TTS engines and the deepvirtual vLLM service:
+User-scope units for the TTS and inference engines:
 
 | Unit                        | Engine     | Host         | Runtime                                          |
 |-----------------------------|------------|--------------|--------------------------------------------------|
@@ -8,6 +8,7 @@ User-scope units for the TTS engines and the deepvirtual vLLM service:
 | `chatterbox-tts.service`    | Chatterbox | deepvirtual  | `~/dev/bordercoreai/tts/chatterbox_tts/.venv/bin/python` (isolated 3.11 venv) |
 | `qwen3-tts.service`         | Qwen3      | deepvirtual  | `~/dev/envs/bordercoreai/bin/python`             |
 | `vllm.service`              | vLLM       | deepvirtual  | Pinned `vllm/vllm-openai` Docker image           |
+| `llama-cpp.service`         | llama.cpp  | deepvirtual  | Pinned official CUDA server image                 |
 
 The three TTS units listen on port 5001 and carry `Conflicts=` entries naming
 the other two, so starting one automatically stops the others (mutex). Only one
@@ -45,7 +46,7 @@ systemctl --user daemon-reload
 systemctl --user enable --now qwen3-tts
 ```
 
-### deepvirtual vLLM service
+### deepvirtual managed inference services
 
 The service runs one allow-listed checkpoint at a time on the loopback-only
 OpenAI-compatible endpoint `http://127.0.0.1:8001/v1`. The included profiles
@@ -56,6 +57,12 @@ leave usable KV cache after its mixed quantized and unquantized weights load.
 The Docker image is pinned by digest and currently contains vLLM 0.25.0 and
 Transformers 5.13.0. The unit persists vLLM's compilation cache under
 `~/.cache/vllm` so subsequent starts avoid recompiling unchanged model graphs.
+
+The on-demand llama.cpp service exposes Qwen3.6 27B GGUF on
+`http://127.0.0.1:8002/v1`. It conflicts with vLLM and the deepvirtual GPU TTS
+units because the fully offloaded checkpoint uses about 17.7 GB. The shared
+`model-engine` command records the active engine, verifies the replacement's
+model identity and completion, and restores the previous engine after failure.
 
 ### Model inventory and resource boundary
 
@@ -92,13 +99,20 @@ resource-policy decision.
 
 ```sh
 docker pull vllm/vllm-openai@sha256:fc56161ee42a011aeee78b65d0a81b6683c7d04402fd40503d14d4d6c98f07cb
+docker pull ghcr.io/ggml-org/llama.cpp:server-cuda@sha256:7b3d7834fc7307cb54f24f8869b67bfff276404c416452a48d11321bc36a81be
 mkdir -p ~/.config/bordercore ~/.local/bin
 ln -sfn ~/dev/bordercoreai/deploy/linux/systemd/vllm-profiles/Qwen3-8B-AWQ.env \
         ~/.config/bordercore/vllm.env
 ln -sfn ~/dev/bordercoreai/deploy/linux/systemd/vllm.service \
         ~/.config/systemd/user/vllm.service
+ln -sfn ~/dev/bordercoreai/deploy/linux/systemd/llama-cpp-profiles/Qwen3.6-27B-GGUF.env \
+        ~/.config/bordercore/llama-cpp.env
+ln -sfn ~/dev/bordercoreai/deploy/linux/systemd/llama-cpp.service \
+        ~/.config/systemd/user/llama-cpp.service
 ln -sfn ~/dev/bordercoreai/deploy/linux/bin/vllm-model \
         ~/.local/bin/vllm-model
+ln -sfn ~/dev/bordercoreai/deploy/linux/bin/model-engine \
+        ~/.local/bin/model-engine
 systemctl --user daemon-reload
 systemctl --user enable --now vllm
 ```
@@ -115,14 +129,18 @@ curl http://127.0.0.1:8001/v1/chat/completions \
   -d '{"model":"Qwen3-8B-AWQ-vLLM","messages":[{"role":"user","content":"Reply with: ready /no_think"}],"max_tokens":32}'
 ```
 
-List the configured models, inspect the active server, or switch models with:
+List profiles, inspect the active engine, or switch across engines with:
 
 ```sh
-vllm-model list
-vllm-model status
-vllm-model switch Qwen3-14B-AWQ
-vllm-model switch Qwen3-8B-AWQ
+model-engine list
+model-engine status
+model-engine switch llama-cpp Qwen3.6-27B-GGUF
+model-engine switch vllm Qwen3.5-9B-AWQ
 ```
+
+`vllm-model` remains available for vLLM-only administration. Bordercore uses
+`model-engine`, so selecting a managed model in the UI safely crosses the
+engine boundary when necessary.
 
 Switching stops the current container first, which unloads its weights and KV
 cache from GPU memory. The command then selects the requested profile, starts
@@ -177,19 +195,19 @@ The Qwen3.5 profiles use their native unified vision-language architecture.
 The 4B BF16 and 9B AWQ profiles also correctly read `BORDERCORE AI` from
 `logo.jpg`; thinking was disabled for these short deterministic OCR checks.
 
-### Qwen3.6 27B GGUF trial
+### Qwen3.6 27B GGUF managed profile
 
 Qwen3.6 27B does not fit the managed vLLM budget with the available AWQ
-checkpoint. It was instead validated as an exclusive-GPU llama.cpp trial using
+checkpoint. It is served as an exclusive-GPU llama.cpp profile using
 `unsloth/Qwen3.6-27B-GGUF` Q4_K_M and its F16 multimodal projector. The trial
 artifacts live under `~/model-trials/Qwen3.6-27B-GGUF`, outside the production
 `~/models` inventory. It used llama.cpp build 9982 (`99f3dc322`) from the
 official CUDA server image
 `sha256:7b3d7834fc7307cb54f24f8869b67bfff276404c416452a48d11321bc36a81be`.
 
-The server used full GPU layer offload, one sequence, and an 8K context. vLLM
-was stopped before launch and restored to Qwen3 8B afterward. Measured on
-deepvirtual on July 13, 2026:
+The server uses full GPU layer offload, one sequence, and an 8K context. The
+managed switcher unloads vLLM before launch. Measured on deepvirtual on July 13,
+2026:
 
 | Check | Result |
 |-------|--------|
@@ -200,11 +218,15 @@ deepvirtual on July 13, 2026:
 | Deterministic text | Passed (`Qwen3.6 ready`) |
 | Vision OCR | Passed (`BORDERCORE AI`) |
 | Short multi-turn retention | Passed (`COBALT-7391`) |
+| First managed vLLM-to-llama.cpp switch | 89 seconds |
+| Warm UI vLLM-to-llama.cpp switch | 13 seconds |
+| UI llama.cpp-to-Qwen3.5 9B vLLM switch | 208 seconds |
+| Bordercore text / vision | 1.66 / 1.68 seconds |
 
-This checkpoint is deliberately not selectable in Bordercore yet. Production
-support needs cross-engine lifecycle management so choosing it stops vLLM,
-starts a pinned llama.cpp server, verifies identity and inference, and rolls
-back safely when returning to a managed vLLM model.
+The model is selectable in Bordercore as `Qwen3.6 27B GGUF`. The processing
+dialog remains open until the target engine advertises the exact configured
+model and passes a deterministic completion. `/info` reconciles either managed
+endpoint, including switches performed from the command line.
 
 To stop vLLM and remove its container without affecting the model files or
 other GPU services:
@@ -219,6 +241,10 @@ systemctl --user disable --now vllm
 # Swap engines (Conflicts= stops the current one automatically):
 systemctl --user start qwen3-tts
 systemctl --user start chatterbox-tts
+
+# Switch managed inference engines and models:
+model-engine switch llama-cpp Qwen3.6-27B-GGUF
+model-engine switch vllm Qwen3.5-9B-AWQ
 
 # Check what's running:
 systemctl --user status qwen3-tts
@@ -243,9 +269,8 @@ systemctl --user stop qwen3-tts
 - The vLLM unit has no `Conflicts=` relationship with the TTS units. Its 55%
   GPU-memory ceiling is intentionally conservative, but concurrent peak loads
   should still be monitored.
-- Add new checkpoints by creating another reviewed profile under
-  `vllm-profiles/`. The switch command does not accept arbitrary model paths or
-  models that are absent from `~/models`.
-- Managed vLLM entries are canonical in Bordercore: matching local checkpoint
-  entries are hidden, Qwen3 8B is the default, and `/info` reconciles managed
-  UI state with the model ID currently advertised by vLLM.
+- Add new checkpoints under the reviewed `vllm-profiles/` or
+  `llama-cpp-profiles/` allow-lists. The switcher does not accept arbitrary
+  model paths.
+- Managed API entries are canonical in Bordercore. Matching local checkpoints
+  are hidden, and `/info` reconciles UI state with either active engine.

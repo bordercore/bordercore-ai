@@ -13,14 +13,14 @@ Bordercore AI is a web-based AI chatbot and voice assistant supporting multiple 
 | Engine or provider | Use | Models and formats |
 |--------------------|-----|--------------------|
 | [vLLM](https://docs.vllm.ai/) | Primary local GPU inference server | Managed Hugging Face/Safetensors checkpoints, including AWQ text and Qwen2.5-VL models |
-| [llama.cpp](https://github.com/ggml-org/llama.cpp) | In-process local inference through `llama-cpp-python` | GGUF models |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) | Managed GPU server or in-process fallback through `llama-cpp-python` | GGUF models, including Qwen3.6 vision |
 | [Transformers](https://huggingface.co/docs/transformers/) | In-process non-AWQ model loading and speech recognition | Hugging Face text, vision, and Whisper-compatible checkpoints |
 | OpenAI-compatible APIs | Hosted or local API inference | OpenAI and compatible endpoints, including vLLM and API proxies |
 | Anthropic API | Hosted Claude inference | Anthropic models |
 
 AWQ checkpoints are served exclusively through vLLM; the application no longer
-loads them in-process with AutoAWQ. Managed vLLM profiles switch one model at a
-time and expose a loopback OpenAI-compatible endpoint. See
+loads them in-process with AutoAWQ. Managed profiles safely switch between the
+vLLM and llama.cpp loopback APIs, with health checks and rollback. See
 [`deploy/linux/systemd/README.md`](deploy/linux/systemd/README.md) for the
 current profile inventory and deepvirtual service setup.
 
@@ -142,6 +142,8 @@ example-model.gguf:
   and credentials for that model.
 - **vllm_profile** connects a model entry to an allow-listed managed vLLM
   profile.
+- **llama_cpp_profile** connects a GGUF API entry to an allow-listed managed
+  llama.cpp profile.
 - **quantize: true** requests 4-bit bitsandbytes quantization for a compatible
   non-AWQ Transformers model; bitsandbytes must be installed separately.
 - **qwen_vision: true** enables Qwen vision request handling.

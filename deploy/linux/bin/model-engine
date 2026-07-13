@@ -1,0 +1,290 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+repo_dir=${BORDERCORE_REPO_DIR:-"$HOME/dev/bordercoreai"}
+config_dir="$HOME/.config/bordercore"
+vllm_profiles="$repo_dir/deploy/linux/systemd/vllm-profiles"
+llama_profiles="$repo_dir/deploy/linux/systemd/llama-cpp-profiles"
+vllm_active="$config_dir/vllm.env"
+llama_active="$config_dir/llama-cpp.env"
+vllm_service=vllm.service
+llama_service=llama-cpp.service
+vllm_url=http://127.0.0.1:8001
+llama_url=http://127.0.0.1:8002
+wait_seconds=${MODEL_ENGINE_SWITCH_TIMEOUT:-600}
+
+[[ "$wait_seconds" =~ ^[1-9][0-9]*$ ]] || {
+    printf 'model-engine: MODEL_ENGINE_SWITCH_TIMEOUT must be a positive integer\n' >&2
+    exit 1
+}
+
+usage() {
+    cat <<'EOF'
+Usage: model-engine list [vllm|llama-cpp]
+       model-engine status
+       model-engine switch vllm MODEL
+       model-engine switch llama-cpp MODEL
+EOF
+}
+
+die() {
+    printf 'model-engine: %s\n' "$*" >&2
+    exit 1
+}
+
+profile_value() {
+    local key=$1
+    local profile=$2
+    local value
+
+    value=$(sed -n "s/^${key}=//p" "$profile")
+    [[ -n "$value" ]] || die "missing $key in $profile"
+    [[ "$value" != *$'\n'* ]] || die "duplicate $key in $profile"
+    printf '%s\n' "$value"
+}
+
+active_profile_path() {
+    local link=$1
+
+    if [[ -L "$link" ]]; then
+        readlink -f "$link"
+    fi
+}
+
+activate_profile() {
+    local profile=$1
+    local link=$2
+
+    ln -sfn "$profile" "${link}.new"
+    mv -Tf "${link}.new" "$link"
+}
+
+active_engine() {
+    if systemctl --user is-active --quiet "$llama_service"; then
+        printf 'llama-cpp\n'
+    elif systemctl --user is-active --quiet "$vllm_service"; then
+        printf 'vllm\n'
+    else
+        printf 'none\n'
+    fi
+}
+
+wait_for_model() {
+    local base_url=$1
+    local expected_model=$2
+    local deadline=$((SECONDS + wait_seconds))
+    local models_json compact_json
+
+    while ((SECONDS < deadline)); do
+        if curl -fsS --max-time 2 "$base_url/health" >/dev/null 2>&1; then
+            models_json=$(curl -fsS --max-time 2 "$base_url/v1/models" 2>/dev/null || true)
+            compact_json=${models_json//[[:space:]]/}
+            if [[ "$compact_json" == *"\"id\":\"${expected_model}\""* ]]; then
+                return 0
+            fi
+        fi
+        sleep 2
+    done
+
+    return 1
+}
+
+smoke_test() {
+    local base_url=$1
+    local model=$2
+    local response compact_response
+
+    response=$(curl -fsS --max-time 60 "$base_url/v1/chat/completions" \
+        -H 'Content-Type: application/json' \
+        -d "{\"model\":\"${model}\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with exactly: ready\"}],\"max_tokens\":32,\"chat_template_kwargs\":{\"enable_thinking\":false}}")
+    compact_response=${response//[[:space:]]/}
+    [[ "$compact_response" == *'"choices":'* ]]
+}
+
+list_profiles() {
+    local engine=${1:-}
+    local profile_dir active_link path profile selected marker
+
+    for engine_name in vllm llama-cpp; do
+        [[ -z "$engine" || "$engine" == "$engine_name" ]] || continue
+        if [[ "$engine_name" == vllm ]]; then
+            profile_dir=$vllm_profiles
+            active_link=$vllm_active
+        else
+            profile_dir=$llama_profiles
+            active_link=$llama_active
+        fi
+        selected=$(active_profile_path "$active_link" || true)
+        printf '%s:\n' "$engine_name"
+        for profile in "$profile_dir"/*.env; do
+            [[ -e "$profile" ]] || continue
+            path=$(readlink -f "$profile")
+            marker=' '
+            [[ "$path" == "$selected" ]] && marker='*'
+            printf '  %s %s\n' "$marker" "$(basename "$profile" .env)"
+        done
+    done
+}
+
+show_status() {
+    local engine vllm_profile llama_profile
+
+    engine=$(active_engine)
+    vllm_profile=$(active_profile_path "$vllm_active" || true)
+    llama_profile=$(active_profile_path "$llama_active" || true)
+    printf 'engine: %s\n' "$engine"
+    printf 'vllm profile: %s\n' "${vllm_profile:+$(basename "$vllm_profile" .env)}"
+    printf 'llama-cpp profile: %s\n' "${llama_profile:+$(basename "$llama_profile" .env)}"
+}
+
+restore_llama() {
+    local profile=$1
+    local model_name
+
+    [[ -n "$profile" && -f "$profile" ]] || return 1
+    model_name=$(profile_value LLAMA_SERVED_MODEL_NAME "$profile")
+    activate_profile "$profile" "$llama_active"
+    systemctl --user daemon-reload
+    systemctl --user start "$llama_service"
+    wait_for_model "$llama_url" "$model_name"
+}
+
+switch_to_vllm() {
+    local name=$1
+    local previous_engine previous_llama_profile
+
+    [[ "$name" =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid vLLM profile name: $name"
+    [[ -f "$vllm_profiles/${name}.env" ]] \
+        || die "unknown vLLM profile: $name"
+    previous_engine=$(active_engine)
+    previous_llama_profile=$(active_profile_path "$llama_active" || true)
+
+    if [[ "$previous_engine" == llama-cpp ]]; then
+        printf 'Stopping llama-cpp before starting vLLM...\n'
+        systemctl --user stop "$llama_service"
+    fi
+
+    if "$repo_dir/deploy/linux/bin/vllm-model" switch "$name"; then
+        return
+    fi
+
+    if [[ "$previous_engine" == llama-cpp ]]; then
+        printf 'vLLM switch failed; restoring llama-cpp.\n' >&2
+        systemctl --user stop "$vllm_service" || true
+        if restore_llama "$previous_llama_profile"; then
+            printf 'Cross-engine rollback to llama-cpp succeeded.\n' >&2
+        else
+            printf 'Cross-engine rollback to llama-cpp failed.\n' >&2
+        fi
+    fi
+    return 1
+}
+
+switch_to_llama() {
+    local name=$1
+    local profile model_path mmproj_path model_name host_model host_mmproj
+    local previous_engine previous_vllm_profile previous_llama_profile
+    local start_time elapsed memory_after_stop
+
+    [[ "$name" =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid llama-cpp profile name: $name"
+    profile="$llama_profiles/${name}.env"
+    [[ -f "$profile" ]] || die "unknown llama-cpp profile: $name"
+    model_path=$(profile_value LLAMA_MODEL_PATH "$profile")
+    mmproj_path=$(profile_value LLAMA_MMPROJ_PATH "$profile")
+    model_name=$(profile_value LLAMA_SERVED_MODEL_NAME "$profile")
+    [[ "$model_path" == /model-trials/* ]] \
+        || die "model path must be below /model-trials: $model_path"
+    [[ "$mmproj_path" == /model-trials/* ]] \
+        || die "projector path must be below /model-trials: $mmproj_path"
+    [[ "$model_name" =~ ^[A-Za-z0-9._-]+$ ]] \
+        || die "invalid served model name: $model_name"
+    host_model="$HOME/model-trials/${model_path#/model-trials/}"
+    host_mmproj="$HOME/model-trials/${mmproj_path#/model-trials/}"
+    [[ -f "$host_model" ]] || die "checkpoint not found: $host_model"
+    [[ -f "$host_mmproj" ]] || die "projector not found: $host_mmproj"
+
+    previous_engine=$(active_engine)
+    previous_vllm_profile=$(active_profile_path "$vllm_active" || true)
+    previous_llama_profile=$(active_profile_path "$llama_active" || true)
+
+    if [[ "$previous_engine" == llama-cpp \
+        && "$previous_llama_profile" == "$(readlink -f "$profile")" ]] \
+        && wait_for_model "$llama_url" "$model_name"; then
+        printf '%s is already active and healthy.\n' "$name"
+        return
+    fi
+
+    printf 'Stopping %s before starting llama-cpp...\n' "$previous_engine"
+    systemctl --user stop "$vllm_service" "$llama_service"
+    memory_after_stop=$(nvidia-smi --query-gpu=memory.used \
+        --format=csv,noheader,nounits | head -n 1)
+    printf 'Old engine unloaded; GPU memory now in use: %s MiB\n' "$memory_after_stop"
+
+    activate_profile "$profile" "$llama_active"
+    systemctl --user daemon-reload
+    printf 'Starting %s as %s...\n' "$name" "$model_name"
+    start_time=$SECONDS
+    if systemctl --user start "$llama_service" \
+        && wait_for_model "$llama_url" "$model_name" \
+        && smoke_test "$llama_url" "$model_name"; then
+        elapsed=$((SECONDS - start_time))
+        printf '%s is healthy; identity and completion checks passed in %s seconds.\n' \
+            "$name" "$elapsed"
+        return
+    fi
+
+    printf 'Switch to %s failed; restoring %s.\n' "$name" "$previous_engine" >&2
+    systemctl --user stop "$llama_service" || true
+    if [[ -n "$previous_llama_profile" && -f "$previous_llama_profile" ]]; then
+        activate_profile "$previous_llama_profile" "$llama_active"
+    fi
+    if [[ "$previous_engine" == vllm \
+        && -n "$previous_vllm_profile" && -f "$previous_vllm_profile" ]]; then
+        if "$repo_dir/deploy/linux/bin/vllm-model" switch \
+            "$(basename "$previous_vllm_profile" .env)"; then
+            printf 'Cross-engine rollback to vLLM succeeded.\n' >&2
+        else
+            printf 'Cross-engine rollback to vLLM failed.\n' >&2
+        fi
+    elif [[ "$previous_engine" == llama-cpp ]]; then
+        if restore_llama "$previous_llama_profile"; then
+            printf 'Rollback to llama-cpp succeeded.\n' >&2
+        else
+            printf 'Rollback to llama-cpp failed.\n' >&2
+        fi
+    fi
+    return 1
+}
+
+mkdir -p "$config_dir"
+command=${1:-}
+case "$command" in
+    list)
+        [[ $# -le 2 ]] || die "list accepts at most one engine"
+        [[ $# -eq 1 || "$2" == vllm || "$2" == llama-cpp ]] \
+            || die "unknown engine: $2"
+        list_profiles "${2:-}"
+        ;;
+    status)
+        [[ $# -eq 1 ]] || die "status takes no arguments"
+        show_status
+        ;;
+    switch)
+        [[ $# -eq 3 ]] || die "switch requires an engine and model profile"
+        exec 9>"$config_dir/model-engine-switch.lock"
+        flock -n 9 || die "another cross-engine model switch is already running"
+        case "$2" in
+            vllm) switch_to_vllm "$3" ;;
+            llama-cpp) switch_to_llama "$3" ;;
+            *) die "unknown engine: $2" ;;
+        esac
+        ;;
+    -h|--help|help)
+        usage
+        ;;
+    *)
+        usage >&2
+        exit 2
+        ;;
+esac

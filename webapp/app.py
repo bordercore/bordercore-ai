@@ -53,6 +53,7 @@ from modules.util import get_model_info
 from modules.vllm_manager import (
     get_active_vllm_model,
     hide_managed_checkpoint_duplicates,
+    switch_llama_cpp_model,
     switch_vllm_model,
 )
 
@@ -513,23 +514,38 @@ def info() -> Response:
     current_name = settings.model_name
     current_metadata = configured_models.get(current_name, {})
 
-    if current_metadata.get("vllm_profile"):
-        base_url = current_metadata.get("base_url")
-        if isinstance(base_url, str):
+    if current_metadata.get("vllm_profile") or current_metadata.get("llama_cpp_profile"):
+        managed_models = [(current_name, current_metadata)] + [
+            (name, metadata)
+            for name, metadata in configured_models.items()
+            if name != current_name
+            and (metadata.get("vllm_profile") or metadata.get("llama_cpp_profile"))
+        ]
+        checked_urls: set[str] = set()
+        for _, metadata in managed_models:
+            base_url = metadata.get("base_url")
+            if not isinstance(base_url, str) or base_url in checked_urls:
+                continue
+            checked_urls.add(base_url)
             try:
                 active_name = get_active_vllm_model(base_url)
                 active_metadata = configured_models.get(active_name or "", {})
-                if active_name and active_metadata.get("vllm_profile"):
+                if active_name and (
+                    active_metadata.get("vllm_profile")
+                    or active_metadata.get("llama_cpp_profile")
+                ):
                     current_name = active_name
                     current_metadata = active_metadata
                     settings.model_name = active_name
+                    break
             except (requests.RequestException, ValueError) as e:
-                logger.warning("Unable to reconcile active vLLM model: %s", e)
+                logger.debug("Managed model endpoint unavailable at %s: %s", base_url, e)
 
     return jsonify({
         "name": current_name,
         "display_name": current_metadata.get("name", current_name),
         "vllm_profile": current_metadata.get("vllm_profile"),
+        "llama_cpp_profile": current_metadata.get("llama_cpp_profile"),
     })
 
 
@@ -550,9 +566,9 @@ def load() -> Response:
     """
     Selects an API model or loads a locally managed model.
 
-    API models with a ``vllm_profile`` attribute first switch the host vLLM
-    service and complete its health checks. Other API models remain simple
-    client-side selections.
+    API models with a managed vLLM or llama.cpp profile first switch the host
+    inference engine and complete its health and rollback checks. Other API
+    models remain simple client-side selections.
 
     Args:
         None (expects form-data containing the model name under the "model" key).
@@ -563,15 +579,28 @@ def load() -> Response:
     model_name: str = request.form["model"]
     model_type: str | None = ChatBot.get_model_attribute(model_name, "type")
     vllm_profile: Any | None = ChatBot.get_model_attribute(model_name, "vllm_profile")
+    llama_cpp_profile: Any | None = ChatBot.get_model_attribute(
+        model_name, "llama_cpp_profile"
+    )
 
     try:
         message = ""
         if model_type == "api":
+            if vllm_profile is not None and llama_cpp_profile is not None:
+                raise RuntimeError(f"Multiple managed engines configured for {model_name}")
             if vllm_profile is not None:
                 if not isinstance(vllm_profile, str):
                     raise RuntimeError(f"Invalid vLLM profile configured for {model_name}")
                 switch_output = switch_vllm_model(vllm_profile)
                 logger.info("vLLM model switch completed: %s", switch_output)
+                message = f"{model_name} is ready."
+            elif llama_cpp_profile is not None:
+                if not isinstance(llama_cpp_profile, str):
+                    raise RuntimeError(
+                        f"Invalid llama.cpp profile configured for {model_name}"
+                    )
+                switch_output = switch_llama_cpp_model(llama_cpp_profile)
+                logger.info("llama.cpp model switch completed: %s", switch_output)
                 message = f"{model_name} is ready."
         else:
             manager = app.config["model_manager"]

@@ -295,7 +295,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   function handleChangeModel(modelName: string) {
     const modelType = getModelAttribute(modelName, "type");
     const requiresModelLoad =
-      modelType !== "api" || Boolean(getModelAttribute(modelName, "vllm_profile"));
+      modelType !== "api" ||
+      Boolean(getModelAttribute(modelName, "vllm_profile")) ||
+      Boolean(getModelAttribute(modelName, "llama_cpp_profile"));
     if (requiresModelLoad) {
       setShowProcessingModal(true);
     }
@@ -812,9 +814,10 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               getModelIcon={getModelIcon}
               onChange={handleChangeModel}
             />
-            {model.vllm_profile && (
+            {(model.vllm_profile || model.llama_cpp_profile) && (
               <div style={{ marginTop: "0.35rem", fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                Active vLLM profile: {model.vllm_profile}
+                Active {model.vllm_profile ? "vLLM" : "llama.cpp"} profile:{" "}
+                {model.vllm_profile || model.llama_cpp_profile}
               </div>
             )}
           </div>

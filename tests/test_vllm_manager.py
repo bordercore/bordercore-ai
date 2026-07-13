@@ -6,9 +6,11 @@ from unittest.mock import Mock, patch
 import pytest
 
 from modules.vllm_manager import (
-    VLLM_SWITCH_COMMAND,
+    MODEL_ENGINE_SWITCH_COMMAND,
     get_active_vllm_model,
     hide_managed_checkpoint_duplicates,
+    switch_llama_cpp_model,
+    switch_managed_model,
     switch_vllm_model,
 )
 
@@ -31,10 +33,12 @@ def test_hide_managed_checkpoint_duplicates() -> None:
     models = [
         {"model": "Qwen3-8B-AWQ-vLLM", "vllm_profile": "Qwen3-8B-AWQ"},
         {"model": "Qwen3-8B-AWQ"},
+        {"model": "Qwen3.6-managed", "llama_cpp_profile": "Qwen3.6-27B-GGUF"},
+        {"model": "Qwen3.6-27B-GGUF"},
         {"model": "unmanaged-local-model"},
     ]
 
-    assert hide_managed_checkpoint_duplicates(models) == [models[0], models[2]]
+    assert hide_managed_checkpoint_duplicates(models) == [models[0], models[2], models[4]]
 
 
 def test_switch_vllm_model_invokes_allowlisted_profile() -> None:
@@ -46,7 +50,7 @@ def test_switch_vllm_model_invokes_allowlisted_profile() -> None:
 
     assert output == "14B is healthy"
     run.assert_called_once_with(
-        [str(VLLM_SWITCH_COMMAND), "switch", "Qwen3-14B-AWQ"],
+        [str(MODEL_ENGINE_SWITCH_COMMAND), "switch", "vllm", "Qwen3-14B-AWQ"],
         capture_output=True,
         check=False,
         text=True,
@@ -57,7 +61,7 @@ def test_switch_vllm_model_invokes_allowlisted_profile() -> None:
 def test_switch_vllm_model_rejects_invalid_profile() -> None:
     """Profile metadata cannot inject shell syntax or arbitrary arguments."""
     with patch("modules.vllm_manager.subprocess.run") as run:
-        with pytest.raises(RuntimeError, match="Invalid vLLM model profile"):
+        with pytest.raises(RuntimeError, match="Invalid managed model profile"):
             switch_vllm_model("Qwen3-14B-AWQ; reboot")
 
     run.assert_not_called()
@@ -79,3 +83,34 @@ def test_switch_vllm_model_reports_timeout() -> None:
     with patch("modules.vllm_manager.subprocess.run", side_effect=timeout):
         with pytest.raises(RuntimeError, match="Timed out"):
             switch_vllm_model("Qwen3-14B-AWQ")
+
+
+def test_switch_llama_cpp_model_uses_cross_engine_manager() -> None:
+    """llama.cpp profiles use the same rollback-capable host manager."""
+    completed = subprocess.CompletedProcess([], 0, stdout="27B is healthy\n", stderr="")
+
+    with patch("modules.vllm_manager.subprocess.run", return_value=completed) as run:
+        output = switch_llama_cpp_model("Qwen3.6-27B-GGUF")
+
+    assert output == "27B is healthy"
+    run.assert_called_once_with(
+        [
+            str(MODEL_ENGINE_SWITCH_COMMAND),
+            "switch",
+            "llama-cpp",
+            "Qwen3.6-27B-GGUF",
+        ],
+        capture_output=True,
+        check=False,
+        text=True,
+        timeout=900,
+    )
+
+
+def test_switch_managed_model_rejects_unknown_engine() -> None:
+    """Model metadata cannot select an arbitrary host command target."""
+    with patch("modules.vllm_manager.subprocess.run") as run:
+        with pytest.raises(RuntimeError, match="Invalid managed inference engine"):
+            switch_managed_model("shell", "Qwen3.6-27B-GGUF")
+
+    run.assert_not_called()

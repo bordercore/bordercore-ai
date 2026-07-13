@@ -1,0 +1,20 @@
+[Unit]
+Description=llama.cpp GGUF inference service
+After=network-online.target
+Wants=network-online.target
+Conflicts=vllm.service qwen3-tts.service chatterbox-tts.service
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/bordercore/llama-cpp.env
+ExecStartPre=-/usr/bin/docker rm -f bordercore-llama-cpp
+ExecStart=/usr/bin/docker run --rm --name bordercore-llama-cpp --gpus all -p 127.0.0.1:8002:8080 -v /home/jerrell/model-trials:/model-trials:ro ghcr.io/ggml-org/llama.cpp:server-cuda@sha256:7b3d7834fc7307cb54f24f8869b67bfff276404c416452a48d11321bc36a81be -m ${LLAMA_MODEL_PATH} --mmproj ${LLAMA_MMPROJ_PATH} --alias ${LLAMA_SERVED_MODEL_NAME} --host 0.0.0.0 --port 8080 --ctx-size ${LLAMA_CONTEXT_SIZE} --parallel ${LLAMA_PARALLEL} --n-gpu-layers ${LLAMA_GPU_LAYERS} --flash-attn on --jinja
+ExecStop=/usr/bin/docker stop -t 20 bordercore-llama-cpp
+ExecStopPost=-/usr/bin/docker rm -f bordercore-llama-cpp
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target
