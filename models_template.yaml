@@ -7,6 +7,13 @@ Qwen3-8B-AWQ-vLLM:
   base_url: http://127.0.0.1:8001/v1
   api_key: not-needed
   thinking: true
+Qwen3-14B-AWQ-vLLM:
+  name: Qwen3 14B AWQ (vLLM trial)
+  type: api
+  vendor: openai
+  base_url: http://127.0.0.1:8001/v1
+  api_key: not-needed
+  thinking: true
 gpt-4o:
   name: ChatGPT-4o
   type: api

@@ -1,0 +1,214 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+repo_dir=${BORDERCORE_REPO_DIR:-"$HOME/dev/bordercoreai"}
+profile_dir="$repo_dir/deploy/linux/systemd/vllm-profiles"
+config_dir="$HOME/.config/bordercore"
+active_profile="$config_dir/vllm.env"
+service_name=vllm.service
+base_url=http://127.0.0.1:8001
+wait_seconds=${VLLM_SWITCH_TIMEOUT:-420}
+
+[[ "$wait_seconds" =~ ^[1-9][0-9]*$ ]] || {
+    printf 'vllm-model: VLLM_SWITCH_TIMEOUT must be a positive integer\n' >&2
+    exit 1
+}
+
+usage() {
+    cat <<'EOF'
+Usage: vllm-model list
+       vllm-model status
+       vllm-model switch MODEL
+
+MODEL is a profile name such as Qwen3-8B-AWQ or Qwen3-14B-AWQ.
+EOF
+}
+
+die() {
+    printf 'vllm-model: %s\n' "$*" >&2
+    exit 1
+}
+
+profile_value() {
+    local key=$1
+    local profile=$2
+    local value
+
+    value=$(sed -n "s/^${key}=//p" "$profile")
+    [[ -n "$value" ]] || die "missing $key in $profile"
+    [[ "$value" != *$'\n'* ]] || die "duplicate $key in $profile"
+    printf '%s\n' "$value"
+}
+
+active_profile_path() {
+    if [[ -L "$active_profile" ]]; then
+        readlink -f "$active_profile"
+    fi
+}
+
+activate_profile() {
+    local profile=$1
+
+    ln -sfn "$profile" "${active_profile}.new"
+    mv -Tf "${active_profile}.new" "$active_profile"
+}
+
+wait_for_model() {
+    local expected_model=$1
+    local deadline=$((SECONDS + wait_seconds))
+    local models_json compact_json
+
+    while ((SECONDS < deadline)); do
+        if curl -fsS --max-time 2 "$base_url/health" >/dev/null 2>&1; then
+            models_json=$(curl -fsS --max-time 2 "$base_url/v1/models" 2>/dev/null || true)
+            compact_json=${models_json//[[:space:]]/}
+            if [[ "$compact_json" == *"\"id\":\"${expected_model}\""* ]]; then
+                return 0
+            fi
+        fi
+        sleep 2
+    done
+
+    return 1
+}
+
+smoke_test() {
+    local model=$1
+    local response compact_response
+
+    response=$(curl -fsS --max-time 60 "$base_url/v1/chat/completions" \
+        -H 'Content-Type: application/json' \
+        -d "{\"model\":\"${model}\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with exactly: ready /no_think\"}],\"max_tokens\":32}")
+    compact_response=${response//[[:space:]]/}
+    [[ "$compact_response" == *'"choices":'* ]]
+}
+
+list_profiles() {
+    local selected path profile name model_path
+
+    selected=$(active_profile_path || true)
+    for profile in "$profile_dir"/*.env; do
+        [[ -e "$profile" ]] || continue
+        path=$(readlink -f "$profile")
+        name=$(basename "$profile" .env)
+        model_path=$(profile_value VLLM_MODEL_PATH "$profile")
+        if [[ "$path" == "$selected" ]]; then
+            printf '* %-20s %s\n' "$name" "$model_path"
+        else
+            printf '  %-20s %s\n' "$name" "$model_path"
+        fi
+    done
+}
+
+show_status() {
+    local selected state models_json
+
+    selected=$(active_profile_path || true)
+    state=$(systemctl --user is-active "$service_name" 2>/dev/null || true)
+    printf 'service: %s\n' "${state:-unknown}"
+    if [[ -n "$selected" ]]; then
+        printf 'profile: %s\n' "$(basename "$selected" .env)"
+    else
+        printf 'profile: not configured\n'
+    fi
+    models_json=$(curl -fsS --max-time 2 "$base_url/v1/models" 2>/dev/null || true)
+    if [[ -n "$models_json" ]]; then
+        printf 'server:  %s\n' "$models_json"
+    else
+        printf 'server:  unavailable\n'
+    fi
+}
+
+switch_model() {
+    local name=$1
+    local profile model_path model_name host_model_path
+    local previous_profile previous_model_name previous_name
+    local start_time elapsed memory_after_stop
+
+    [[ "$name" =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid model profile name: $name"
+    profile="$profile_dir/${name}.env"
+    [[ -f "$profile" ]] || die "unknown model profile: $name (run 'vllm-model list')"
+
+    model_path=$(profile_value VLLM_MODEL_PATH "$profile")
+    model_name=$(profile_value VLLM_SERVED_MODEL_NAME "$profile")
+    [[ "$model_path" == /models/* ]] || die "model path must be below /models: $model_path"
+    [[ "$model_name" =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid served model name: $model_name"
+    host_model_path="$HOME/models/${model_path#/models/}"
+    [[ -d "$host_model_path" ]] || die "checkpoint not found: $host_model_path"
+
+    mkdir -p "$config_dir"
+    exec 9>"$config_dir/vllm-switch.lock"
+    flock -n 9 || die "another model switch is already running"
+
+    previous_profile=$(active_profile_path || true)
+    if [[ -n "$previous_profile" && -f "$previous_profile" ]]; then
+        previous_model_name=$(profile_value VLLM_SERVED_MODEL_NAME "$previous_profile")
+        previous_name=$(basename "$previous_profile" .env)
+    else
+        previous_model_name=
+        previous_name=none
+    fi
+
+    if [[ "$previous_profile" == "$(readlink -f "$profile")" ]] \
+        && systemctl --user is-active --quiet "$service_name" \
+        && wait_for_model "$model_name"; then
+        printf '%s is already active and healthy.\n' "$name"
+        return
+    fi
+
+    printf 'Stopping %s...\n' "$previous_name"
+    systemctl --user stop "$service_name"
+    memory_after_stop=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits | head -n 1)
+    printf 'Old model unloaded; GPU memory now in use: %s MiB\n' "$memory_after_stop"
+
+    activate_profile "$profile"
+    systemctl --user daemon-reload
+    printf 'Starting %s as %s...\n' "$name" "$model_name"
+    start_time=$SECONDS
+    if systemctl --user start "$service_name" \
+        && wait_for_model "$model_name" \
+        && smoke_test "$model_name"; then
+        elapsed=$((SECONDS - start_time))
+        printf '%s is healthy; model identity and completion checks passed in %s seconds.\n' \
+            "$name" "$elapsed"
+        return
+    fi
+
+    printf 'Switch to %s failed; restoring %s.\n' "$name" "$previous_name" >&2
+    systemctl --user stop "$service_name" || true
+    if [[ -n "$previous_profile" && -f "$previous_profile" ]]; then
+        activate_profile "$previous_profile"
+        systemctl --user daemon-reload
+        systemctl --user start "$service_name"
+        if wait_for_model "$previous_model_name"; then
+            printf 'Rollback to %s succeeded.\n' "$previous_name" >&2
+        else
+            printf 'Rollback to %s did not become healthy.\n' "$previous_name" >&2
+        fi
+    fi
+    return 1
+}
+
+command=${1:-}
+case "$command" in
+    list)
+        [[ $# -eq 1 ]] || die "list takes no arguments"
+        list_profiles
+        ;;
+    status)
+        [[ $# -eq 1 ]] || die "status takes no arguments"
+        show_status
+        ;;
+    switch)
+        [[ $# -eq 2 ]] || die "switch requires one model profile"
+        switch_model "$2"
+        ;;
+    -h|--help|help)
+        usage
+        ;;
+    *)
+        usage >&2
+        exit 2
+        ;;
+esac

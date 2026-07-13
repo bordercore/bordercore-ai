@@ -47,18 +47,24 @@ systemctl --user enable --now qwen3-tts
 
 ### deepvirtual vLLM trial
 
-The trial serves the existing `~/models/Qwen3-8B-AWQ` checkpoint as
-`Qwen3-8B-AWQ-vLLM` on the loopback-only OpenAI-compatible endpoint
-`http://127.0.0.1:8001/v1`. It uses at most 55% of the RTX 3090's memory so it
-can coexist with the current TTS and ComfyUI processes. The Docker image is
-pinned by digest and currently contains vLLM 0.25.0 and Transformers 5.13.0.
-The unit persists vLLM's compilation cache under `~/.cache/vllm` so subsequent
-starts avoid recompiling unchanged model graphs.
+The trial serves one allow-listed AWQ checkpoint at a time on the loopback-only
+OpenAI-compatible endpoint `http://127.0.0.1:8001/v1`. The included profiles
+cover `Qwen3-8B-AWQ` and `Qwen3-14B-AWQ`; the 8B profile is the initial default.
+Both use at most 55% of the RTX 3090's memory so they can coexist with the
+current TTS process. The Docker image is pinned by digest and currently
+contains vLLM 0.25.0 and Transformers 5.13.0. The unit persists vLLM's
+compilation cache under `~/.cache/vllm` so subsequent starts avoid recompiling
+unchanged model graphs.
 
 ```sh
 docker pull vllm/vllm-openai@sha256:fc56161ee42a011aeee78b65d0a81b6683c7d04402fd40503d14d4d6c98f07cb
-ln -s ~/dev/bordercoreai/deploy/linux/systemd/vllm.service \
-      ~/.config/systemd/user/vllm.service
+mkdir -p ~/.config/bordercore ~/.local/bin
+ln -sfn ~/dev/bordercoreai/deploy/linux/systemd/vllm-profiles/Qwen3-8B-AWQ.env \
+        ~/.config/bordercore/vllm.env
+ln -sfn ~/dev/bordercoreai/deploy/linux/systemd/vllm.service \
+        ~/.config/systemd/user/vllm.service
+ln -sfn ~/dev/bordercoreai/deploy/linux/bin/vllm-model \
+        ~/.local/bin/vllm-model
 systemctl --user daemon-reload
 systemctl --user enable --now vllm
 ```
@@ -74,6 +80,33 @@ curl http://127.0.0.1:8001/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{"model":"Qwen3-8B-AWQ-vLLM","messages":[{"role":"user","content":"Reply with: ready /no_think"}],"max_tokens":32}'
 ```
+
+List the configured models, inspect the active server, or switch models with:
+
+```sh
+vllm-model list
+vllm-model status
+vllm-model switch Qwen3-14B-AWQ
+vllm-model switch Qwen3-8B-AWQ
+```
+
+Switching stops the current container first, which unloads its weights and KV
+cache from GPU memory. The command then selects the requested profile, starts
+the service, waits for the exact model ID on `/v1/models`, and runs a minimal
+completion. If the new model does not become healthy, it restores and starts
+the previous profile. Only select the matching vLLM model in Bordercore after a
+successful switch; both UI entries share the same single-model endpoint.
+
+Measured on deepvirtual on July 13, 2026, with Qwen3 TTS still active:
+
+| Transition | Ready and verified | vLLM VRAM | Warm request |
+|------------|--------------------|-----------|--------------|
+| 8B to 14B, first load | 153 seconds | 12,176 MiB | 0.105 seconds |
+| 14B to 8B, cached | 56 seconds | 13,484 MiB | 0.51 seconds through Bordercore |
+
+Stopping either model returned total GPU use to approximately 2,959 MiB before
+the replacement started, demonstrating that the old model's GPU allocation was
+released. The remaining use was primarily Qwen3 TTS.
 
 To stop the trial and remove its container without affecting the model files or
 other GPU services:
@@ -112,3 +145,6 @@ systemctl --user stop qwen3-tts
 - The vLLM unit has no `Conflicts=` relationship with the TTS units. Its 55%
   GPU-memory ceiling is intentionally conservative, but concurrent peak loads
   should still be monitored during the trial.
+- Add new checkpoints by creating another reviewed profile under
+  `vllm-profiles/`. The switch command does not accept arbitrary model paths or
+  models that are absent from `~/models`.
