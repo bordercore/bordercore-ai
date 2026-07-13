@@ -24,6 +24,35 @@ Qwen2.5-VL-3B-Instruct-AWQ-vLLM:
   api_key: not-needed
   qwen_vision: true
   vllm_profile: Qwen2.5-VL-3B-Instruct-AWQ
+llama3-instruct-awq-vLLM:
+  name: Llama 3 Instruct AWQ
+  type: api
+  vendor: openai
+  base_url: http://127.0.0.1:8001/v1
+  api_key: not-needed
+  vllm_profile: llama3-instruct-awq
+Qwen2.5-7B-Instruct-AWQ-vLLM:
+  name: Qwen2.5 7B Instruct AWQ
+  type: api
+  vendor: openai
+  base_url: http://127.0.0.1:8001/v1
+  api_key: not-needed
+  vllm_profile: Qwen2.5-7B-Instruct-AWQ
+Qwen2.5-Coder-7B-Instruct-AWQ-vLLM:
+  name: Qwen2.5 Coder 7B Instruct AWQ
+  type: api
+  vendor: openai
+  base_url: http://127.0.0.1:8001/v1
+  api_key: not-needed
+  vllm_profile: Qwen2.5-Coder-7B-Instruct-AWQ
+Qwen2.5-VL-7B-Instruct-AWQ-vLLM:
+  name: Qwen2.5 VL 7B Instruct AWQ
+  type: api
+  vendor: openai
+  base_url: http://127.0.0.1:8001/v1
+  api_key: not-needed
+  qwen_vision: true
+  vllm_profile: Qwen2.5-VL-7B-Instruct-AWQ
 gpt-4o:
   name: ChatGPT-4o
   type: api

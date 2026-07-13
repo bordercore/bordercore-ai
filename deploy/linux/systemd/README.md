@@ -49,12 +49,11 @@ systemctl --user enable --now qwen3-tts
 
 The service runs one allow-listed AWQ checkpoint at a time on the loopback-only
 OpenAI-compatible endpoint `http://127.0.0.1:8001/v1`. The included profiles
-cover `Qwen3-8B-AWQ`, `Qwen3-14B-AWQ`, and
-`Qwen2.5-VL-3B-Instruct-AWQ`; the 8B profile is the initial default. All use at
-most 55% of the RTX 3090's memory. The Docker image is pinned by digest and
-currently contains vLLM 0.25.0 and Transformers 5.13.0. The unit persists
-vLLM's compilation cache under `~/.cache/vllm` so subsequent starts avoid
-recompiling unchanged model graphs.
+cover Qwen3 8B/14B, Qwen2.5 7B Instruct/Coder, Qwen2.5-VL 3B/7B, and Llama 3
+Instruct; Qwen3 8B is the default. All use at most 55% of the RTX 3090's memory.
+The Docker image is pinned by digest and currently contains vLLM 0.25.0 and
+Transformers 5.13.0. The unit persists vLLM's compilation cache under
+`~/.cache/vllm` so subsequent starts avoid recompiling unchanged model graphs.
 
 ```sh
 docker pull vllm/vllm-openai@sha256:fc56161ee42a011aeee78b65d0a81b6683c7d04402fd40503d14d4d6c98f07cb
@@ -94,10 +93,10 @@ Switching stops the current container first, which unloads its weights and KV
 cache from GPU memory. The command then selects the requested profile, starts
 the service, waits for the exact model ID on `/v1/models`, and runs a minimal
 completion. If the new model does not become healthy, it restores and starts
-the previous profile. Selecting either managed vLLM model in Bordercore invokes
+the previous profile. Selecting any managed vLLM model in Bordercore invokes
 this same command through `/load`; the UI keeps its processing modal open until
 the switch succeeds or fails. The selected model is updated only after a
-successful health and completion check. Both UI entries share the same
+successful health and completion check. All managed UI entries share the same
 single-model endpoint, so only one is active at a time.
 
 Measured on deepvirtual on July 13, 2026. Qwen3 TTS was active for the two text
@@ -109,17 +108,30 @@ transitions and inactive for the vision transition:
 | 14B to 8B, cached | 56 seconds | 13,484 MiB | 0.51 seconds through Bordercore |
 | 8B to Qwen2.5-VL 3B, cached | 74 seconds | 13,824 MiB | 1.50-second image request through Bordercore |
 
+The additional profiles were verified with Qwen3 TTS inactive:
+
+| Transition | Ready and verified | vLLM VRAM | Warm request |
+|------------|--------------------|-----------|--------------|
+| Qwen3 8B to Llama 3 Instruct | 122 seconds | 12,632 MiB | 0.14 seconds |
+| Llama 3 to Qwen2.5 7B Instruct | 104 seconds | 12,620 MiB | 0.04 seconds |
+| Qwen2.5 7B Instruct to Coder | 104 seconds | 12,620 MiB | 0.14 seconds |
+| Qwen2.5 Coder to VL 7B | 152 seconds | 13,892 MiB | 1.60-second image request |
+| VL 7B to Qwen2.5 7B through Bordercore | 56 seconds | — | UI load and `/info` verified |
+| Qwen2.5 7B to default Qwen3 8B through Bordercore | 58 seconds | — | UI load and `/info` verified |
+
 Stopping either text model returned total GPU use to approximately 2,959 MiB
 before the replacement started, demonstrating that its GPU allocation was
 released. With TTS stopped, unloading Qwen3 before the vision test returned GPU
 use to 492 MiB.
+Each additional profile transition returned GPU use to approximately 490–495
+MiB before loading its replacement.
 
-The Qwen2.5-VL checkpoint stores `model.visual` in its AWQ exclusion list, while
-vLLM names the same modules `visual`. Its profile supplies an `--hf-overrides`
-value that corrects this prefix without modifying the shared checkpoint. The
-vision encoder remains unquantized and uses FlashAttention; the language layers
-use AWQ with Marlin. Direct and Bordercore image tests both correctly read the
-text from `logo.jpg`.
+The Qwen2.5-VL checkpoints store `model.visual` in their AWQ exclusion lists,
+while vLLM names the same modules `visual`. Their profiles supply an
+`--hf-overrides` value that corrects this prefix without modifying the shared
+checkpoints. The vision encoders remain unquantized and use FlashAttention; the
+language layers use AWQ with Marlin. Direct and Bordercore image tests correctly
+read the text from `logo.jpg` with both sizes.
 
 To stop vLLM and remove its container without affecting the model files or
 other GPU services:

@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/home/jerrell/dev/bordercoreai
-ExecStart=/snap/bin/uv run python -m webapp
+ExecStart=/home/jerrell/dev/bordercoreai/.venv/bin/python -m webapp
 StandardOutput=journal
 StandardError=journal
 Restart=on-failure
