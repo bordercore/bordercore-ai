@@ -55,6 +55,37 @@ The Docker image is pinned by digest and currently contains vLLM 0.25.0 and
 Transformers 5.13.0. The unit persists vLLM's compilation cache under
 `~/.cache/vllm` so subsequent starts avoid recompiling unchanged model graphs.
 
+### Model inventory and resource boundary
+
+A checkpoint is considered a comfortable single-GPU fit when it loads under
+the existing 55% RTX 3090 vLLM memory cap without CPU offload, tensor
+parallelism, or reduced context/concurrency settings. Every checkpoint meeting
+that boundary has a managed profile and has passed an appropriate smoke test:
+
+| Checkpoint | Disk size | Managed | Smoke test |
+|------------|-----------|---------|------------|
+| Llama 3 Instruct AWQ | 5.4 GB | Yes | Text passed |
+| Qwen2.5-VL 3B Instruct AWQ | 6.4 GB | Yes | Vision passed |
+| Qwen2.5 7B Instruct AWQ | 11 GB | Yes | Text passed |
+| Qwen2.5 Coder 7B Instruct AWQ | 11 GB | Yes | Code passed |
+| Qwen3 8B AWQ | 12 GB | Yes | Text passed |
+| Qwen2.5-VL 7B Instruct AWQ | 13 GB | Yes | Vision passed |
+| Qwen3 14B AWQ | 19 GB | Yes | Text passed |
+
+The remaining large checkpoints are deliberately outside the managed profile
+allow-list:
+
+| Checkpoint | Disk size | Quantization | Status |
+|------------|-----------|--------------|--------|
+| Qwen3 32B AWQ | 37 GB | AWQ 4-bit | Deferred; weight shards alone exceed the current vLLM VRAM budget |
+| Qwen3-VL 30B-A3B Instruct | 116 GB | Unquantized | Deferred; not part of the AWQ inventory and not a single-3090 fit |
+
+Do not add profiles for the deferred models until there is an explicit policy
+for exclusive GPU use, TTS coexistence, context and concurrency limits,
+offload or multi-GPU placement, and OOM rollback. This keeps an accidental UI
+selection from turning an experimental large-model load into a production
+resource-policy decision.
+
 ```sh
 docker pull vllm/vllm-openai@sha256:fc56161ee42a011aeee78b65d0a81b6683c7d04402fd40503d14d4d6c98f07cb
 mkdir -p ~/.config/bordercore ~/.local/bin
