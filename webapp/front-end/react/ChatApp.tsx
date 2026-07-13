@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronLeft, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import Modal from "./components/Modal";
 
-import { useChatStore, Switches } from "./stores/ChatStoreContext";
+import { useChatStore, ModelInfo, Switches } from "./stores/ChatStoreContext";
 import { doGet, doPost } from "./utils/reactUtils";
 import { convertBase64ToBytes } from "./utils/audio";
 import { animateCSS } from "./utils/animateCSS";
@@ -266,9 +266,11 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     return result ? result[attribute] : "";
   }
 
-  function getModelIcon(m: any) {
-    if (m.thinking) return "\uD83E\uDDE0";
-    if (m.qwen_vision) return "\uD83D\uDC41\uFE0F";
+  function getModelIcon(m: ModelInfo) {
+    const capabilities = [];
+    if (m.qwen_vision) capabilities.push("\uD83D\uDC41\uFE0F");
+    if (m.thinking) capabilities.push("\uD83E\uDDE0");
+    if (capabilities.length) return capabilities.join(" ");
     if (m.type === "api") return "\u2601\uFE0F";
     return "";
   }
