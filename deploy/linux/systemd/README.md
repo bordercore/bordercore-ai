@@ -47,28 +47,32 @@ systemctl --user enable --now qwen3-tts
 
 ### deepvirtual vLLM service
 
-The service runs one allow-listed AWQ checkpoint at a time on the loopback-only
+The service runs one allow-listed checkpoint at a time on the loopback-only
 OpenAI-compatible endpoint `http://127.0.0.1:8001/v1`. The included profiles
-cover Qwen3 8B/14B, Qwen2.5 7B Instruct/Coder, Qwen2.5-VL 3B/7B, and Llama 3
-Instruct; Qwen3 8B is the default. All use at most 55% of the RTX 3090's memory.
+cover Qwen3 8B/14B, Qwen3.5 4B/9B, Qwen2.5 7B Instruct/Coder,
+Qwen2.5-VL 3B/7B, and Llama 3 Instruct; Qwen3 8B is the default. Profiles use
+at most 55% of the RTX 3090's memory except Qwen3.5 9B AWQ, which needs 60% to
+leave usable KV cache after its mixed quantized and unquantized weights load.
 The Docker image is pinned by digest and currently contains vLLM 0.25.0 and
 Transformers 5.13.0. The unit persists vLLM's compilation cache under
 `~/.cache/vllm` so subsequent starts avoid recompiling unchanged model graphs.
 
 ### Model inventory and resource boundary
 
-A checkpoint is considered a comfortable single-GPU fit when it loads under
-the existing 55% RTX 3090 vLLM memory cap without CPU offload, tensor
-parallelism, or reduced context/concurrency settings. Every checkpoint meeting
+A checkpoint is considered a comfortable single-GPU fit when it loads with no
+more than 60% of the RTX 3090 under the standard 8K context and two-sequence
+settings, without CPU offload or tensor parallelism. Every checkpoint meeting
 that boundary has a managed profile and has passed an appropriate smoke test:
 
 | Checkpoint | Disk size | Managed | Smoke test |
 |------------|-----------|---------|------------|
 | Llama 3 Instruct AWQ | 5.4 GB | Yes | Text passed |
 | Qwen2.5-VL 3B Instruct AWQ | 6.4 GB | Yes | Vision passed |
+| Qwen3.5 4B BF16 | 8.8 GB | Yes | Text and vision passed |
 | Qwen2.5 7B Instruct AWQ | 11 GB | Yes | Text passed |
 | Qwen2.5 Coder 7B Instruct AWQ | 11 GB | Yes | Code passed |
 | Qwen3 8B AWQ | 12 GB | Yes | Text passed |
+| Qwen3.5 9B AWQ | 12 GB | Yes | Text and vision passed at 60% VRAM cap |
 | Qwen2.5-VL 7B Instruct AWQ | 13 GB | Yes | Vision passed |
 | Qwen3 14B AWQ | 19 GB | Yes | Text passed |
 
@@ -149,6 +153,11 @@ The additional profiles were verified with Qwen3 TTS inactive:
 | Qwen2.5 Coder to VL 7B | 152 seconds | 13,892 MiB | 1.60-second image request |
 | VL 7B to Qwen2.5 7B through Bordercore | 56 seconds | — | UI load and `/info` verified |
 | Qwen2.5 7B to default Qwen3 8B through Bordercore | 58 seconds | — | UI load and `/info` verified |
+| Qwen3 8B to Qwen3.5 4B BF16 | 189 seconds | 12,070 MiB | 0.24-second image request |
+| Qwen3.5 4B to Qwen3.5 9B AWQ trial and retry | 376 seconds | 13,120 MiB | 55% rejected; 60% passed in the same rollback window |
+| Qwen3 8B to Qwen3.5 4B through Bordercore | 219 seconds | — | UI load and `/info` verified |
+| Qwen3.5 4B to 9B AWQ through Bordercore | 241 seconds | — | UI load and `/info` verified |
+| Qwen3.5 9B AWQ to default Qwen3 8B through Bordercore | 98 seconds | — | UI load and `/info` verified |
 
 Stopping either text model returned total GPU use to approximately 2,959 MiB
 before the replacement started, demonstrating that its GPU allocation was
@@ -163,6 +172,39 @@ while vLLM names the same modules `visual`. Their profiles supply an
 checkpoints. The vision encoders remain unquantized and use FlashAttention; the
 language layers use AWQ with Marlin. Direct and Bordercore image tests correctly
 read the text from `logo.jpg` with both sizes.
+
+The Qwen3.5 profiles use their native unified vision-language architecture.
+The 4B BF16 and 9B AWQ profiles also correctly read `BORDERCORE AI` from
+`logo.jpg`; thinking was disabled for these short deterministic OCR checks.
+
+### Qwen3.6 27B GGUF trial
+
+Qwen3.6 27B does not fit the managed vLLM budget with the available AWQ
+checkpoint. It was instead validated as an exclusive-GPU llama.cpp trial using
+`unsloth/Qwen3.6-27B-GGUF` Q4_K_M and its F16 multimodal projector. The trial
+artifacts live under `~/model-trials/Qwen3.6-27B-GGUF`, outside the production
+`~/models` inventory. It used llama.cpp build 9982 (`99f3dc322`) from the
+official CUDA server image
+`sha256:7b3d7834fc7307cb54f24f8869b67bfff276404c416452a48d11321bc36a81be`.
+
+The server used full GPU layer offload, one sequence, and an 8K context. vLLM
+was stopped before launch and restored to Qwen3 8B afterward. Measured on
+deepvirtual on July 13, 2026:
+
+| Check | Result |
+|-------|--------|
+| Model and projector disk size | 17 GB |
+| Model ready | Approximately 9 seconds |
+| Idle / post-vision VRAM | 17,580 / 17,656 MiB |
+| Text generation | 40–43 tokens per second |
+| Deterministic text | Passed (`Qwen3.6 ready`) |
+| Vision OCR | Passed (`BORDERCORE AI`) |
+| Short multi-turn retention | Passed (`COBALT-7391`) |
+
+This checkpoint is deliberately not selectable in Bordercore yet. Production
+support needs cross-engine lifecycle management so choosing it stops vLLM,
+starts a pinned llama.cpp server, verifies identity and inference, and rolls
+back safely when returning to a managed vLLM model.
 
 To stop vLLM and remove its container without affecting the model files or
 other GPU services:

@@ -16,6 +16,24 @@ Qwen3-14B-AWQ-vLLM:
   api_key: not-needed
   thinking: true
   vllm_profile: Qwen3-14B-AWQ
+Qwen3.5-4B-vLLM:
+  name: Qwen3.5 4B
+  type: api
+  vendor: openai
+  base_url: http://127.0.0.1:8001/v1
+  api_key: not-needed
+  thinking: true
+  qwen_vision: true
+  vllm_profile: Qwen3.5-4B
+Qwen3.5-9B-AWQ-vLLM:
+  name: Qwen3.5 9B AWQ
+  type: api
+  vendor: openai
+  base_url: http://127.0.0.1:8001/v1
+  api_key: not-needed
+  thinking: true
+  qwen_vision: true
+  vllm_profile: Qwen3.5-9B-AWQ
 Qwen2.5-VL-3B-Instruct-AWQ-vLLM:
   name: Qwen2.5 VL 3B Instruct AWQ
   type: api
