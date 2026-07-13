@@ -135,6 +135,25 @@ class ChatBot():
             return False
         return "qwen" in self.model_name.lower()
 
+    def _uses_chat_template_thinking(self) -> bool:
+        """Return whether thinking is controlled through API template kwargs."""
+        return (
+            ChatBot.get_model_attribute(self.model_name, "thinking_control")
+            == "chat_template_kwargs"
+        )
+
+    def _add_chat_template_thinking(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Add the vLLM chat-template thinking flag without mutating callers."""
+        request_args = dict(args)
+        extra_body = dict(request_args.get("extra_body") or {})
+        template_kwargs = dict(extra_body.get("chat_template_kwargs") or {})
+        template_kwargs["enable_thinking"] = bool(
+            self.args.get("enable_thinking", False)
+        )
+        extra_body["chat_template_kwargs"] = template_kwargs
+        request_args["extra_body"] = extra_body
+        return request_args
+
     # Remove punctuation and whitespace from the end of the string.
     def sanitize_string(self, input_string: str) -> str:
         """
@@ -606,8 +625,11 @@ class ChatBot():
         if not isinstance(messages, list):
             messages = [{"role": "user", "content": messages}]
 
-        # Handle Qwen thinking mode control
-        if self._is_qwen_model():
+        # Qwen3.5 controls thinking through its chat template. Older Qwen
+        # checkpoints use the /no_think text command instead.
+        if self._uses_chat_template_thinking():
+            args = self._add_chat_template_thinking(args)
+        elif self._is_qwen_model():
             enable_thinking = self.args.get("enable_thinking", False)
             # Find the last user message and append /no_think if thinking is disabled
             # (thinking is enabled by default in Qwen models)

@@ -145,6 +145,9 @@ example-model.gguf:
 - **quantize: true** requests 4-bit bitsandbytes quantization for a compatible
   non-AWQ Transformers model; bitsandbytes must be installed separately.
 - **qwen_vision: true** enables Qwen vision request handling.
+- **thinking_control: chat_template_kwargs** sends the UI thinking toggle as a
+  structured chat-template option. Qwen3.5 requires this instead of the legacy
+  `/no_think` text command.
 - **do_sample: false** disables sampling via `temperature`, `top_p`, and `top_k`.
 - **add_bos_token: true** prepends a beginning-of-sequence token.
 

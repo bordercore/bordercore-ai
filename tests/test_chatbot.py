@@ -15,6 +15,58 @@ def test_sanitize_string():
     assert chatbot.sanitize_string("foobar ") == "foobar"
 
 
+@patch.dict(
+    "modules.chatbot.model_info",
+    {
+        "Qwen3.5-test-vLLM": {
+            "vendor": "openai",
+            "thinking_control": "chat_template_kwargs",
+        }
+    },
+)
+def test_qwen35_disables_thinking_without_modifying_prompt():
+    """Qwen3.5 receives structured thinking control instead of /no_think."""
+    chatbot = ChatBot(model_name="Qwen3.5-test-vLLM", enable_thinking=False)
+    chatbot.send_message_to_model_openai = MagicMock(return_value=iter(()))
+    messages = [{"role": "user", "content": "hey there, wassup?"}]
+
+    list(chatbot.send_message_to_model(messages, stream=True))
+
+    assert chatbot.context.get()[-1]["content"] == "hey there, wassup?"
+    chatbot.send_message_to_model_openai.assert_called_once_with(
+        {
+            "extra_body": {
+                "chat_template_kwargs": {"enable_thinking": False},
+            }
+        }
+    )
+
+
+@patch.dict(
+    "modules.chatbot.model_info",
+    {
+        "Qwen3.5-test-vLLM": {
+            "vendor": "openai",
+            "thinking_control": "chat_template_kwargs",
+        }
+    },
+)
+def test_qwen35_enables_thinking_with_chat_template_kwargs():
+    """The thinking toggle is forwarded as true for Qwen3.5 models."""
+    chatbot = ChatBot(model_name="Qwen3.5-test-vLLM", enable_thinking=True)
+    chatbot.send_message_to_model_openai = MagicMock(return_value=iter(()))
+
+    list(chatbot.send_message_to_model("explain this", stream=True))
+
+    chatbot.send_message_to_model_openai.assert_called_once_with(
+        {
+            "extra_body": {
+                "chat_template_kwargs": {"enable_thinking": True},
+            }
+        }
+    )
+
+
 def test_init_stt_if_enabled_enabled():
     """Returns WhisperMic instance when STT is enabled."""
     instance = ChatBot()
