@@ -1,5 +1,15 @@
 meta-llama_Meta-Llama-3.1-8B-Instruct:
   name: Llama 3.1 8B Instruct
+Gemma-4-12B-QAT-W4A16-vLLM:
+  name: Gemma 4 12B QAT
+  type: api
+  vendor: openai
+  base_url: http://127.0.0.1:8001/v1
+  api_key: not-needed
+  thinking: true
+  thinking_control: chat_template_kwargs
+  qwen_vision: true
+  vllm_profile: Gemma-4-12B-QAT-W4A16
 Qwen3-8B-AWQ-vLLM:
   name: Qwen3 8B AWQ
   type: api

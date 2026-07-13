@@ -50,10 +50,11 @@ systemctl --user enable --now qwen3-tts
 
 The service runs one allow-listed checkpoint at a time on the loopback-only
 OpenAI-compatible endpoint `http://127.0.0.1:8001/v1`. The included profiles
-cover Qwen3 8B/14B, Qwen3.5 4B/9B, Qwen3-VL 4B/8B, Qwen2.5 7B
-Instruct/Coder, and Llama 3 Instruct; Qwen3 8B is the default. Profiles use
-at most 55% of the RTX 3090's memory except Qwen3.5 9B AWQ, which needs 60% to
-leave usable KV cache after its mixed quantized and unquantized weights load.
+cover Gemma 4 12B, Qwen3 8B/14B, Qwen3.5 4B/9B, Qwen3-VL 4B/8B,
+Qwen2.5 7B Instruct/Coder, and Llama 3 Instruct; Qwen3 8B is the default.
+Profiles use at most 55% of the RTX 3090's memory except Qwen3.5 9B AWQ,
+which needs 60% to leave usable KV cache after its mixed quantized and
+unquantized weights load.
 The Docker image is pinned by digest and currently contains vLLM 0.25.0 and
 Transformers 5.13.0. The unit persists vLLM's compilation cache under
 `~/.cache/vllm` so subsequent starts avoid recompiling unchanged model graphs.
@@ -73,6 +74,7 @@ that boundary has a managed profile and has passed an appropriate smoke test:
 
 | Checkpoint | Disk size | Managed | Smoke test |
 |------------|-----------|---------|------------|
+| Gemma 4 12B QAT W4A16 | 9.6 GB | Yes | Text, vision, and thinking passed |
 | Llama 3 Instruct AWQ | 5.4 GB | Yes | Text passed |
 | Qwen3-VL 8B Instruct AWQ | 7.1 GB | Yes | Text and vision passed |
 | Qwen3-VL 4B Instruct BF16 | 8.3 GB | Yes | Text and vision passed |
@@ -184,6 +186,9 @@ The additional profiles were verified with Qwen3 TTS inactive:
 | Qwen3-VL 4B to 8B AWQ, first load | 142 seconds | 14,233 MiB | 0.10-second text; 1.09-second vision |
 | Qwen3-VL 8B to 4B through Bordercore | 138 seconds | 14,115 MiB | 1.72-second Bordercore vision request |
 | Qwen3-VL 4B to 8B through Bordercore | 150 seconds | 14,233 MiB | 1.19-second Bordercore vision request |
+| Qwen3-VL 8B to Gemma 4 12B QAT, first load | 159 seconds | 13,953 MiB | 0.13-second text; 1.09-second vision |
+| Gemma 4 12B QAT to Qwen3-VL 8B, cached | 85 seconds | 14,233 MiB | Identity and completion passed |
+| Qwen3-VL 8B to Gemma 4 12B QAT, cached | 112 seconds | 13,953 MiB | Identity and completion passed |
 
 Stopping either text model returned total GPU use to approximately 2,959 MiB
 before the replacement started, demonstrating that its GPU allocation was
@@ -203,6 +208,14 @@ sizes.
 The Qwen3.5 profiles use their native unified vision-language architecture.
 The 4B BF16 and 9B AWQ profiles also correctly read `BORDERCORE AI` from
 `logo.jpg`; thinking was disabled for these short deterministic OCR checks.
+
+The Gemma 4 profile uses Google's official
+`google/gemma-4-12B-it-qat-w4a16-ct` compressed-tensors checkpoint. It runs
+at the standard 55% memory cap with an 8K context and two-sequence limit.
+The profile enables vLLM's Gemma 4 reasoning parser so thinking is returned
+separately from visible answer content. Direct and Bordercore tests passed
+for text, reasoning, and vision; the image test correctly read
+`BORDERCORE AI` from `logo.jpg`.
 
 ### Qwen3.6 27B GGUF managed profile
 
