@@ -1,16 +1,17 @@
-# TTS systemd units
+# GPU service systemd units
 
-Three user-scope units, one per engine:
+User-scope units for the TTS engines and the deepvirtual vLLM trial:
 
-| Unit                        | Engine     | Host         | Python                                           |
+| Unit                        | Engine     | Host         | Runtime                                          |
 |-----------------------------|------------|--------------|--------------------------------------------------|
 | `kokoro-tts.service`        | Kokoro     | wumpus       | `~/dev/bordercoreai/.venv/bin/python`            |
 | `chatterbox-tts.service`    | Chatterbox | deepvirtual  | `~/dev/bordercoreai/tts/chatterbox_tts/.venv/bin/python` (isolated 3.11 venv) |
 | `qwen3-tts.service`         | Qwen3      | deepvirtual  | `~/dev/envs/bordercoreai/bin/python`             |
+| `vllm.service`              | vLLM       | deepvirtual  | Pinned `vllm/vllm-openai` Docker image           |
 
-All three listen on port 5001 and carry `Conflicts=` entries naming the other
-two, so starting one automatically stops the others (mutex). Only one engine
-runs at a time by design.
+The three TTS units listen on port 5001 and carry `Conflicts=` entries naming
+the other two, so starting one automatically stops the others (mutex). Only one
+TTS engine runs at a time by design.
 
 ## Install
 
@@ -44,6 +45,43 @@ systemctl --user daemon-reload
 systemctl --user enable --now qwen3-tts
 ```
 
+### deepvirtual vLLM trial
+
+The trial serves the existing `~/models/Qwen3-8B-AWQ` checkpoint as
+`Qwen3-8B-AWQ-vLLM` on the loopback-only OpenAI-compatible endpoint
+`http://127.0.0.1:8001/v1`. It uses at most 55% of the RTX 3090's memory so it
+can coexist with the current TTS and ComfyUI processes. The Docker image is
+pinned by digest and currently contains vLLM 0.25.0 and Transformers 5.13.0.
+The unit persists vLLM's compilation cache under `~/.cache/vllm` so subsequent
+starts avoid recompiling unchanged model graphs.
+
+```sh
+docker pull vllm/vllm-openai@sha256:fc56161ee42a011aeee78b65d0a81b6683c7d04402fd40503d14d4d6c98f07cb
+ln -s ~/dev/bordercoreai/deploy/linux/systemd/vllm.service \
+      ~/.config/systemd/user/vllm.service
+systemctl --user daemon-reload
+systemctl --user enable --now vllm
+```
+
+The first startup can take roughly two minutes on deepvirtual while the
+checkpoint loads and CUDA graphs compile. With the persisted cache, tested
+restart readiness was about one minute. Check readiness and issue a minimal
+request with:
+
+```sh
+curl http://127.0.0.1:8001/health
+curl http://127.0.0.1:8001/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"Qwen3-8B-AWQ-vLLM","messages":[{"role":"user","content":"Reply with: ready /no_think"}],"max_tokens":32}'
+```
+
+To stop the trial and remove its container without affecting the model files or
+other GPU services:
+
+```sh
+systemctl --user disable --now vllm
+```
+
 ## Day-to-day use
 
 ```sh
@@ -71,3 +109,6 @@ systemctl --user stop qwen3-tts
   actually want to run on each host. Extra files on disk are harmless.
 - `Conflicts=` is an explicit mutex; the port 5001 binding is an implicit
   backstop — if somehow both tried to start, the second would fail on bind.
+- The vLLM unit has no `Conflicts=` relationship with the TTS units. Its 55%
+  GPU-memory ceiling is intentionally conservative, but concurrent peak loads
+  should still be monitored during the trial.

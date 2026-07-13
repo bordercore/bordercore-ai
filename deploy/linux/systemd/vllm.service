@@ -1,0 +1,19 @@
+[Unit]
+Description=vLLM AWQ inference trial
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/docker rm -f bordercore-vllm
+ExecStartPre=/usr/bin/mkdir -p /home/jerrell/.cache/vllm
+ExecStart=/usr/bin/docker run --rm --name bordercore-vllm --gpus all --ipc=host -p 127.0.0.1:8001:8000 -v /home/jerrell/models:/models:ro -v /home/jerrell/.cache/vllm:/root/.cache/vllm vllm/vllm-openai@sha256:fc56161ee42a011aeee78b65d0a81b6683c7d04402fd40503d14d4d6c98f07cb /models/Qwen3-8B-AWQ --served-model-name Qwen3-8B-AWQ-vLLM --gpu-memory-utilization 0.55 --max-model-len 8192 --max-num-seqs 2 --generation-config vllm
+ExecStop=/usr/bin/docker stop -t 20 bordercore-vllm
+ExecStopPost=-/usr/bin/docker rm -f bordercore-vllm
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=300
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target
