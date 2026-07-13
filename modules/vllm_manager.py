@@ -14,6 +14,7 @@ MODEL_ENGINE_SWITCH_COMMAND = (
 # Retained for callers that imported the old constant.
 VLLM_SWITCH_COMMAND = MODEL_ENGINE_SWITCH_COMMAND
 VLLM_SWITCH_TIMEOUT_SECONDS = 900
+MODEL_ENGINE_UNLOAD_TIMEOUT_SECONDS = 120
 VLLM_PROFILE_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
 VLLM_STATUS_TIMEOUT_SECONDS = 2
 MANAGED_ENGINES = {"vllm", "llama-cpp"}
@@ -101,3 +102,30 @@ def switch_vllm_model(profile: str) -> str:
 def switch_llama_cpp_model(profile: str) -> str:
     """Switch to an allow-listed llama.cpp profile."""
     return switch_managed_model("llama-cpp", profile)
+
+
+def unload_managed_models() -> str:
+    """Stop every managed inference engine and release its GPU allocation."""
+    try:
+        result = subprocess.run(
+            [str(MODEL_ENGINE_SWITCH_COMMAND), "unload"],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=MODEL_ENGINE_UNLOAD_TIMEOUT_SECONDS,
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            f"Managed engine switch command not found: {MODEL_ENGINE_SWITCH_COMMAND}"
+        ) from exc
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("Timed out while unloading managed models") from exc
+
+    output = "\n".join(
+        part.strip() for part in (result.stdout, result.stderr) if part.strip()
+    )
+    if result.returncode != 0:
+        detail = output or f"unload command exited with status {result.returncode}"
+        raise RuntimeError(f"Unable to unload managed models: {detail}")
+
+    return output

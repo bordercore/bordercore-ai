@@ -12,6 +12,7 @@ from modules.vllm_manager import (
     switch_llama_cpp_model,
     switch_managed_model,
     switch_vllm_model,
+    unload_managed_models,
 )
 
 
@@ -114,3 +115,33 @@ def test_switch_managed_model_rejects_unknown_engine() -> None:
             switch_managed_model("shell", "Qwen3.6-27B-GGUF")
 
     run.assert_not_called()
+
+
+def test_unload_managed_models_invokes_shared_engine_manager() -> None:
+    """The application stops all managed engines through the host manager."""
+    completed = subprocess.CompletedProcess(
+        [], 0, stdout="Managed inference engines stopped\n", stderr=""
+    )
+
+    with patch("modules.vllm_manager.subprocess.run", return_value=completed) as run:
+        output = unload_managed_models()
+
+    assert output == "Managed inference engines stopped"
+    run.assert_called_once_with(
+        [str(MODEL_ENGINE_SWITCH_COMMAND), "unload"],
+        capture_output=True,
+        check=False,
+        text=True,
+        timeout=120,
+    )
+
+
+def test_unload_managed_models_reports_command_failure() -> None:
+    """Service-stop failures are surfaced instead of claiming the GPU is free."""
+    completed = subprocess.CompletedProcess(
+        [], 1, stdout="", stderr="vLLM is still active"
+    )
+
+    with patch("modules.vllm_manager.subprocess.run", return_value=completed):
+        with pytest.raises(RuntimeError, match="vLLM is still active"):
+            unload_managed_models()

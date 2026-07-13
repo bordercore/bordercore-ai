@@ -55,6 +55,7 @@ from modules.vllm_manager import (
     hide_managed_checkpoint_duplicates,
     switch_llama_cpp_model,
     switch_vllm_model,
+    unload_managed_models,
 )
 
 # warnings.filterwarnings("ignore", message=".*The 'nopython' keyword.*")
@@ -514,38 +515,71 @@ def info() -> Response:
     current_name = settings.model_name
     current_metadata = configured_models.get(current_name, {})
 
-    if current_metadata.get("vllm_profile") or current_metadata.get("llama_cpp_profile"):
-        managed_models = [(current_name, current_metadata)] + [
-            (name, metadata)
-            for name, metadata in configured_models.items()
-            if name != current_name
-            and (metadata.get("vllm_profile") or metadata.get("llama_cpp_profile"))
-        ]
-        checked_urls: set[str] = set()
-        for _, metadata in managed_models:
-            base_url = metadata.get("base_url")
-            if not isinstance(base_url, str) or base_url in checked_urls:
-                continue
-            checked_urls.add(base_url)
-            try:
-                active_name = get_active_vllm_model(base_url)
-                active_metadata = configured_models.get(active_name or "", {})
-                if active_name and (
-                    active_metadata.get("vllm_profile")
-                    or active_metadata.get("llama_cpp_profile")
-                ):
-                    current_name = active_name
-                    current_metadata = active_metadata
-                    settings.model_name = active_name
-                    break
-            except (requests.RequestException, ValueError) as e:
-                logger.debug("Managed model endpoint unavailable at %s: %s", base_url, e)
+    loaded_local_models: list[dict[str, str]] = []
+    active_managed_name: str | None = None
+    checked_urls: set[str] = set()
+    for metadata in configured_models.values():
+        profile = metadata.get("vllm_profile") or metadata.get("llama_cpp_profile")
+        base_url = metadata.get("base_url")
+        if not profile or not isinstance(base_url, str) or base_url in checked_urls:
+            continue
+        checked_urls.add(base_url)
+        try:
+            active_name = get_active_vllm_model(base_url)
+            active_metadata = configured_models.get(active_name or "", {})
+            if active_name and (
+                active_metadata.get("vllm_profile")
+                or active_metadata.get("llama_cpp_profile")
+            ):
+                active_managed_name = active_name
+                loaded_local_models.append(
+                    {
+                        "name": active_name,
+                        "display_name": active_metadata.get("name", active_name),
+                        "engine": (
+                            "vLLM"
+                            if active_metadata.get("vllm_profile")
+                            else "llama.cpp"
+                        ),
+                    }
+                )
+        except (requests.RequestException, ValueError) as e:
+            logger.debug("Managed model endpoint unavailable at %s: %s", base_url, e)
+
+    manager = app.config["model_manager"]
+    in_process_name = manager.get_loaded_model_name()
+    if in_process_name:
+        in_process_metadata = configured_models.get(in_process_name, {})
+        loaded_local_models.append(
+            {
+                "name": in_process_name,
+                "display_name": in_process_metadata.get("name", in_process_name),
+                "engine": "Transformers",
+            }
+        )
+
+    current_is_managed = bool(
+        current_metadata.get("vllm_profile")
+        or current_metadata.get("llama_cpp_profile")
+    )
+    if current_is_managed and active_managed_name:
+        current_name = active_managed_name
+        current_metadata = configured_models.get(current_name, {})
+        settings.model_name = current_name
+
+    current_is_hosted = current_metadata.get("type") == "api" and not current_is_managed
+    current_loaded = current_is_hosted or any(
+        model["name"] == current_name for model in loaded_local_models
+    )
 
     return jsonify({
         "name": current_name,
         "display_name": current_metadata.get("name", current_name),
+        "type": current_metadata.get("type"),
         "vllm_profile": current_metadata.get("vllm_profile"),
         "llama_cpp_profile": current_metadata.get("llama_cpp_profile"),
+        "loaded": current_loaded,
+        "loaded_local_models": loaded_local_models,
     })
 
 
@@ -613,6 +647,33 @@ def load() -> Response:
         response_data = {"status": "Error", "message": str(e)}
 
     return jsonify(response_data)
+
+
+@app.route("/unload", methods=["POST"])
+def unload() -> Response:
+    """Unload in-process and managed models so other GPU workloads can run."""
+    errors: list[str] = []
+    try:
+        app.config["model_manager"].unload()
+    except Exception as e:
+        logger.exception("Unable to unload the in-process model")
+        errors.append(str(e))
+
+    try:
+        output = unload_managed_models()
+        logger.info("Managed model unload completed: %s", output)
+    except Exception as e:
+        logger.exception("Unable to unload managed models")
+        errors.append(str(e))
+
+    if errors:
+        return jsonify({"status": "Error", "message": "; ".join(errors)})
+    return jsonify(
+        {
+            "status": "OK",
+            "message": "Local models unloaded; GPU memory is available.",
+        }
+    )
 
 
 # Source: https://github.com/openai/whisper/discussions/380#discussioncomment-3928648

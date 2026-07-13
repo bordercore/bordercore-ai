@@ -130,6 +130,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   const [copyIcon, setCopyIcon] = useState("copy");
   const [imageSrc, setImageSrc] = useState("");
   const [showProcessingModal, setShowProcessingModal] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState("Processing...");
+  const [showUnloadModal, setShowUnloadModal] = useState(false);
   const [showClipboardModal, setShowClipboardModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
@@ -299,6 +301,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       Boolean(getModelAttribute(modelName, "vllm_profile")) ||
       Boolean(getModelAttribute(modelName, "llama_cpp_profile"));
     if (requiresModelLoad) {
+      setProcessingMessage("Loading model...");
       setShowProcessingModal(true);
     }
     doPost(
@@ -316,6 +319,22 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           setTimeout(() => setShowProcessingModal(false), 500);
         }
       }
+    );
+  }
+
+  function handleConfirmUnload() {
+    setShowUnloadModal(false);
+    setProcessingMessage("Unloading local model...");
+    setShowProcessingModal(true);
+    doPost(
+      "/unload",
+      {},
+      () => {
+        getModelInfo();
+        setTimeout(() => setShowProcessingModal(false), 500);
+      },
+      "",
+      () => setTimeout(() => setShowProcessingModal(false), 500)
     );
   }
 
@@ -796,7 +815,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               onNewChat={handleNewChat}
               onStopGeneration={handleStopGeneration}
               onClipboardClick={handleClipboardClick}
-              inputIsDisabled={inputIsDisabled}
+              inputIsDisabled={inputIsDisabled || model.loaded === false}
               showRegenerate={showRegenerate}
               isGenerating={isGenerating}
               hasClipboard={!!clipboard}
@@ -813,13 +832,16 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               modelList={modelList}
               getModelIcon={getModelIcon}
               onChange={handleChangeModel}
+              loadedLocalModels={model.loaded_local_models || []}
+              onUnload={() => setShowUnloadModal(true)}
             />
-            {(model.vllm_profile || model.llama_cpp_profile) && (
-              <div style={{ marginTop: "0.35rem", fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                Active {model.vllm_profile ? "vLLM" : "llama.cpp"} profile:{" "}
-                {model.vllm_profile || model.llama_cpp_profile}
-              </div>
-            )}
+            <div className="model-runtime-status">
+              {model.loaded_local_models?.length
+                ? `Active: ${model.loaded_local_models
+                    .map(loadedModel => `${loadedModel.display_name} · ${loadedModel.engine}`)
+                    .join(", ")}`
+                : "No local model loaded — GPU available"}
+            </div>
           </div>
 
           <div className="sidebar-section sidebar-section--viz">
@@ -903,12 +925,42 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       {/* Processing Modal */}
       <Modal isOpen={showProcessingModal} onClose={() => setShowProcessingModal(false)} size="sm">
         <div className="flex items-center justify-center">
-          <div>Processing...</div>
+          <div>{processingMessage}</div>
           <div
             className="ml-2 h-5 w-5 animate-spin rounded-full border-2 border-bs-secondary border-t-transparent"
             role="status"
           >
             <span className="sr-only">Loading...</span>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Unload Model Confirmation */}
+      <Modal isOpen={showUnloadModal} onClose={() => setShowUnloadModal(false)} size="sm">
+        <div className="flex flex-col gap-3">
+          <h5 className="text-bs-info">Free GPU memory?</h5>
+          <p>
+            This will stop{" "}
+            {(model.loaded_local_models || [])
+              .map(loadedModel => loadedModel.display_name)
+              .join(", ") || "the active local model"}
+            . Select it again when you want to reload it.
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="rounded-md px-3 py-1 text-sm text-bs-secondary hover:bg-white/5"
+              onClick={() => setShowUnloadModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="rounded-md bg-bs-warning px-3 py-1 text-sm font-medium text-white hover:bg-bs-warning/80"
+              onClick={handleConfirmUnload}
+            >
+              Unload model
+            </button>
           </div>
         </div>
       </Modal>

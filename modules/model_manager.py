@@ -38,6 +38,7 @@ class ModelManager:
         Initialize the ModelManager with no model loaded.
         """
         self.inference: Inference | None = None
+        self.model_name: str | None = None
 
     def load(self, model_name: str) -> None:
         """
@@ -60,6 +61,7 @@ class ModelManager:
 
         self.inference = Inference(model_path=model_path, quantize=True)
         self.inference.load_model()
+        self.model_name = model_name
 
     def unload(self) -> None:
         """
@@ -68,8 +70,13 @@ class ModelManager:
         if self.inference:
             del self.inference.model
             self.inference = None
+            self.model_name = None
             gc.collect()
             torch.cuda.empty_cache()
+
+    def get_loaded_model_name(self) -> str | None:
+        """Return the local checkpoint currently held in process, if any."""
+        return self.model_name
 
     def get_model(self) -> Any | None:
         """

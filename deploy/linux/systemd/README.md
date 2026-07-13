@@ -134,6 +134,7 @@ List profiles, inspect the active engine, or switch across engines with:
 ```sh
 model-engine list
 model-engine status
+model-engine unload
 model-engine switch llama-cpp Qwen3.6-27B-GGUF
 model-engine switch vllm Qwen3.5-9B-AWQ
 ```
@@ -141,6 +142,12 @@ model-engine switch vllm Qwen3.5-9B-AWQ
 `vllm-model` remains available for vLLM-only administration. Bordercore uses
 `model-engine`, so selecting a managed model in the UI safely crosses the
 engine boundary when necessary.
+
+`model-engine unload` stops both managed inference services without changing
+their selected profiles. The Bordercore model picker exposes the same operation
+as **Unload local model**, also clearing any in-process Transformers model. The
+UI keeps the current selection but disables chat until that local model is
+loaded again; hosted API models remain usable while the GPU is free.
 
 Switching stops the current container first, which unloads its weights and KV
 cache from GPU memory. The command then selects the requested profile, starts

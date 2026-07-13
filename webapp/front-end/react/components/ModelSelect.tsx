@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { ModelInfo } from "../stores/ChatStoreContext";
+import { LoadedLocalModel, ModelInfo } from "../stores/ChatStoreContext";
 
 interface ModelSelectProps {
   value: string;
   modelList: ModelInfo[];
   getModelIcon: (model: ModelInfo) => string;
   onChange: (modelName: string) => void;
+  loadedLocalModels: LoadedLocalModel[];
+  onUnload: () => void;
 }
 
 export default function ModelSelect({
@@ -13,6 +15,8 @@ export default function ModelSelect({
   modelList,
   getModelIcon,
   onChange,
+  loadedLocalModels,
+  onUnload,
 }: ModelSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -49,6 +53,11 @@ export default function ModelSelect({
     }
   }
 
+  function unloadModels() {
+    setIsOpen(false);
+    onUnload();
+  }
+
   return (
     <div className="model-select-wrapper" ref={wrapperRef}>
       <button
@@ -70,27 +79,35 @@ export default function ModelSelect({
       </button>
 
       {isOpen && (
-        <div className="model-dropdown-menu" role="listbox">
-          {modelList.map(model => (
-            <div
-              key={model.model}
-              className={`model-dropdown-item${model.model === value ? " is-active" : ""}`}
-              role="option"
-              aria-selected={model.model === value}
-              tabIndex={0}
-              onClick={() => selectModel(model)}
-              onKeyDown={e => handleKeydown(e, model)}
-            >
-              <div className="model-option-content">
-                <span className="model-option-name">{model.name}</span>
-                {getModelIcon(model) && (
-                  <span className="model-option-icon">
-                    <span className="emoji-icon">{getModelIcon(model)}</span>
-                  </span>
-                )}
+        <div className="model-dropdown-menu">
+          <div className="model-dropdown-options" role="listbox">
+            {modelList.map(model => (
+              <div
+                key={model.model}
+                className={`model-dropdown-item${model.model === value ? " is-active" : ""}`}
+                role="option"
+                aria-selected={model.model === value}
+                tabIndex={0}
+                onClick={() => selectModel(model)}
+                onKeyDown={e => handleKeydown(e, model)}
+              >
+                <div className="model-option-content">
+                  <span className="model-option-name">{model.name}</span>
+                  {getModelIcon(model) && (
+                    <span className="model-option-icon">
+                      <span className="emoji-icon">{getModelIcon(model)}</span>
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          {loadedLocalModels.length > 0 && (
+            <button className="model-unload-action" type="button" onClick={unloadModels}>
+              <span>Unload local model{loadedLocalModels.length > 1 ? "s" : ""}</span>
+              <small>Free GPU memory</small>
+            </button>
+          )}
         </div>
       )}
     </div>

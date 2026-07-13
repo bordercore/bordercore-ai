@@ -23,6 +23,7 @@ usage() {
     cat <<'EOF'
 Usage: model-engine list [vllm|llama-cpp]
        model-engine status
+       model-engine unload
        model-engine switch vllm MODEL
        model-engine switch llama-cpp MODEL
 EOF
@@ -136,6 +137,16 @@ show_status() {
     printf 'engine: %s\n' "$engine"
     printf 'vllm profile: %s\n' "${vllm_profile:+$(basename "$vllm_profile" .env)}"
     printf 'llama-cpp profile: %s\n' "${llama_profile:+$(basename "$llama_profile" .env)}"
+}
+
+unload_models() {
+    printf 'Stopping managed inference engines...\n'
+    systemctl --user stop "$vllm_service" "$llama_service"
+    if systemctl --user is-active --quiet "$vllm_service" \
+        || systemctl --user is-active --quiet "$llama_service"; then
+        die "a managed inference engine is still active"
+    fi
+    printf 'Managed inference engines stopped; GPU memory is available.\n'
 }
 
 restore_llama() {
@@ -269,6 +280,12 @@ case "$command" in
     status)
         [[ $# -eq 1 ]] || die "status takes no arguments"
         show_status
+        ;;
+    unload)
+        [[ $# -eq 1 ]] || die "unload takes no arguments"
+        exec 9>"$config_dir/model-engine-switch.lock"
+        flock -n 9 || die "another cross-engine model switch is already running"
+        unload_models
         ;;
     switch)
         [[ $# -eq 3 ]] || die "switch requires an engine and model profile"

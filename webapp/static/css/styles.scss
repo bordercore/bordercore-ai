@@ -603,12 +603,16 @@ body {
   top: 100%;
   right: 0;
   left: 0;
-  max-height: 300px;
+  overflow: hidden;
   border: 1px solid var(--border-accent);
   border-radius: 0.65rem;
   margin-top: 4px;
   background: var(--bg-surface-raised);
   box-shadow: 0 8px 32px rgb(0 0 0 / 50%);
+}
+
+.model-dropdown-options {
+  max-height: 260px;
   overflow-y: auto;
 }
 
@@ -647,6 +651,40 @@ body {
 
 .model-option-icon {
   margin-left: auto;
+}
+
+.model-unload-action {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0.6rem 0.75rem;
+  border: 0;
+  border-top: 1px solid var(--border-accent);
+  background: rgb(255 170 0 / 5%);
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+
+  &:hover, &:focus-visible {
+    background: rgb(255 170 0 / 12%);
+    color: var(--accent-cyan);
+    outline: none;
+  }
+
+  small {
+    margin-top: 0.1rem;
+    color: var(--text-muted);
+    font-size: 0.68rem;
+  }
+}
+
+.model-runtime-status {
+  margin-top: 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  line-height: 1.35;
 }
 
 // ─── Thinking Icon ───────────────────────────────────────────

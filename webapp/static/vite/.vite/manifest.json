@@ -20,7 +20,7 @@
     "name": "three"
   },
   "front-end/entries/chatbot.tsx": {
-    "file": "dist/js/chatbot-ClgtOexP.js",
+    "file": "dist/js/chatbot-2aR3Jh-c.js",
     "name": "dist/js/chatbot",
     "src": "front-end/entries/chatbot.tsx",
     "isEntry": true,
@@ -40,20 +40,20 @@
       "local/optional.js"
     ],
     "css": [
-      "chatbot-D3MNriw7.css"
+      "chatbot-f8ZC7pX3.css"
     ]
   },
   "front-end/entries/styles-css.js": {
-    "file": "dist/css/styles-bi3Sk43C.js",
+    "file": "dist/css/styles-qX-ZePk-.js",
     "name": "dist/css/styles",
     "src": "front-end/entries/styles-css.js",
     "isEntry": true,
     "css": [
-      "styles-jfENGHx9.css"
+      "styles-7oPltUC0.css"
     ]
   },
   "front-end/react/components/CursorLines.tsx": {
-    "file": "assets/CursorLines-BWSU-JP3.js",
+    "file": "assets/CursorLines-CAtMjdTO.js",
     "name": "CursorLines",
     "src": "front-end/react/components/CursorLines.tsx",
     "isDynamicEntry": true,
@@ -67,7 +67,7 @@
     ]
   },
   "front-end/react/components/GpuOrb.tsx": {
-    "file": "assets/GpuOrb-cRRzZf5d.js",
+    "file": "assets/GpuOrb-CQfUiyKW.js",
     "name": "GpuOrb",
     "src": "front-end/react/components/GpuOrb.tsx",
     "isDynamicEntry": true,
@@ -82,7 +82,7 @@
     ]
   },
   "front-end/react/components/NexusViz.tsx": {
-    "file": "assets/NexusViz-o8rOMXoH.js",
+    "file": "assets/NexusViz-CDgV76cq.js",
     "name": "NexusViz",
     "src": "front-end/react/components/NexusViz.tsx",
     "isDynamicEntry": true,
@@ -96,7 +96,7 @@
     ]
   },
   "front-end/react/components/Starfield.tsx": {
-    "file": "assets/Starfield-DdMaXlvD.js",
+    "file": "assets/Starfield-BQkervcO.js",
     "name": "Starfield",
     "src": "front-end/react/components/Starfield.tsx",
     "isDynamicEntry": true,
@@ -110,7 +110,7 @@
     ]
   },
   "front-end/react/components/WaveformViz.tsx": {
-    "file": "assets/WaveformViz-lVLM4prL.js",
+    "file": "assets/WaveformViz-DQxBuwdK.js",
     "name": "WaveformViz",
     "src": "front-end/react/components/WaveformViz.tsx",
     "isDynamicEntry": true,
@@ -124,7 +124,7 @@
     ]
   },
   "local/optional.js": {
-    "file": "assets/optional-CKtd5Oy5.js",
+    "file": "assets/optional-Bog73Cpz.js",
     "name": "optional",
     "src": "local/optional.js",
     "isDynamicEntry": true,

@@ -70,12 +70,20 @@ function loadWaitingAnimation(): WaitingAnimation {
     : "tokenStream";
 }
 
+export interface LoadedLocalModel {
+  name: string;
+  display_name: string;
+  engine: string;
+}
+
 export interface ModelInfo {
   name: string;
   model?: string;
   type?: string;
   thinking?: boolean;
   qwen_vision?: boolean | null;
+  loaded?: boolean;
+  loaded_local_models?: LoadedLocalModel[];
   [key: string]: any;
 }
 

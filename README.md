@@ -24,6 +24,11 @@ vLLM and llama.cpp loopback APIs, with health checks and rollback. See
 [`deploy/linux/systemd/README.md`](deploy/linux/systemd/README.md) for the
 current profile inventory and deepvirtual service setup.
 
+When a local model is active, the model picker includes an **Unload local
+model** action. It stops managed inference services and releases in-process
+weights so the GPU can be used by other workloads. The selected model remains
+visible and can be selected again to reload it.
+
 ## Text to Speech (TTS)
 
 Three TTS engines are supported: [Kokoro](https://kokorottsai.com/), [Chatterbox](https://github.com/resemble-ai/chatterbox), and [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base).
