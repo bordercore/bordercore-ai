@@ -12,7 +12,10 @@ def test_model_manager_tracks_and_clears_loaded_checkpoint() -> None:
 
     with (
         patch("modules.model_manager.get_model_info", return_value={"local": {}}),
-        patch("modules.model_manager.Inference", return_value=inference),
+        patch("modules.model_manager.settings.model_dir", "/models", create=True),
+        patch(
+            "modules.model_manager.Inference", return_value=inference
+        ) as inference_class,
         patch("modules.model_manager.gc.collect") as collect,
         patch("modules.model_manager.torch.cuda.empty_cache") as empty_cache,
     ):
@@ -21,6 +24,9 @@ def test_model_manager_tracks_and_clears_loaded_checkpoint() -> None:
 
         assert manager.get_loaded_model_name() == "local"
         assert manager.get_model() is inference.model
+        inference_class.assert_called_once_with(
+            model_path="/models/local", quantize=True
+        )
         inference.load_model.assert_called_once_with()
 
         manager.unload()
