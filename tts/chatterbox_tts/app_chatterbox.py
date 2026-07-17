@@ -21,35 +21,109 @@ import argparse
 import hashlib
 import io
 import os
+from pathlib import Path
+import tempfile
 import time
 from typing import Iterator
 
 import numpy as np
 import soundfile as sf
 from chatterbox.tts_turbo import ChatterboxTurboTTS
-from flask import Flask, Response, request, stream_with_context
+from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
+from flask.typing import ResponseReturnValue
+
+from chatterbox_tts.voice_profiles import (
+    SUPPORTED_AUDIO_EXTENSIONS,
+    list_profiles,
+    resolve_profile,
+    validate_profile_name,
+)
 
 # Set up command line argument parser
 parser = argparse.ArgumentParser(description="Chatterbox-Turbo TTS audio generator")
-parser.add_argument("--audio_prompt", dest="audio_prompt", default=None,
-                    help="Default reference audio path for voice cloning")
-parser.add_argument("--debug", dest="debug", action="store_true", default=False,
-                    help="Enable debug mode for saving audio files")
-parser.add_argument("--device", dest="device", default="cuda",
-                    help="Device to use for inference (cuda/cpu)")
+parser.add_argument(
+    "--audio_prompt", dest="audio_prompt", default=None, help="Default reference audio path for voice cloning"
+)
+parser.add_argument(
+    "--debug", dest="debug", action="store_true", default=False, help="Enable debug mode for saving audio files"
+)
+parser.add_argument("--device", dest="device", default="cuda", help="Device to use for inference (cuda/cpu)")
+parser.add_argument(
+    "--voice-profile-dir",
+    default=os.environ.get(
+        "CHATTERBOX_VOICE_DIR",
+        str(Path.home() / ".local/share/chatterbox_tts/voices"),
+    ),
+    help="Directory used to store named voice reference samples",
+)
 args = parser.parse_args()
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024
 CORS(app)
 
 # Get values from command line args
 AUDIO_PROMPT = args.audio_prompt
 DEBUG = args.debug
 DEVICE = args.device
+VOICE_PROFILE_DIR = Path(args.voice_profile_dir).expanduser().resolve()
+VOICE_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Load the model
 model = ChatterboxTurboTTS.from_pretrained(device=DEVICE)
+
+
+@app.route("/voices", methods=["GET"])
+def get_voice_profiles() -> Response:
+    """List the voice profiles available to this server."""
+    return jsonify({"voices": list_profiles(VOICE_PROFILE_DIR)})
+
+
+@app.route("/voices", methods=["POST"])
+def create_voice_profile() -> ResponseReturnValue:
+    """Create a named voice profile from a multipart audio upload."""
+    try:
+        name = validate_profile_name(request.form.get("name", ""))
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+
+    audio = request.files.get("audio")
+    if audio is None or not audio.filename:
+        return jsonify({"error": "Missing multipart 'audio' file."}), 400
+
+    extension = Path(audio.filename).suffix.lower()
+    if extension not in SUPPORTED_AUDIO_EXTENSIONS:
+        supported = ", ".join(sorted(SUPPORTED_AUDIO_EXTENSIONS))
+        return jsonify({"error": f"Unsupported audio type. Use: {supported}"}), 400
+
+    if resolve_profile(VOICE_PROFILE_DIR, name) is not None:
+        return jsonify({"error": f"Voice profile '{name}' already exists."}), 409
+
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=VOICE_PROFILE_DIR, suffix=extension, delete=False) as temporary_file:
+            temporary_path = Path(temporary_file.name)
+            audio.save(temporary_file)
+
+        # Reject corrupt or unreadable files before making the profile visible.
+        audio_info = sf.info(temporary_path)
+        if audio_info.duration <= 5:
+            raise ValueError("Voice samples must be longer than 5 seconds.")
+        destination = VOICE_PROFILE_DIR / f"{name}{extension}"
+        temporary_path.replace(destination)
+    except (OSError, RuntimeError, ValueError) as error:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+        return jsonify({"error": f"Invalid audio file: {error}"}), 400
+
+    return jsonify(
+        {
+            "name": name,
+            "filename": destination.name,
+            "size": destination.stat().st_size,
+        }
+    ), 201
 
 
 @app.route("/", methods=["GET"])
@@ -64,6 +138,8 @@ def generate_tts_audio() -> Response:
         [laugh], [cough], [chuckle]
     audio_prompt : str, optional
         Path to reference audio for voice cloning. Overrides default.
+    voice : str, optional
+        Name of an uploaded voice profile. Takes precedence over audio_prompt.
 
     Returns
     -------
@@ -76,8 +152,18 @@ def generate_tts_audio() -> Response:
     if not text:
         return Response("Missing 'text' query parameter", status=400)
 
-    # Use request audio_prompt if provided, otherwise fall back to default
-    audio_prompt_path = payload.get("audio_prompt", AUDIO_PROMPT)
+    voice = payload.get("voice")
+    if voice:
+        try:
+            profile_path = resolve_profile(VOICE_PROFILE_DIR, voice)
+        except ValueError as error:
+            return Response(str(error), status=400)
+        if profile_path is None:
+            return Response(f"Unknown voice profile: {voice}", status=404)
+        audio_prompt_path = str(profile_path)
+    else:
+        # Preserve direct server-side paths for backwards compatibility.
+        audio_prompt_path = payload.get("audio_prompt", AUDIO_PROMPT)
 
     if DEBUG:
         # Create a filename based on timestamp and a hash of the text
@@ -121,8 +207,7 @@ def generate_tts_audio() -> Response:
                 break
             yield data
 
-    return Response(stream_with_context(generate_audio_chunks()),
-                    mimetype="audio/wav")
+    return Response(stream_with_context(generate_audio_chunks()), mimetype="audio/wav")
 
 
 if __name__ == "__main__":
