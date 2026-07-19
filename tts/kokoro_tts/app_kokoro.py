@@ -15,16 +15,21 @@ Usage:
 
 import argparse
 import hashlib
-import io
 import os
+import threading
 import time
 from typing import Iterator
 
 import numpy as np
-import soundfile as sf
 from flask import Flask, Response, request, stream_with_context
 from flask_cors import CORS
 from kokoro import KPipeline
+
+from .streaming_audio import (
+    SAMPLE_RATE,
+    float_audio_to_pcm16,
+    streaming_wav_header,
+)
 
 # Set up command line argument parser
 parser = argparse.ArgumentParser(description="TTS audio generator")
@@ -34,7 +39,7 @@ parser.add_argument("--tts_speed", dest="tts_speed", type=float, default=1.0,
                     help="Speed of TTS voice")
 parser.add_argument("--debug", dest="debug", action="store_true", default=False,
                     help="Voice to use for TTS")
-args = parser.parse_args()
+args, _unknown_args = parser.parse_known_args()
 
 app = Flask(__name__)
 CORS(app)
@@ -46,6 +51,7 @@ DEBUG = args.debug
 
 # Load the model
 pipeline = KPipeline(lang_code="a")  # <= make sure lang_code matches voice
+pipeline_lock = threading.Lock()
 
 
 @app.route("/", methods=["GET"])
@@ -76,43 +82,45 @@ def generate_tts_audio() -> Response:
     # Set up streaming response
     def generate_audio_chunks() -> Iterator[bytes]:
         """
-        Yield fixed-size chunks (**1024 bytes**) from an in-memory WAV buffer.
-
-        The Kokoro pipeline first creates individual chunks, which are then
-        concatenated into a single NumPy array, written to an in-memory WAV
-        buffer, and finally streamed back to the caller.
+        Yield a WAV header followed by PCM as Kokoro produces each audio chunk.
         """
-        # Generate, display, and save audio files in a loop.
-        generator = pipeline(
-            payload["text"],
-            voice=TTS_VOICE,
-            speed=TTS_SPEED,
-            split_pattern=r"\n+"
-        )
-        all_audio_data = []
-        for _, _, chunk in generator:
-            audio_data = chunk.squeeze().cpu().numpy()
-            all_audio_data.append(audio_data)
+        text = payload.get("text", "").strip()
+        if not text:
+            return
 
-        # Concatenate into one array
-        combined_audio_data = np.concatenate(all_audio_data) if all_audio_data else np.array([], dtype=np.float32)
+        # These endpoint-specific names avoid accidentally treating voice.wav
+        # profiles intended for another TTS engine as Kokoro voice identifiers.
+        voice = payload.get("kokoro_voice", TTS_VOICE)
+        try:
+            speed = float(payload.get("kokoro_speed", TTS_SPEED))
+        except (TypeError, ValueError):
+            speed = TTS_SPEED
+        speed = min(max(speed, 0.5), 2.0)
 
-        # Save the WAV file to disk
-        if DEBUG:
-            sf.write(save_path, combined_audio_data, 24000, format="WAV")
+        yield streaming_wav_header()
+        debug_audio: list[np.ndarray] = []
 
-        # Write data to an in-memory buffer as a single WAV
-        wav_buffer = io.BytesIO()
-        sf.write(wav_buffer, combined_audio_data, 24000, format="WAV")
-        wav_buffer.seek(0)
+        # KPipeline is shared by all Flask requests. Serialize inference so two
+        # clients cannot mutate/use the underlying model concurrently.
+        with pipeline_lock:
+            generator = pipeline(
+                text,
+                voice=voice,
+                speed=speed,
+                split_pattern=r"(?<=[.!?])\s+|\n+",
+            )
+            for _, _, chunk in generator:
+                audio_data = chunk.squeeze().detach().cpu().numpy().astype(np.float32)
+                if DEBUG:
+                    debug_audio.append(audio_data)
+                pcm = float_audio_to_pcm16(audio_data)
+                for offset in range(0, len(pcm), 4096):
+                    yield pcm[offset : offset + 4096]
 
-        # Stream the buffer to the client
-        chunk_size = 1024
-        while True:
-            data = wav_buffer.read(chunk_size)
-            if not data:
-                break
-            yield data
+        if DEBUG and debug_audio:
+            import soundfile as sf
+
+            sf.write(save_path, np.concatenate(debug_audio), SAMPLE_RATE, format="WAV")
 
     return Response(stream_with_context(generate_audio_chunks()),
                     mimetype="audio/wav")

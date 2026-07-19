@@ -37,8 +37,12 @@ from chatterbox_tts.voice_profiles import (
     SUPPORTED_AUDIO_EXTENSIONS,
     list_profiles,
     resolve_profile,
+    resolve_profile_from_directories,
     validate_profile_name,
 )
+
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+REPO_VOICES_DIR = REPO_ROOT / "voices"
 
 # Set up command line argument parser
 parser = argparse.ArgumentParser(description="Chatterbox-Turbo TTS audio generator")
@@ -155,7 +159,9 @@ def generate_tts_audio() -> Response:
     voice = payload.get("voice")
     if voice:
         try:
-            profile_path = resolve_profile(VOICE_PROFILE_DIR, voice)
+            profile_path = resolve_profile_from_directories(
+                (VOICE_PROFILE_DIR, REPO_VOICES_DIR), voice
+            )
         except ValueError as error:
             return Response(str(error), status=400)
         if profile_path is None:

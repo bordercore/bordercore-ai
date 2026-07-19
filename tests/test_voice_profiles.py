@@ -5,6 +5,7 @@ import pytest
 from tts.chatterbox_tts.voice_profiles import (
     list_profiles,
     resolve_profile,
+    resolve_profile_from_directories,
     validate_profile_name,
 )
 
@@ -28,3 +29,18 @@ def test_list_and_resolve_profiles(tmp_path: Path) -> None:
     assert list_profiles(tmp_path) == [{"name": "narrator", "filename": "narrator.wav", "size": 5}]
     assert resolve_profile(tmp_path, "narrator") == voice
     assert resolve_profile(tmp_path, "missing") is None
+
+
+def test_resolve_profile_from_directories_uses_first_match(tmp_path: Path) -> None:
+    uploaded = tmp_path / "uploaded"
+    bundled = tmp_path / "bundled"
+    uploaded.mkdir()
+    bundled.mkdir()
+    bundled_voice = bundled / "narrator.wav"
+    bundled_voice.write_bytes(b"bundled")
+
+    assert resolve_profile_from_directories((uploaded, bundled), "narrator") == bundled_voice
+
+    uploaded_voice = uploaded / "narrator.mp3"
+    uploaded_voice.write_bytes(b"uploaded")
+    assert resolve_profile_from_directories((uploaded, bundled), "narrator") == uploaded_voice

@@ -1,6 +1,7 @@
 """Filesystem-backed voice profiles for the Chatterbox service."""
 
 import re
+from collections.abc import Iterable
 from pathlib import Path
 
 
@@ -38,3 +39,12 @@ def resolve_profile(directory: Path, name: str) -> Path | None:
         if path.is_file() and path.suffix.lower() in SUPPORTED_AUDIO_EXTENSIONS
     ]
     return sorted(matches)[0] if matches else None
+
+
+def resolve_profile_from_directories(directories: Iterable[Path], name: str) -> Path | None:
+    """Resolve a profile name from the first directory containing it."""
+    for directory in directories:
+        profile = resolve_profile(directory, name)
+        if profile is not None:
+            return profile
+    return None

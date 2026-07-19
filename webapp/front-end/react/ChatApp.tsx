@@ -341,6 +341,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   }
 
   function handleNewChat() {
+    audioHook.pauseAudio();
     setChatHistory([chatHistory[0]]);
     setClipboard(null);
     setUrl("");
@@ -639,11 +640,16 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       ...args,
     };
 
+    audioHook.startTTSResponse(switches.text2speech, ttsHost, ttsVoice, audioSpeed);
+    let latestVisibleContent = "";
+
     sendMessage(payload, {
       chatEndpoint,
       controlValue,
       onStreamStart: () => {},
       onStreamChunk: (cleanedContent: string) => {
+        latestVisibleContent = cleanedContent;
+        audioHook.appendTTSResponse(cleanedContent);
         setChatHistory(prev => {
           const updated = [...prev];
           updated[updated.length - 1] = {
@@ -653,7 +659,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           return updated;
         });
       },
-      onStreamEnd: (result: string, buffer: string) => {
+      onStreamEnd: (_result: string, buffer: string) => {
         // Handle control payloads
         if (
           buffer.slice(0, controlValue.length) === controlValue &&
@@ -675,6 +681,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               });
             }
           } else if (jsonObject?.content && jsonObject?.lights) {
+            latestVisibleContent = jsonObject.content;
             setChatHistory(prev => {
               const updated = [...prev];
               updated[updated.length - 1] = {
@@ -686,7 +693,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           }
         }
 
-        audioHook.doTTS(result, switches.text2speech, ttsHost, ttsVoice, audioSpeed);
+        audioHook.finishTTSResponse(latestVisibleContent);
       },
       onStreamError: (err: Error) => {
         setError({ body: "Error communicating with webapp.", variant: "danger" });
