@@ -1,7 +1,11 @@
 import React from "react";
 import Switch from "react-switch";
 import Slider from "./Slider";
-import { VisualizationType, WaitingAnimation } from "../stores/ChatStoreContext";
+import {
+  GpuTelemetryVisualization,
+  VisualizationType,
+  WaitingAnimation,
+} from "../stores/ChatStoreContext";
 
 const VISUALIZATION_OPTIONS: { value: VisualizationType; label: string }[] = [
   { value: "gpuOrb", label: "GPU Orb" },
@@ -22,6 +26,13 @@ const WAITING_ANIMATION_OPTIONS: { value: WaitingAnimation; label: string }[] = 
   { value: "radarSweep", label: "Radar Sweep" },
 ];
 
+const GPU_TELEMETRY_OPTIONS: { value: GpuTelemetryVisualization; label: string }[] = [
+  { value: "neonPulseReactor", label: "Neon Pulse Reactor" },
+  { value: "gpuSignalScanner", label: "GPU Signal Scanner" },
+  { value: "thermalPowerCore", label: "Thermal Power Core" },
+  { value: "neuralActivityConstellation", label: "Neural Activity Constellation" },
+];
+
 interface PreferencesMenuProps {
   show: boolean;
   temperature: number;
@@ -36,6 +47,8 @@ interface PreferencesMenuProps {
   voiceList: string[];
   visualization: VisualizationType;
   onVisualizationChange: (value: VisualizationType) => void;
+  gpuTelemetryVisualization: GpuTelemetryVisualization;
+  onGpuTelemetryVisualizationChange: (value: GpuTelemetryVisualization) => void;
   waitingAnimation: WaitingAnimation;
   onWaitingAnimationChange: (value: WaitingAnimation) => void;
   cursorEffect: boolean;
@@ -66,6 +79,8 @@ export default function PreferencesMenu({
   voiceList,
   visualization,
   onVisualizationChange,
+  gpuTelemetryVisualization,
+  onGpuTelemetryVisualizationChange,
   waitingAnimation,
   onWaitingAnimationChange,
   cursorEffect,
@@ -188,6 +203,25 @@ export default function PreferencesMenu({
             aria-label="Visualization style"
           >
             {VISUALIZATION_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+            GPU Telemetry
+          </div>
+          <select
+            className="waiting-animation-select"
+            value={gpuTelemetryVisualization}
+            onChange={e =>
+              onGpuTelemetryVisualizationChange(e.target.value as GpuTelemetryVisualization)
+            }
+            aria-label="GPU telemetry visualization"
+          >
+            {GPU_TELEMETRY_OPTIONS.map(option => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>

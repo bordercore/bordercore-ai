@@ -16,6 +16,9 @@ import ModelSelect from "./components/ModelSelect";
 import ThinkingIcon from "./components/ThinkingIcon";
 import SentinelOrb from "./components/SentinelOrb";
 import NeonPulseReactor from "./components/NeonPulseReactor";
+import GpuSignalScanner from "./components/GpuSignalScanner";
+import ThermalPowerCore from "./components/ThermalPowerCore";
+import NeuralActivityConstellation from "./components/NeuralActivityConstellation";
 import AuroraBackground from "./components/AuroraBackground";
 
 // Decorative / opt-in visualizations are code-split so initial load
@@ -60,6 +63,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     setSwitches,
     visualization,
     setVisualization,
+    gpuTelemetryVisualization,
+    setGpuTelemetryVisualization,
     temperature,
     setTemperature,
     audioSpeed,
@@ -895,7 +900,18 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               onToggle={handleToggleSwitch}
               onSensorToggle={handleSensorToggle}
             />
-            <NeonPulseReactor active={Boolean(model.loaded_local_models?.length)} />
+            {gpuTelemetryVisualization === "neonPulseReactor" && (
+              <NeonPulseReactor active={Boolean(model.loaded_local_models?.length)} />
+            )}
+            {gpuTelemetryVisualization === "gpuSignalScanner" && (
+              <GpuSignalScanner active={Boolean(model.loaded_local_models?.length)} />
+            )}
+            {gpuTelemetryVisualization === "thermalPowerCore" && (
+              <ThermalPowerCore active={Boolean(model.loaded_local_models?.length)} />
+            )}
+            {gpuTelemetryVisualization === "neuralActivityConstellation" && (
+              <NeuralActivityConstellation active={Boolean(model.loaded_local_models?.length)} />
+            )}
           </div>
         </div>
       </div>
@@ -926,6 +942,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           voiceList={session.voice_list || []}
           visualization={visualization}
           onVisualizationChange={setVisualization}
+          gpuTelemetryVisualization={gpuTelemetryVisualization}
+          onGpuTelemetryVisualizationChange={setGpuTelemetryVisualization}
           waitingAnimation={waitingAnimation}
           onWaitingAnimationChange={setWaitingAnimation}
           cursorEffect={cursorEffect}

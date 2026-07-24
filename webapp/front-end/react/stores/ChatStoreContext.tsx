@@ -25,6 +25,27 @@ export interface Switches {
 
 export type VisualizationType = "gpuOrb" | "thinkingIcon" | "nexus" | "waveform" | "sentinelOrb";
 
+export type GpuTelemetryVisualization =
+  | "neonPulseReactor"
+  | "gpuSignalScanner"
+  | "thermalPowerCore"
+  | "neuralActivityConstellation";
+
+const GPU_TELEMETRY_VISUALIZATIONS: GpuTelemetryVisualization[] = [
+  "neonPulseReactor",
+  "gpuSignalScanner",
+  "thermalPowerCore",
+  "neuralActivityConstellation",
+];
+
+function loadGpuTelemetryVisualization(): GpuTelemetryVisualization {
+  if (typeof window === "undefined") return "neonPulseReactor";
+  const saved = window.localStorage.getItem("gpuTelemetryVisualization");
+  return GPU_TELEMETRY_VISUALIZATIONS.includes(saved as GpuTelemetryVisualization)
+    ? (saved as GpuTelemetryVisualization)
+    : "neonPulseReactor";
+}
+
 const VISUALIZATIONS: VisualizationType[] = [
   "gpuOrb",
   "thinkingIcon",
@@ -105,6 +126,8 @@ interface ChatStoreContextType {
   setSwitches: (switches: Switches) => void;
   visualization: VisualizationType;
   setVisualization: (v: VisualizationType) => void;
+  gpuTelemetryVisualization: GpuTelemetryVisualization;
+  setGpuTelemetryVisualization: (v: GpuTelemetryVisualization) => void;
   temperature: number;
   setTemperature: (temp: number) => void;
   audioSpeed: number;
@@ -199,6 +222,8 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   const [visualization, setVisualization] = useState<VisualizationType>(() =>
     loadVisualization(session.visualization || "gpuOrb")
   );
+  const [gpuTelemetryVisualization, setGpuTelemetryVisualization] =
+    useState<GpuTelemetryVisualization>(loadGpuTelemetryVisualization);
   const [temperature, setTemperature] = useState(session.temperature || 0.7);
   const [audioSpeed, setAudioSpeed] = useState(session.audio_speed || 1);
   const [ttsHost, setTtsHost] = useState<string>(() => {
@@ -268,6 +293,9 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
     window.localStorage.setItem("visualization", visualization);
   }, [visualization]);
   useEffect(() => {
+    window.localStorage.setItem("gpuTelemetryVisualization", gpuTelemetryVisualization);
+  }, [gpuTelemetryVisualization]);
+  useEffect(() => {
     window.localStorage.setItem("ttsVoice", ttsVoice);
   }, [ttsVoice]);
   useEffect(() => {
@@ -336,6 +364,8 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       setSwitches,
       visualization,
       setVisualization,
+      gpuTelemetryVisualization,
+      setGpuTelemetryVisualization,
       temperature,
       setTemperature,
       audioSpeed,
@@ -410,6 +440,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       modelList,
       switches,
       visualization,
+      gpuTelemetryVisualization,
       temperature,
       audioSpeed,
       ttsHost,

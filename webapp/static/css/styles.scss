@@ -742,7 +742,10 @@ body {
   text-transform: uppercase;
 }
 
-.neon-reactor {
+.neon-reactor,
+.gpu-signal-scanner,
+.thermal-power-core,
+.neural-activity-constellation {
   position: relative;
   overflow: hidden;
   padding: 0.7rem;
@@ -774,7 +777,10 @@ body {
   }
 }
 
-.neon-reactor__header {
+.neon-reactor__header,
+.gpu-signal-scanner__header,
+.thermal-power-core__header,
+.neural-activity-constellation__header {
   position: relative;
   z-index: 1;
   display: flex;
@@ -788,16 +794,25 @@ body {
   text-transform: uppercase;
 }
 
-.neon-reactor__live {
+.neon-reactor__live,
+.gpu-signal-scanner__live,
+.thermal-power-core__live,
+.neural-activity-constellation__live {
   color: var(--accent-green);
   text-shadow: 0 0 7px rgb(52 211 153 / 75%);
 }
 
-.neon-reactor__idle {
+.neon-reactor__idle,
+.gpu-signal-scanner__idle,
+.thermal-power-core__idle,
+.neural-activity-constellation__idle {
   color: var(--text-muted);
 }
 
-.neon-reactor__canvas {
+.neon-reactor__canvas,
+.gpu-signal-scanner__canvas,
+.thermal-power-core__canvas,
+.neural-activity-constellation__canvas {
   display: block;
   width: 100%;
   height: 220px;
