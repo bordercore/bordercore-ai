@@ -36,9 +36,14 @@ from typing import Any, Iterator
 
 import numpy as np
 import torch
-from flask import Flask, Response, request
+from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
 from qwen_tts import Qwen3TTSModel
+
+try:
+    from capabilities import build_tts_capabilities
+except ModuleNotFoundError:  # Imported as tts.qwen3_tts from the repository root.
+    from tts.capabilities import build_tts_capabilities
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 VOICES_DIR = REPO_ROOT / "voices"
@@ -195,6 +200,35 @@ model = Qwen3TTSModel.from_pretrained(
     dtype=torch.bfloat16,
     attn_implementation="flash_attention_2",
 )
+
+
+def available_voices() -> list[str]:
+    """Return extension-free voice names accepted by resolve_audio_prompt()."""
+    return sorted(
+        {
+            path.stem
+            for path in VOICES_DIR.iterdir()
+            if path.is_file() and path.suffix.lower() in AUDIO_EXTENSIONS
+        }
+    ) if VOICES_DIR.is_dir() else []
+
+
+@app.route("/capabilities", methods=["GET"])
+def get_capabilities() -> Response:
+    """Report the versioned Qwen3-TTS feature and voice inventory."""
+    voices = available_voices()
+    default_candidate = Path(AUDIO_PROMPT).stem if AUDIO_PROMPT else None
+    default_voice = default_candidate if default_candidate in voices else None
+    return jsonify(
+        build_tts_capabilities(
+            engine="qwen3-tts",
+            sample_rate=24000,
+            voices=voices,
+            default_voice=default_voice,
+            supports_speed=False,
+            supports_cloning=True,
+        )
+    )
 
 
 @app.route("/", methods=["GET"])

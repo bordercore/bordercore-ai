@@ -6,6 +6,7 @@ import {
   VisualizationType,
   WaitingAnimation,
 } from "../stores/ChatStoreContext";
+import { TtsCapabilityState } from "../utils/ttsCapabilities";
 
 const VISUALIZATION_OPTIONS: { value: VisualizationType; label: string }[] = [
   { value: "gpuOrb", label: "GPU Orb" },
@@ -44,6 +45,8 @@ interface PreferencesMenuProps {
   ttsHostPresets: Array<{ label: string; host: string }>;
   ttsVoice: string;
   onTtsVoiceChange: (value: string) => void;
+  ttsCapabilities: TtsCapabilityState;
+  onRefreshTtsCapabilities: () => void;
   asrIdleTimeoutMinutes: number | null;
   onAsrIdleTimeoutChange: (value: number | null) => void;
   voiceList: string[];
@@ -78,6 +81,8 @@ export default function PreferencesMenu({
   ttsHostPresets,
   ttsVoice,
   onTtsVoiceChange,
+  ttsCapabilities,
+  onRefreshTtsCapabilities,
   asrIdleTimeoutMinutes,
   onAsrIdleTimeoutChange,
   voiceList,
@@ -229,6 +234,40 @@ export default function PreferencesMenu({
             </select>
             <span className="pref-hint">Which TTS service to hit</span>
           </div>
+          <div
+            className="pref-hint"
+            role="status"
+            aria-live="polite"
+            style={{
+              alignItems: "center",
+              color:
+                ttsCapabilities.readiness === "ready"
+                  ? "var(--accent-green)"
+                  : ttsCapabilities.readiness === "failed"
+                    ? "var(--accent-pink)"
+                    : "var(--text-muted)",
+              display: "flex",
+              gap: "0.45rem",
+              marginTop: "0.35rem",
+            }}
+          >
+            <span>{ttsCapabilities.message}</span>
+            <button
+              type="button"
+              onClick={onRefreshTtsCapabilities}
+              aria-label="Refresh TTS server capabilities"
+              title="Refresh TTS server capabilities"
+              style={{
+                background: "transparent",
+                border: 0,
+                color: "inherit",
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              ↻
+            </button>
+          </div>
         </div>
         <div>
           <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
@@ -239,6 +278,7 @@ export default function PreferencesMenu({
               className="w-full rounded-lg border border-border-subtle bg-bg-input px-3 py-2 text-sm text-txt-primary focus:border-accent-cyan focus:outline-none"
               value={ttsVoice}
               onChange={e => onTtsVoiceChange(e.target.value)}
+              disabled={ttsCapabilities.readiness === "loading" || voiceList.length === 0}
             >
               {voiceList.length === 0 && <option value="">(no voices found)</option>}
               {ttsVoice && !voiceList.includes(ttsVoice) && (
@@ -250,7 +290,11 @@ export default function PreferencesMenu({
                 </option>
               ))}
             </select>
-            <span className="pref-hint">Reference voice for cloning TTS (ignored by Kokoro)</span>
+            <span className="pref-hint">
+              {ttsCapabilities.capabilities?.supports_cloning
+                ? "Voice-cloning profile reported by this server"
+                : "Built-in voice reported by this server"}
+            </span>
           </div>
         </div>
         <hr className="divider" />

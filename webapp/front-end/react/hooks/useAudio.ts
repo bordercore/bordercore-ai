@@ -33,7 +33,13 @@ export default function useAudio(options: UseAudioOptions) {
       doNotSpeakPatterns: session.tts_do_not_speak_patterns ?? [],
     })
   );
-  const ttsConfigRef = useRef({ speak: false, host: "", voice: "", audioSpeed: 1 });
+  const ttsConfigRef = useRef({
+    speak: false,
+    host: "",
+    voice: "",
+    audioSpeed: 1,
+    engine: "",
+  });
   // Fallback AudioContext used when the AudioMotionAnalyzer isn't present
   // (its canvas-container element isn't rendered in the current UI, so
   // audioMotionRef.current is usually null). Lazily initialized on first
@@ -97,15 +103,16 @@ export default function useAudio(options: UseAudioOptions) {
   }, []);
 
   const synthesizeSegment = useCallback(async (response: string, sessionId: number) => {
-    const { host: ttsHost, voice, audioSpeed } = ttsConfigRef.current;
+    const { host: ttsHost, voice, audioSpeed, engine } = ttsConfigRef.current;
     if (!response.trim() || sessionId !== ttsSessionRef.current) return;
     console.debug("[TTS] normalized segment", { sessionId, text: response });
     const outputFile = "stream_output.wav";
     // The UI stores reference-audio filenames, while profile-based engines
     // address those same voices by their extension-free profile name. Qwen
-    // also resolves a bare stem, and Kokoro ignores this generic parameter.
+    // also resolves a bare stem; Kokoro uses its own kokoro_voice parameter.
     const voiceProfile = voice.replace(/^.*[\\/]/, "").replace(/\.(wav|mp3|flac|ogg)$/i, "");
-    const url = `${ttsHost}/?text=${encodeURIComponent(response)}&voice=${encodeURIComponent(voiceProfile)}&language=en&output_file=${outputFile}`;
+    const voiceParameter = engine === "kokoro" ? "kokoro_voice" : "voice";
+    const url = `${ttsHost}/?text=${encodeURIComponent(response)}&${voiceParameter}=${encodeURIComponent(voiceProfile)}&language=en&output_file=${outputFile}`;
 
     // Prefer the analyzer's AudioContext if it exists (so visualization
     // stays hooked up); otherwise fall back to a lazily-created context.
@@ -264,9 +271,9 @@ export default function useAudio(options: UseAudioOptions) {
   );
 
   const startTTSResponse = useCallback(
-    (speak: boolean, ttsHost: string, voice: string, audioSpeed: number) => {
+    (speak: boolean, ttsHost: string, voice: string, audioSpeed: number, engine: string) => {
       cancelTTSPlayback();
-      ttsConfigRef.current = { speak, host: ttsHost, voice, audioSpeed };
+      ttsConfigRef.current = { speak, host: ttsHost, voice, audioSpeed, engine };
     },
     [cancelTTSPlayback]
   );

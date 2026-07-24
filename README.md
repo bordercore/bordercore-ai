@@ -66,6 +66,38 @@ Responses can also mark explicit omissions with
 `<nospeak>...</nospeak>`, `<tts-ignore>...</tts-ignore>`, or paired
 `<!-- tts-ignore-start -->` and `<!-- tts-ignore-end -->` comments.
 
+### TTS capability discovery
+
+Each maintained TTS service exposes `GET /capabilities` with a versioned
+contract describing its engine, readiness, streaming audio format, sample
+rate, voices, default voice, speed support, and voice-cloning support:
+
+```json
+{
+  "api_version": 1,
+  "engine": "kokoro",
+  "status": "ready",
+  "streaming": true,
+  "audio_format": "wav_pcm_s16le",
+  "sample_rate": 24000,
+  "voices": ["af_heart", "bf_emma"],
+  "default_voice": "bf_emma",
+  "supports_speed": true,
+  "supports_cloning": false
+}
+```
+
+The browser queries this endpoint whenever the selected TTS host changes,
+caches successful responses for 30 seconds, and provides a manual refresh
+control in Preferences. The Voice menu is populated from the selected server,
+so profiles from one engine are not sent to another. Readiness is shown as
+loading, ready, degraded, or failed.
+
+Older and custom TTS servers remain compatible. A missing or incompatible
+capability endpoint produces a degraded state and falls back to the voice list
+provided by the main web application. Network and server failures are shown
+without discarding that fallback list.
+
 ## Speech to Text (STT)
 
 Speech recognition uses Hugging Face Transformers with
@@ -326,9 +358,10 @@ The hamburger menu to the upper-right lets you adjust:
   temperature parameter so the selected model or provider uses its native
   behavior.
 - **Audio Speed**: Playback speed of the TTS audio.
-- **TTS Host**: Hostname and port for the TTS server.
-- **Voice**: Reference voice used by voice-cloning TTS engines; Kokoro ignores
-  this setting.
+- **TTS Host**: Select the TTS server and view its discovered engine and
+  readiness state.
+- **Voice**: Select a built-in voice or cloning profile reported by the active
+  TTS server.
 - **Visualization**: Choose the primary thinking/audio visualization.
 - **GPU Telemetry**: Choose the GPU activity visualization.
 - **Waiting Animation**: Choose the animation shown while waiting for a

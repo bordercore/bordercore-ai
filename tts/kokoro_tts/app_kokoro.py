@@ -21,9 +21,14 @@ import time
 from typing import Iterator
 
 import numpy as np
-from flask import Flask, Response, request, stream_with_context
+from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
 from kokoro import KPipeline
+
+try:
+    from capabilities import build_tts_capabilities
+except ModuleNotFoundError:  # Imported as tts.kokoro_tts from the repository root.
+    from tts.capabilities import build_tts_capabilities
 
 from .streaming_audio import (
     SAMPLE_RATE,
@@ -52,6 +57,29 @@ DEBUG = args.debug
 # Load the model
 pipeline = KPipeline(lang_code="a")  # <= make sure lang_code matches voice
 pipeline_lock = threading.Lock()
+
+KOKORO_VOICES = [
+    "af_alloy", "af_aoede", "af_bella", "af_heart", "af_jessica",
+    "af_kore", "af_nicole", "af_nova", "af_river", "af_sarah", "af_sky",
+    "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael",
+    "am_onyx", "am_puck", "am_santa", "bf_alice", "bf_emma", "bf_isabella",
+    "bf_lily", "bm_daniel", "bm_fable", "bm_george", "bm_lewis",
+]
+
+
+@app.route("/capabilities", methods=["GET"])
+def get_capabilities() -> Response:
+    """Report the versioned Kokoro feature and voice inventory."""
+    return jsonify(
+        build_tts_capabilities(
+            engine="kokoro",
+            sample_rate=SAMPLE_RATE,
+            voices=KOKORO_VOICES,
+            default_voice=TTS_VOICE,
+            supports_speed=True,
+            supports_cloning=False,
+        )
+    )
 
 
 @app.route("/", methods=["GET"])

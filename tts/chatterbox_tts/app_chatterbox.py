@@ -33,6 +33,10 @@ from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
 from flask.typing import ResponseReturnValue
 
+try:
+    from capabilities import build_tts_capabilities
+except ModuleNotFoundError:  # Imported as tts.chatterbox_tts from the repository root.
+    from tts.capabilities import build_tts_capabilities
 from chatterbox_tts.voice_profiles import (
     SUPPORTED_AUDIO_EXTENSIONS,
     list_profiles,
@@ -78,10 +82,42 @@ VOICE_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
 model = ChatterboxTurboTTS.from_pretrained(device=DEVICE)
 
 
+def available_voice_profiles() -> list[dict[str, int | str]]:
+    """Return metadata for every profile accepted by the synthesis endpoint."""
+    profiles: dict[str, dict[str, int | str]] = {}
+    for profile in list_profiles(VOICE_PROFILE_DIR) + list_profiles(REPO_VOICES_DIR):
+        name = str(profile["name"])
+        profiles.setdefault(name, profile)
+    return [profiles[name] for name in sorted(profiles)]
+
+
+def available_voices() -> list[str]:
+    """Return every accepted profile name for the capability contract."""
+    return [str(profile["name"]) for profile in available_voice_profiles()]
+
+
+@app.route("/capabilities", methods=["GET"])
+def get_capabilities() -> Response:
+    """Report the versioned Chatterbox feature and voice inventory."""
+    voices = available_voices()
+    default_candidate = Path(AUDIO_PROMPT).stem if AUDIO_PROMPT else None
+    default_voice = default_candidate if default_candidate in voices else None
+    return jsonify(
+        build_tts_capabilities(
+            engine="chatterbox",
+            sample_rate=int(model.sr),
+            voices=voices,
+            default_voice=default_voice,
+            supports_speed=False,
+            supports_cloning=True,
+        )
+    )
+
+
 @app.route("/voices", methods=["GET"])
 def get_voice_profiles() -> Response:
     """List the voice profiles available to this server."""
-    return jsonify({"voices": list_profiles(VOICE_PROFILE_DIR)})
+    return jsonify({"voices": available_voice_profiles()})
 
 
 @app.route("/voices", methods=["POST"])

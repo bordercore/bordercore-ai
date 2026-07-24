@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef, useState, Suspense, lazy } from "react";
+import React, { useEffect, useCallback, useMemo, useRef, useState, Suspense, lazy } from "react";
 import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronLeft, faChevronRight } from "@fortawesome/free-solid-svg-icons";
@@ -37,6 +37,7 @@ import ToastContainer from "./components/Toast";
 
 import useStreamingChat from "./hooks/useStreamingChat";
 import useAudio from "./hooks/useAudio";
+import useTtsCapabilities from "./hooks/useTtsCapabilities";
 import useVAD from "./hooks/useVAD";
 import useSensor from "./hooks/useSensor";
 import useClipboardPaste from "./hooks/useClipboardPaste";
@@ -164,6 +165,37 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     onSpeechResult: handleSpeechResult,
     setNotice,
   });
+  const fallbackTtsVoices = useMemo(() => session.voice_list || [], [session.voice_list]);
+  const ttsCapabilities = useTtsCapabilities(ttsHost, fallbackTtsVoices);
+
+  useEffect(() => {
+    const voices = ttsCapabilities.voices;
+    if (
+      ttsCapabilities.resolvedHost !== ttsHost ||
+      ttsCapabilities.readiness !== "ready" ||
+      voices.length === 0
+    ) {
+      return;
+    }
+
+    const selectedStem = ttsVoice.replace(/^.*[\\/]/, "").replace(/\.[^.]+$/, "");
+    if (voices.includes(ttsVoice) || voices.includes(selectedStem)) {
+      if (ttsVoice !== selectedStem && voices.includes(selectedStem)) {
+        setTtsVoice(selectedStem);
+      }
+      return;
+    }
+
+    setTtsVoice(ttsCapabilities.capabilities?.default_voice || voices[0]);
+  }, [
+    ttsCapabilities.readiness,
+    ttsCapabilities.resolvedHost,
+    ttsCapabilities.voices,
+    ttsCapabilities.capabilities,
+    ttsHost,
+    ttsVoice,
+    setTtsVoice,
+  ]);
 
   const vadHook = useVAD({
     audioMotionRef: audioHook.audioMotionRef,
@@ -678,7 +710,13 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     };
     if (temperature !== null) payload.temperature = temperature;
 
-    audioHook.startTTSResponse(switches.text2speech, ttsHost, ttsVoice, audioSpeed);
+    audioHook.startTTSResponse(
+      switches.text2speech,
+      ttsHost,
+      ttsVoice,
+      audioSpeed,
+      ttsCapabilities.resolvedHost === ttsHost ? ttsCapabilities.capabilities?.engine || "" : ""
+    );
     let latestVisibleContent = "";
 
     sendMessage(payload, {
@@ -971,9 +1009,11 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           ttsHostPresets={session.tts_host_presets || []}
           ttsVoice={ttsVoice}
           onTtsVoiceChange={setTtsVoice}
+          ttsCapabilities={ttsCapabilities}
+          onRefreshTtsCapabilities={ttsCapabilities.refresh}
           asrIdleTimeoutMinutes={asrIdleTimeoutMinutes}
           onAsrIdleTimeoutChange={setAsrIdleTimeoutMinutes}
-          voiceList={session.voice_list || []}
+          voiceList={ttsCapabilities.voices}
           visualization={visualization}
           onVisualizationChange={setVisualization}
           gpuTelemetryVisualization={gpuTelemetryVisualization}
