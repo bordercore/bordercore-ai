@@ -53,6 +53,7 @@ body {
   flex-direction: column;
   padding: 0.75rem;
   gap: 0.75rem;
+  isolation: isolate;
 }
 
 // ─── Top Header ──────────────────────────────────────────────
@@ -208,6 +209,13 @@ body {
   backdrop-filter: blur(18px);
   background: rgb(13 19 49 / var(--panel-opacity));
   box-shadow: var(--shadow-panel);
+}
+
+.cyberspace-active {
+  .app-header,
+  .panel-card {
+    backdrop-filter: none;
+  }
 }
 
 // ─── Left Panel (Chat) ──────────────────────────────────────
@@ -1499,7 +1507,7 @@ media-volume-range {
   pointer-events: none;
 }
 
-// ─── Ambient Background (aurora + starfield) ───────────────
+// ─── Ambient Background (cyberspace + starfield) ───────────
 .aurora-canvas {
   position: fixed;
   z-index: -2;
@@ -1507,6 +1515,43 @@ media-volume-range {
   height: 100vh;
   inset: 0;
   pointer-events: none;
+}
+
+.cyberspace-flythrough {
+  position: fixed;
+  z-index: -2;
+  width: 100vw;
+  height: 100vh;
+  background: #010712;
+  filter: brightness(0.72) saturate(0.82);
+  inset: 0;
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+.cyberspace-flythrough canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.cyberspace-horizon,
+.cyberspace-vignette {
+  position: absolute;
+  inset: 0;
+}
+
+.cyberspace-horizon {
+  background:
+    radial-gradient(ellipse 8% 38% at 50% 52%, rgb(92 209 255 / 24%), transparent 72%),
+    linear-gradient(90deg, transparent 44%, rgb(13 138 220 / 4%) 49%, rgb(108 218 255 / 9%) 50%, rgb(13 138 220 / 4%) 51%, transparent 56%);
+  mix-blend-mode: screen;
+}
+
+.cyberspace-vignette {
+  background:
+    linear-gradient(180deg, rgb(0 4 12 / 28%), transparent 24%, transparent 70%, rgb(0 3 10 / 45%)),
+    radial-gradient(ellipse at center, transparent 34%, rgb(0 3 10 / 42%) 100%);
 }
 
 .starfield-canvas {
