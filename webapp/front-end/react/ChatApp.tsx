@@ -223,6 +223,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     if (prev.speech2text !== switches.speech2text) {
       if (switches.speech2text) {
         audioHook.handleListen(true);
+      } else {
+        audioHook.handleListen(false);
       }
     }
 

@@ -15,7 +15,9 @@ export default function useAudio(options: UseAudioOptions) {
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const audioMotionRef = useRef<AudioMotionAnalyzer | null>(null);
   const micStreamRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const microphoneStreamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const microphoneEnabledRef = useRef(false);
   const audioChunksRef = useRef<Blob[]>([]);
   // TTS playback is driven by the Web Audio API (fetch → PCM → scheduled
   // AudioBufferSourceNodes). We keep handles to the active fetch and the
@@ -279,15 +281,39 @@ export default function useAudio(options: UseAudioOptions) {
     [enqueueSegments]
   );
 
+  const stopMicrophoneStream = useCallback(() => {
+    if (audioMotionRef.current && micStreamRef.current) {
+      try {
+        audioMotionRef.current.disconnectInput(micStreamRef.current, true);
+      } catch {
+        /* already disconnected */
+      }
+    }
+    microphoneStreamRef.current?.getTracks().forEach(track => track.stop());
+    microphoneStreamRef.current = null;
+    micStreamRef.current = null;
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder?.state === "recording") {
+      recorder.stop();
+    } else {
+      stopMicrophoneStream();
+      setNotice("");
+    }
+  }, [setNotice, stopMicrophoneStream]);
+
   const handleListen = useCallback(
     (microPhoneOn: boolean) => {
+      microphoneEnabledRef.current = microPhoneOn;
+
       if (!microPhoneOn) {
-        if (audioMotionRef.current && micStreamRef.current) {
-          audioMotionRef.current.disconnectInput(micStreamRef.current, true);
-        }
+        stopRecording();
         return;
       }
 
+      audioChunksRef.current = [];
       setNotice("Listening...");
       if (audioMotionRef.current) {
         audioMotionRef.current.gradient = "rainbow";
@@ -296,6 +322,13 @@ export default function useAudio(options: UseAudioOptions) {
       navigator.mediaDevices
         .getUserMedia({ audio: true, video: false })
         .then(stream => {
+          if (!microphoneEnabledRef.current) {
+            stream.getTracks().forEach(track => track.stop());
+            setNotice("");
+            return;
+          }
+
+          microphoneStreamRef.current = stream;
           connectStream(stream);
 
           const recorder = new MediaRecorder(stream);
@@ -307,31 +340,44 @@ export default function useAudio(options: UseAudioOptions) {
           };
 
           recorder.onstop = () => {
-            setNotice("");
-            const blob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+            stopMicrophoneStream();
+            mediaRecorderRef.current = null;
+
+            const chunks = audioChunksRef.current;
+            audioChunksRef.current = [];
+            const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+            if (blob.size === 0) {
+              setNotice("");
+              return;
+            }
+
             const formData = new FormData();
-            formData.append("audio", blob);
+            formData.append("audio", blob, "speech.webm");
             setNotice("Waiting for speech to text");
 
-            axios.post("/speech2text", formData).then(response => {
-              setNotice("");
-              onSpeechResult(response.data.input);
-              audioChunksRef.current = [];
-            });
+            axios
+              .post("/speech2text", formData)
+              .then(response => {
+                onSpeechResult(response.data.input);
+                if (!microphoneEnabledRef.current) setNotice("");
+              })
+              .catch(error => {
+                console.error("Speech-to-text request failed:", error);
+                setNotice("Speech to text failed");
+                window.setTimeout(() => {
+                  if (!microphoneEnabledRef.current) setNotice("");
+                }, 2000);
+              });
           };
         })
         .catch(err => {
+          microphoneEnabledRef.current = false;
+          setNotice("");
           alert("Microphone access denied by user: " + err);
         });
     },
-    [connectStream, onSpeechResult, setNotice]
+    [connectStream, onSpeechResult, setNotice, stopMicrophoneStream, stopRecording]
   );
-
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      mediaRecorderRef.current.stop();
-    }
-  }, []);
 
   const pauseAudio = useCallback(() => {
     cancelTTSPlayback();
