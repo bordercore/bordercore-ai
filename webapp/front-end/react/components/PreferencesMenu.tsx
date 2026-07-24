@@ -44,6 +44,8 @@ interface PreferencesMenuProps {
   ttsHostPresets: Array<{ label: string; host: string }>;
   ttsVoice: string;
   onTtsVoiceChange: (value: string) => void;
+  asrIdleTimeoutMinutes: number | null;
+  onAsrIdleTimeoutChange: (value: number | null) => void;
   voiceList: string[];
   visualization: VisualizationType;
   onVisualizationChange: (value: VisualizationType) => void;
@@ -76,6 +78,8 @@ export default function PreferencesMenu({
   ttsHostPresets,
   ttsVoice,
   onTtsVoiceChange,
+  asrIdleTimeoutMinutes,
+  onAsrIdleTimeoutChange,
   voiceList,
   visualization,
   onVisualizationChange,
@@ -113,6 +117,30 @@ export default function PreferencesMenu({
         Preferences
       </h4>
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+            Speech Recognition Idle Timeout
+          </div>
+          <select
+            className="waiting-animation-select"
+            value={asrIdleTimeoutMinutes === null ? "none" : asrIdleTimeoutMinutes}
+            onChange={event =>
+              onAsrIdleTimeoutChange(
+                event.target.value === "none" ? null : Number(event.target.value)
+              )
+            }
+            aria-label="Speech recognition idle timeout"
+          >
+            <option value={5}>5 minutes</option>
+            <option value={15}>15 minutes</option>
+            <option value={30}>30 minutes</option>
+            <option value={60}>1 hour</option>
+            <option value="none">No timeout</option>
+          </select>
+          <div className="pref-hint" style={{ marginTop: "0.35rem" }}>
+            Releases Whisper GPU memory after this much inactivity
+          </div>
+        </div>
         <div>
           <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
             Temperature

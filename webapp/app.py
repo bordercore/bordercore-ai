@@ -44,6 +44,7 @@ from flask_session import Session  # type: ignore[attr-defined]
 import settings
 
 logger = logging.getLogger(__name__)
+from modules.asr_service import SpeechTranscriptionService
 from modules.audio import Audio
 from modules.chatbot import CONTROL_VALUE, ChatBot
 from modules.model_manager import ModelManager
@@ -98,6 +99,11 @@ app.config["SESSION_TYPE"] = "filesystem"
 app.request_class = LargeRequest
 app.config["model_manager"] = ModelManager()
 app.config["model_manager"].load(settings.model_name)
+app.config["asr_service"] = SpeechTranscriptionService(
+    model_name=getattr(settings, "asr_model", Audio.DEFAULT_MODEL),
+    device=getattr(settings, "asr_device", "auto"),
+    idle_timeout_minutes=getattr(settings, "asr_idle_timeout_minutes", 15),
+)
 
 Session(app)  # Initialize session management
 
@@ -343,7 +349,7 @@ def audio_chat() -> str:
 
 
 @app.route("/speech2text", methods=["POST"])
-def speech2text() -> Response:
+def speech2text() -> ResponseReturnValue:
     """
     Transcribes raw audio data into text using the speech recognition engine.
 
@@ -359,15 +365,75 @@ def speech2text() -> Response:
         A JSON response containing:
             - "input": The transcription result as a string.
     """
-    audio_data = request.files["audio"].read()
-    audio = Audio()
-    result = audio.transcribe(audio_data=load_audio(audio_data))
+    uploaded_audio = request.files.get("audio")
+    if uploaded_audio is None:
+        return jsonify({"error": "Missing audio upload"}), 400
+
+    try:
+        audio_data = load_audio(uploaded_audio.read())
+    except RuntimeError as exc:
+        logger.warning("Unable to decode speech upload: %s", exc)
+        return jsonify({"error": str(exc)}), 400
+
+    asr_service: SpeechTranscriptionService = app.config["asr_service"]
+    try:
+        result = asr_service.transcribe(audio_data)
+    except Exception:
+        logger.exception("Speech transcription failed")
+        return jsonify({
+            "error": "Speech transcription is unavailable",
+            "asr": asr_service.status(),
+        }), 503
 
     return jsonify(
         {
             "input": result
         }
     )
+
+
+@app.route("/asr/status", methods=["GET"])
+def asr_status() -> Response:
+    """Report the resident speech recognition model state and timings."""
+    asr_service: SpeechTranscriptionService = app.config["asr_service"]
+    return jsonify(asr_service.status())
+
+
+@app.route("/asr/load", methods=["POST"])
+def asr_load() -> ResponseReturnValue:
+    """Explicitly load the speech recognition model before the next turn."""
+    asr_service: SpeechTranscriptionService = app.config["asr_service"]
+    try:
+        asr_service.load()
+    except Exception:
+        logger.exception("Unable to load ASR model")
+        return jsonify(asr_service.status()), 503
+    return jsonify(asr_service.status())
+
+
+@app.route("/asr/unload", methods=["POST"])
+def asr_unload() -> Response:
+    """Release the resident speech recognition pipeline and GPU memory."""
+    asr_service: SpeechTranscriptionService = app.config["asr_service"]
+    asr_service.unload()
+    return jsonify(asr_service.status())
+
+
+@app.route("/asr/config", methods=["POST"])
+def asr_config() -> ResponseReturnValue:
+    """Update the resident ASR service's idle-unload policy."""
+    payload = request.get_json(silent=True) or {}
+    timeout = payload.get("idle_timeout_minutes")
+    if timeout is not None and (
+        isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or timeout <= 0
+    ):
+        return jsonify({
+            "error": "idle_timeout_minutes must be a positive number or null",
+        }), 400
+
+    asr_service: SpeechTranscriptionService = app.config["asr_service"]
+    asr_service.set_idle_timeout(float(timeout) if timeout is not None else None)
+    return jsonify(asr_service.status())
 
 
 # Register any optional Flask Blueprints

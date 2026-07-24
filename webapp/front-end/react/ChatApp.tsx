@@ -73,6 +73,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     setTtsHost,
     ttsVoice,
     setTtsVoice,
+    asrIdleTimeoutMinutes,
+    setAsrIdleTimeoutMinutes,
     cursorEffect,
     setCursorEffect,
     cursorDensity,
@@ -267,6 +269,12 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       document.removeEventListener("click", handleDocClick);
     };
   }, []);
+
+  useEffect(() => {
+    axios
+      .post("/asr/config", { idle_timeout_minutes: asrIdleTimeoutMinutes })
+      .catch(err => console.error("Unable to update ASR idle timeout:", err));
+  }, [asrIdleTimeoutMinutes]);
 
   // Managed engines can still be warming up when the page first loads. Keep
   // refreshing their status so an initially disabled prompt becomes usable
@@ -941,6 +949,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           ttsHostPresets={session.tts_host_presets || []}
           ttsVoice={ttsVoice}
           onTtsVoiceChange={setTtsVoice}
+          asrIdleTimeoutMinutes={asrIdleTimeoutMinutes}
+          onAsrIdleTimeoutChange={setAsrIdleTimeoutMinutes}
           voiceList={session.voice_list || []}
           visualization={visualization}
           onVisualizationChange={setVisualization}

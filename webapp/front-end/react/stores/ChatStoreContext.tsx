@@ -136,6 +136,8 @@ interface ChatStoreContextType {
   setTtsHost: (host: string) => void;
   ttsVoice: string;
   setTtsVoice: (voice: string) => void;
+  asrIdleTimeoutMinutes: number | null;
+  setAsrIdleTimeoutMinutes: (minutes: number | null) => void;
   cursorEffect: boolean;
   setCursorEffect: (enabled: boolean) => void;
   cursorDensity: number;
@@ -234,6 +236,13 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("ttsVoice") : null;
     return saved || session.tts_voice || "";
   });
+  const [asrIdleTimeoutMinutes, setAsrIdleTimeoutMinutes] = useState<number | null>(() => {
+    if (typeof window === "undefined") return 15;
+    const saved = window.localStorage.getItem("asrIdleTimeoutMinutes");
+    if (saved === "none") return null;
+    const value = Number(saved);
+    return Number.isFinite(value) && value > 0 ? value : 15;
+  });
   const [cursorEffect, setCursorEffect] = useState<boolean>(() =>
     typeof window !== "undefined" ? window.localStorage.getItem("cursorEffect") !== "false" : true
   );
@@ -298,6 +307,12 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   useEffect(() => {
     window.localStorage.setItem("ttsVoice", ttsVoice);
   }, [ttsVoice]);
+  useEffect(() => {
+    window.localStorage.setItem(
+      "asrIdleTimeoutMinutes",
+      asrIdleTimeoutMinutes === null ? "none" : String(asrIdleTimeoutMinutes)
+    );
+  }, [asrIdleTimeoutMinutes]);
   useEffect(() => {
     window.localStorage.setItem("ttsHost", ttsHost);
   }, [ttsHost]);
@@ -374,6 +389,8 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       setTtsHost,
       ttsVoice,
       setTtsVoice,
+      asrIdleTimeoutMinutes,
+      setAsrIdleTimeoutMinutes,
       cursorEffect,
       setCursorEffect,
       cursorDensity,
@@ -445,6 +462,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       audioSpeed,
       ttsHost,
       ttsVoice,
+      asrIdleTimeoutMinutes,
       cursorEffect,
       cursorDensity,
       cursorSpeed,

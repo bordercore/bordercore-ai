@@ -11,6 +11,12 @@ temperature = 0.7
 use_flash_attention = False
 debug = False
 
+# Speech recognition stays resident after its first request. Use "cpu", "cuda",
+# or "cuda:<index>" to override automatic device selection.
+asr_model = "distil-whisper/distil-large-v3"
+asr_device = "auto"
+asr_idle_timeout_minutes = 15
+
 discord_channel_id = ""
 
 tts_host = ""
