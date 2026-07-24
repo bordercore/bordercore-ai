@@ -141,6 +141,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   const [processingMessage, setProcessingMessage] = useState("Processing...");
   const [showUnloadModal, setShowUnloadModal] = useState(false);
   const [showClipboardModal, setShowClipboardModal] = useState(false);
+  const [visibleNotice, setVisibleNotice] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
 
@@ -275,6 +276,14 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       .post("/asr/config", { idle_timeout_minutes: asrIdleTimeoutMinutes })
       .catch(err => console.error("Unable to update ASR idle timeout:", err));
   }, [asrIdleTimeoutMinutes]);
+
+  useEffect(() => {
+    setVisibleNotice("");
+    if (!notice) return;
+
+    const timeoutId = window.setTimeout(() => setVisibleNotice(notice), 500);
+    return () => window.clearTimeout(timeoutId);
+  }, [notice]);
 
   // Managed engines can still be warming up when the page first loads. Keep
   // refreshing their status so an initially disabled prompt becomes usable
@@ -751,6 +760,11 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   }
 
   const showRegenerate = chatHistory.length > 2 || !!error;
+  const noticeState = visibleNotice.toLowerCase().includes("failed")
+    ? "error"
+    : visibleNotice.startsWith("Listening")
+      ? "listening"
+      : "processing";
 
   useEffect(() => {
     document.documentElement.classList.toggle("cyberspace-active", auroraEnabled);
@@ -773,9 +787,17 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           </div>
         </div>
 
-        <div className="app-header-center"></div>
-
         <div className="app-header-right">
+          {visibleNotice && (
+            <div
+              className={`header-status header-status--${noticeState}`}
+              role="status"
+              aria-live="polite"
+            >
+              <span className="header-status__beacon" aria-hidden="true"></span>
+              <span className="header-status__text">{visibleNotice}</span>
+            </div>
+          )}
           <Nav active={mode} onModeChange={handleSwitchMode} />
           <button className="hamburger" ref={hamburgerRef} onClick={() => setShowMenu(!showMenu)}>
             <div className="hamburger__line"></div>
@@ -901,11 +923,6 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
                 <SentinelOrb working={isGenerating} size={282} tendrils={5} quality="high" />
               )}
             </div>
-            {notice && (
-              <div className="notice animate__animated animate__pulse animate__slower animate__infinite">
-                {notice}
-              </div>
-            )}
           </div>
 
           <div className="sidebar-section" style={{ flex: 1 }}>

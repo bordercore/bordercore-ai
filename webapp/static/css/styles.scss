@@ -88,16 +88,92 @@ body {
   }
 }
 
-.app-header-center {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
 .app-header-right {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.header-status {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  min-width: 10rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid rgb(0 234 255 / 22%);
+  border-radius: 0.65rem;
+  background: linear-gradient(100deg, rgb(0 234 255 / 5%), rgb(10 20 48 / 72%));
+  box-shadow:
+    inset 0 0 12px rgb(0 234 255 / 5%),
+    0 0 16px rgb(0 234 255 / 8%);
+  color: var(--accent-cyan);
+  font-size: 0.7rem;
+  font-weight: 700;
+  gap: 0.55rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.header-status::after {
+  position: absolute;
+  width: 35%;
+  animation: header-status-scan 2.4s linear infinite;
+  background: linear-gradient(90deg, transparent, rgb(103 232 249 / 16%), transparent);
+  content: "";
+  inset: 0 auto 0 -40%;
+  pointer-events: none;
+}
+
+.header-status__beacon {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  animation: header-status-beacon 1.15s ease-in-out infinite;
+  background: currentcolor;
+  box-shadow:
+    0 0 6px currentcolor,
+    0 0 13px currentcolor;
+}
+
+.header-status__text {
+  animation: header-status-text 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 5px currentcolor);
+}
+
+.header-status--processing {
+  color: #67e8f9;
+}
+
+.header-status--error {
+  border-color: rgb(239 68 68 / 28%);
+  color: #fb7185;
+}
+
+@keyframes header-status-scan {
+  to { transform: translateX(410%); }
+}
+
+@keyframes header-status-beacon {
+  0%,
+  100% {
+    opacity: 0.38;
+    transform: scale(0.75);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes header-status-text {
+  0%,
+  100% { opacity: 0.72; }
+  50% { opacity: 1; }
 }
 
 // ─── Nav Tabs ────────────────────────────────────────────────
@@ -544,10 +620,6 @@ body {
 // Visualization section: let the orb bleed to the panel edges.
 .sidebar-section--viz {
   padding: 0;
-
-  .notice {
-    padding: 0 1rem 0.75rem;
-  }
 }
 
 .sidebar-section-title {
@@ -1396,6 +1468,12 @@ media-volume-range {
   .header-logo::after {
     animation: none;
     opacity: 0;
+  }
+
+  .header-status::after,
+  .header-status__beacon,
+  .header-status__text {
+    animation: none;
   }
 }
 
