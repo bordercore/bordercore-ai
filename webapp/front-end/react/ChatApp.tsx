@@ -19,7 +19,6 @@ import NeonPulseReactor from "./components/NeonPulseReactor";
 import GpuSignalScanner from "./components/GpuSignalScanner";
 import ThermalPowerCore from "./components/ThermalPowerCore";
 import NeuralActivityConstellation from "./components/NeuralActivityConstellation";
-import AuroraBackground from "./components/AuroraBackground";
 
 // Decorative / opt-in visualizations are code-split so initial load
 // doesn't pay for them (notably three.js via GpuOrb, ~170 kB gzipped).
@@ -28,6 +27,7 @@ const NexusViz = lazy(() => import("./components/NexusViz"));
 const WaveformViz = lazy(() => import("./components/WaveformViz"));
 const CursorLines = lazy(() => import("./components/CursorLines"));
 const Starfield = lazy(() => import("./components/Starfield"));
+const CyberspaceFlythrough = lazy(() => import("./components/CyberspaceFlythrough"));
 import Options from "./components/Options";
 import FileUpload from "./components/FileUpload";
 import ImagePreview from "./components/ImagePreview";
@@ -752,10 +752,15 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   const showRegenerate = chatHistory.length > 2 || !!error;
 
+  useEffect(() => {
+    document.documentElement.classList.toggle("cyberspace-active", auroraEnabled);
+    return () => document.documentElement.classList.remove("cyberspace-active");
+  }, [auroraEnabled]);
+
   return (
     <>
-      {auroraEnabled && <AuroraBackground />}
       <Suspense fallback={null}>
+        {auroraEnabled && <CyberspaceFlythrough />}
         {starfieldEnabled && <Starfield />}
         {cursorEffect && <CursorLines density={cursorDensity} speed={cursorSpeed} />}
       </Suspense>

@@ -309,13 +309,13 @@ export default function PreferencesMenu({
         </div>
         <div>
           <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
-            Aurora
+            Cyberspace
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <Switch
               checked={auroraEnabled}
               onChange={onAuroraEnabledChange}
-              aria-label="Toggle aurora background"
+              aria-label="Toggle cyberspace flythrough"
               onColor="#0a2a30"
               onHandleColor="#00eaff"
               offColor="#0c1230"
@@ -328,7 +328,7 @@ export default function PreferencesMenu({
               height={24}
               width={46}
             />
-            <span className="pref-hint">Drifting glow behind the UI</span>
+            <span className="pref-hint">Slow flythrough between towering data vaults</span>
           </div>
         </div>
         <div>
