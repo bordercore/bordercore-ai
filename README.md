@@ -1,10 +1,10 @@
-![Bordercore AI Logo](/logo.jpg)
+![Bordercore AI Logo](logo.jpg)
 
 ---
 
 Bordercore AI is a web-based AI chatbot and voice assistant supporting multiple open-weight and commercial LLMs, Text to Speech (TTS), Speech to Text (STT), audio transcription and RAG (Retrieval Augmented Generation). Discord bots are also supported.
 
-![Screenshot](/screenshot.png)
+![Screenshot](screenshot.png)
 
 # Features
 
@@ -27,7 +27,9 @@ current profile inventory and deepvirtual service setup.
 When a local model is active, the model picker includes an **Unload local
 model** action. It stops managed inference services and releases in-process
 weights so the GPU can be used by other workloads. The selected model remains
-visible and can be selected again to reload it.
+visible and can be selected again to reload it. Speech recognition has a
+separate lifecycle: its resident Whisper pipeline follows the configured idle
+timeout or can be released explicitly through the ASR API.
 
 ## Text to Speech (TTS)
 
@@ -37,7 +39,15 @@ Three TTS engines are supported: [Kokoro](https://kokorottsai.com/), [Chatterbox
 
 Speech recognition uses Hugging Face Transformers with
 [Distil-Whisper](https://huggingface.co/distil-whisper/distil-large-v3), based
-on OpenAI's [Whisper](https://github.com/openai/whisper).
+on OpenAI's [Whisper](https://github.com/openai/whisper). The model loads on
+the first recording and stays resident so subsequent transcriptions start
+quickly. By default, it unloads after 15 minutes without a transcription to
+release its GPU memory. The timeout can be changed in Preferences, including
+an option to keep the model loaded with no timeout.
+
+For manual recording, turn **Speech to Text** on, speak, and turn it off to
+stop recording and submit the audio for transcription. When VAD is enabled,
+voice activity detection can stop the recording automatically.
 
 ## RAG (Retrieval Augmented Generation)
 
@@ -96,29 +106,55 @@ python3 -m sensor
 
 # Installation
 
-Dependencies are managed with [uv](https://github.com/astral-sh/uv). From the project root:
+Bordercore AI requires:
+
+- Python 3.12 (the project currently supports `>=3.12,<3.13`)
+- Node.js and npm for the React frontend (CI uses Node.js 22)
+- The `ffmpeg` executable for decoding uploaded and recorded audio
+- PortAudio development libraries for microphone/audio support
+- An NVIDIA GPU with a compatible CUDA environment for local GPU inference;
+  hosted APIs and some Transformers workloads can run without one, and speech
+  recognition can be configured to use the CPU
+
+For example, install the native audio dependencies on Ubuntu:
+
+```bash
+sudo apt install ffmpeg portaudio19-dev
+```
+
+Python dependencies are managed with
+[uv](https://github.com/astral-sh/uv). From the project root:
 
 ```bash
 uv sync
 ```
 
-Alternatively, create and activate a virtual environment and install the project in editable mode:
+Alternatively, create and activate a Python 3.12 virtual environment, then
+install the dependencies from the project metadata:
 
 ```bash
-pip install -e .
+pip install .
 ```
 
-Build the frontend package:
+The application modules are run from the repository rather than installed as
+a conventional Python package. Install and build the frontend package:
 
 ```bash
 cd webapp
+npm ci
 npm run vite:build
+cd ..
 ```
 
 Copy `settings_template.py` to `settings.py` and set the following:
 
 - **model_name**: default model to load.
 - **model_dir**: absolute or relative path containing local model checkpoints.
+- **asr_model**: Hugging Face speech-recognition model identifier.
+- **asr_device**: speech-recognition device (`auto`, `cpu`, `cuda`, or a
+  specific device such as `cuda:0`).
+- **asr_idle_timeout_minutes**: number of idle minutes before the resident
+  speech-recognition pipeline unloads; use `None` for no timeout.
 
 Edit `models.yaml` to add configuration options for your models. Use `models_template.yaml` as a guide. Example:
 
@@ -166,6 +202,30 @@ python3 -m webapp
 ```
 
 To access: https://localhost:5010/
+
+## Speech-recognition operations
+
+The web application exposes lifecycle endpoints for the resident
+speech-recognition pipeline:
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `GET` | `/asr/status` | Report model state, device, timings, request count, and idle timeout |
+| `POST` | `/asr/load` | Load the configured model before the next recording |
+| `POST` | `/asr/unload` | Unload the model and release its GPU memory |
+| `POST` | `/asr/config` | Change the idle timeout at runtime |
+
+To change the timeout through the API, send a positive number of minutes or
+`null` for no timeout:
+
+```bash
+curl --insecure -X POST https://localhost:5010/asr/config \
+  -H 'Content-Type: application/json' \
+  -d '{"idle_timeout_minutes": 15}'
+```
+
+`--insecure` is only needed when running with the application's local
+self-signed development certificate.
 
 ## PostgreSQL MCP server (pg-mcp-server)
 
@@ -221,16 +281,28 @@ Toggle features on and off:
 
 - **Voice Features**: Text to Speech, Speech to Text, and VAD (Voice Activation Detection — auto-detects when you're done speaking to initiate a back-and-forth conversation).
 - **Reasoning**: Wolfram Alpha tool calling and model thinking output.
-- **Display**: Thinking visualization and waiting-animation styles.
+- **Sensors**: Motion detection from a configured external sensor.
 
 ### Preferences menu
 
 The hamburger menu to the upper-right lets you adjust:
 
-- **Temperature**: Controls the randomness of the model's output (0 = predictable, 1 = random).
+- **Speech Recognition Idle Timeout**: Unloads Whisper after 5, 15, 30, or 60
+  idle minutes, or keeps it resident with no timeout. The default is 15
+  minutes.
+- **Temperature**: Choose Model default, Precise (0.2), Balanced (0.7),
+  Creative (1.0), or a custom value from 0 to 2. Model default omits the
+  temperature parameter so the selected model or provider uses its native
+  behavior.
 - **Audio Speed**: Playback speed of the TTS audio.
 - **TTS Host**: Hostname and port for the TTS server.
-- **Aurora**: Toggle the drifting glow background.
+- **Voice**: Reference voice used by voice-cloning TTS engines; Kokoro ignores
+  this setting.
+- **Visualization**: Choose the primary thinking/audio visualization.
+- **GPU Telemetry**: Choose the GPU activity visualization.
+- **Waiting Animation**: Choose the animation shown while waiting for a
+  response.
+- **Cyberspace**: Toggle the animated flythrough between data-vault towers.
 - **Panel Opacity**: Transparency of UI panels.
 - **Starfield**: Toggle floating particle effects.
 - **Cursor Effect**: Toggle animated streaks that follow the cursor (with density and speed sub-controls).
