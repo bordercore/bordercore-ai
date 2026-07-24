@@ -10,6 +10,7 @@
     "format:react": "prettier --write \"front-end/react/**/*.{ts,tsx,jsx,js}\"",
     "format:check:react": "prettier --check \"front-end/react/**/*.{ts,tsx,jsx,js}\"",
     "stylelint": "stylelint \"static/css/**/*.scss\"",
+    "test:react": "vitest run",
     "lint:staged": "lint-staged",
     "prepare": "cd .. && husky webapp/.husky"
   },
@@ -69,6 +70,7 @@
     "stylelint-config-standard-scss": "^17.0.0",
     "stylelint-order": "^8.1.1",
     "stylelint-scss": "^7.0.0",
-    "typescript-eslint": "^8.58.2"
+    "typescript-eslint": "^8.58.2",
+    "vitest": "^3.2.7"
   }
 }

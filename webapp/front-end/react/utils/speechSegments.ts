@@ -1,3 +1,5 @@
+import { normalizeSpokenText, SpokenTextConfig, SpokenTextStream } from "./spokenText";
+
 const MIN_SEGMENT_CHARS = 48;
 const TARGET_SEGMENT_CHARS = 180;
 const MAX_SEGMENT_CHARS = 320;
@@ -10,12 +12,14 @@ const MAX_SEGMENT_CHARS = 320;
 export class SpeechSegmenter {
   private source = "";
   private pending = "";
-  private inCodeFence = false;
+  private spokenTextStream = new SpokenTextStream();
+
+  constructor(private spokenTextConfig: SpokenTextConfig = {}) {}
 
   reset() {
     this.source = "";
     this.pending = "";
-    this.inCodeFence = false;
+    this.spokenTextStream.reset();
   }
 
   append(fullText: string): string[] {
@@ -31,37 +35,14 @@ export class SpeechSegmenter {
       delta = fullText.slice(common);
     }
     this.source = fullText;
-    this.pending += this.toSpeakableText(delta);
+    this.pending += this.spokenTextStream.append(delta);
     return this.takeReady(false);
   }
 
   finish(fullText?: string): string[] {
     const ready = fullText === undefined ? [] : this.append(fullText);
+    this.pending += this.spokenTextStream.finish();
     return [...ready, ...this.takeReady(true)];
-  }
-
-  private toSpeakableText(delta: string): string {
-    const output: string[] = [];
-    for (const line of delta.split(/(?<=\n)/)) {
-      if (line.includes("```")) {
-        const pieces = line.split("```");
-        for (let i = 0; i < pieces.length; i++) {
-          if (!this.inCodeFence) output.push(pieces[i]);
-          if (i < pieces.length - 1) this.inCodeFence = !this.inCodeFence;
-        }
-      } else if (!this.inCodeFence) {
-        output.push(line);
-      }
-    }
-
-    return output
-      .join("")
-      .replace(/`([^`]+)`/g, "$1")
-      .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-      .replace(/^\s{0,3}(?:#{1,6}|>|[-*+] |\d+[.)] )\s*/gm, "")
-      .replace(/https?:\/\/\S+/g, "link")
-      .replace(/[ \t]+/g, " ");
   }
 
   private takeReady(flush: boolean): string[] {
@@ -71,7 +52,7 @@ export class SpeechSegmenter {
       const boundary = this.findBoundary(flush);
       if (boundary === -1) break;
 
-      const segment = this.pending.slice(0, boundary).replace(/\s+/g, " ").trim();
+      const segment = normalizeSpokenText(this.pending.slice(0, boundary), this.spokenTextConfig);
       this.pending = this.pending.slice(boundary);
       if (segment) segments.push(segment);
     }

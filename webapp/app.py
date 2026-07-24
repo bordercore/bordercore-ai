@@ -117,6 +117,8 @@ def before_request_func() -> None:
     session["tts_voice"] = settings.tts_voice
     session["voice_list"] = _list_voice_files()
     session["tts_host_presets"] = getattr(settings, "tts_host_presets", [])
+    session["tts_pronunciations"] = getattr(settings, "tts_pronunciations", {})
+    session["tts_do_not_speak_patterns"] = getattr(settings, "tts_do_not_speak_patterns", [])
 
 
 def _get_vite_js() -> str:

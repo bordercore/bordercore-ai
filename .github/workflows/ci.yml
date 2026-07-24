@@ -62,6 +62,9 @@ jobs:
     - name: Typecheck
       run: npm run typecheck
 
+    - name: Test (Vitest)
+      run: npm run test:react
+
     - name: Lint SCSS (stylelint)
       run: npm run stylelint
 

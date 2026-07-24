@@ -35,6 +35,37 @@ timeout or can be released explicitly through the ASR API.
 
 Three TTS engines are supported: [Kokoro](https://kokorottsai.com/), [Chatterbox](https://github.com/resemble-ai/chatterbox), and [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base).
 
+Assistant responses are normalized on a copy before being sent to any TTS
+engine; the Markdown displayed in chat is never changed. The ordered spoken-text
+pipeline:
+
+- omits fenced code, images, citations, configured do-not-speak content, and
+  emoji;
+- speaks link labels while replacing bare URLs with “link”;
+- removes Markdown formatting and HTML tags while retaining readable text;
+- applies configured pronunciation overrides; and
+- collapses whitespace and skips sentences that become empty.
+
+Exact normalized sentences are available in the browser's debug console as
+`[TTS] normalized segment` entries. Configure pronunciation and omission rules
+in `settings.py`:
+
+```python
+tts_pronunciations = {
+    "BordercoreAI": "Bordercore A I",
+    "GPU": "G P U",
+}
+
+# Trusted JavaScript regular expressions applied to spoken text only.
+tts_do_not_speak_patterns = [
+    r"\[internal\][\s\S]*?\[/internal\]",
+]
+```
+
+Responses can also mark explicit omissions with
+`<nospeak>...</nospeak>`, `<tts-ignore>...</tts-ignore>`, or paired
+`<!-- tts-ignore-start -->` and `<!-- tts-ignore-end -->` comments.
+
 ## Speech to Text (STT)
 
 Speech recognition uses Hugging Face Transformers with
@@ -339,10 +370,12 @@ npm run lint:react           # ESLint
 npm run format:react         # Prettier --write
 npm run format:check:react   # Prettier --check
 npm run typecheck            # tsc --noEmit
+npm run test:react           # Vitest
 npm run stylelint            # stylelint
 ```
 
-All frontend checks are blocking in CI: ESLint, Prettier, `typecheck`, `stylelint`, and the Vite build.
+All frontend checks are blocking in CI: ESLint, Prettier, `typecheck`, Vitest,
+`stylelint`, and the Vite build.
 
 ---
 

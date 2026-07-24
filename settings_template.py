@@ -22,6 +22,19 @@ discord_channel_id = ""
 tts_host = ""
 tts_voice = "voice.wav"
 
+# Spoken-text normalization is applied to a copy of assistant output before it
+# reaches any TTS engine. Keys are written forms and values are pronunciations.
+tts_pronunciations: Dict[str, str] = {
+    # "BordercoreAI": "Bordercore A I",
+    # "GPU": "G P U",
+}
+
+# Trusted JavaScript regular expressions removed from spoken output. These do
+# not alter the assistant message displayed in chat.
+tts_do_not_speak_patterns: list[str] = [
+    # r"\[internal\].*?\[/internal\]",
+]
+
 # Presets shown in the frontend's "TTS Host" dropdown. Each entry maps a
 # human-readable label to a base URL for the TTS service. The frontend
 # persists the user's chosen host in localStorage and uses it to reach the

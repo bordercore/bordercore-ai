@@ -10,7 +10,7 @@ interface UseAudioOptions {
 }
 
 export default function useAudio(options: UseAudioOptions) {
-  const { onSpeechResult, setNotice } = options;
+  const { session, onSpeechResult, setNotice } = options;
 
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const audioMotionRef = useRef<AudioMotionAnalyzer | null>(null);
@@ -27,7 +27,12 @@ export default function useAudio(options: UseAudioOptions) {
   const ttsSessionRef = useRef(0);
   const ttsQueueRef = useRef<Promise<void>>(Promise.resolve());
   const ttsNextStartRef = useRef(0);
-  const speechSegmenterRef = useRef(new SpeechSegmenter());
+  const speechSegmenterRef = useRef(
+    new SpeechSegmenter({
+      pronunciations: session.tts_pronunciations ?? {},
+      doNotSpeakPatterns: session.tts_do_not_speak_patterns ?? [],
+    })
+  );
   const ttsConfigRef = useRef({ speak: false, host: "", voice: "", audioSpeed: 1 });
   // Fallback AudioContext used when the AudioMotionAnalyzer isn't present
   // (its canvas-container element isn't rendered in the current UI, so
@@ -94,6 +99,7 @@ export default function useAudio(options: UseAudioOptions) {
   const synthesizeSegment = useCallback(async (response: string, sessionId: number) => {
     const { host: ttsHost, voice, audioSpeed } = ttsConfigRef.current;
     if (!response.trim() || sessionId !== ttsSessionRef.current) return;
+    console.debug("[TTS] normalized segment", { sessionId, text: response });
     const outputFile = "stream_output.wav";
     // The UI stores reference-audio filenames, while profile-based engines
     // address those same voices by their extension-free profile name. Qwen
