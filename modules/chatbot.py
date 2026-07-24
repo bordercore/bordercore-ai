@@ -93,7 +93,7 @@ class ChatBot():
     """
 
     ASSISTANT_NAME = "Luna"
-    temperature = 0.7
+    temperature: float | None = None
 
     def __init__(self,
                  model_name: str | None = None,
@@ -268,7 +268,7 @@ class ChatBot():
         except KeyboardInterrupt:
             sys.exit(0)
 
-    def get_temperature(self, payload: Mapping[str, Any]) -> float:
+    def get_temperature(self, payload: Mapping[str, Any]) -> float | None:
         """
         Extract the temperature value from the payload or fallback to settings.
 
@@ -276,13 +276,9 @@ class ChatBot():
             payload: The incoming request JSON payload.
 
         Returns:
-            A float > 0 representing the model sampling temperature.
+            An explicit sampling temperature, or ``None`` for the model default.
         """
-        temp = payload["temperature"] if "temperature" in payload else settings.temperature
-        # the temperature must be a strictly positive float
-        if temp == 0:
-            temp = 0.1
-        return temp
+        return payload.get("temperature")
 
     def handle_response(self, user_input: str, inference: Any | None) -> None:
         """Generate the assistant’s reply and (optionally) speak it aloud.
@@ -696,11 +692,15 @@ class ChatBot():
             [{"role": m["role"], "content": m["content"]} for m in self.context.get()],
         )
 
+        request_args = dict(args)
+        if self.temperature is not None:
+            request_args.setdefault("temperature", self.temperature)
+
         response = client.chat.completions.create(
             model=model,
             messages=messages,
             stream=True,
-            **args
+            **request_args
         )
 
         for chunk in response:
@@ -745,13 +745,17 @@ class ChatBot():
         client = anthropic.Anthropic(
             api_key=settings.anthropic_api_key
         )
+        request_args = dict(args)
+        if self.temperature is not None:
+            request_args.setdefault("temperature", self.temperature)
+
         response = client.messages.create(
             model=self.model_name,
             max_tokens=1024,
             messages=messages,
             system=system,
             stream=True,
-            **args
+            **request_args
         )
         for chunk in response:
             if self.stop_event and self.stop_event.is_set():

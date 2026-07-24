@@ -219,7 +219,9 @@ def rag_chat() -> ResponseReturnValue:
     model_name: str = request.form["model"]
     speak: str = request.form.get("speak", "false")
     audio_speed = float(request.form.get("audio_speed", 1.0))
-    temperature = float(request.form.get("temperature", 0.7))
+    temperature = (
+        float(request.form["temperature"]) if "temperature" in request.form else None
+    )
     enable_thinking = request.form.get("enable_thinking", "false").lower() == "true"
 
     visualization = request.form.get("visualization", "")
@@ -338,7 +340,9 @@ def audio_chat() -> str:
     model_name: str = request.form["model"]
     speak: str = request.form.get("speak", "false")
     audio_speed = float(request.form.get("audio_speed", 1.0))
-    temperature = float(request.form.get("temperature", 0.7))
+    temperature = (
+        float(request.form["temperature"]) if "temperature" in request.form else None
+    )
     enable_thinking = request.form.get("enable_thinking", "false").lower() == "true"
 
     visualization = request.form.get("visualization", "")
@@ -522,7 +526,9 @@ def chat() -> Response:
     model_name = request.form["model"]
     speak = request.form.get("speak", "false")
     audio_speed = float(request.form.get("audio_speed", 1.0))  # Playback speed
-    temperature = float(request.form.get("temperature", 0.7))
+    temperature = (
+        float(request.form["temperature"]) if "temperature" in request.form else None
+    )
     wolfram_alpha = request.form.get("wolfram_alpha", "false").lower() == "true"
     url = request.form.get("url", None)
     enable_thinking = request.form.get("enable_thinking", "false").lower() == "true"
@@ -775,7 +781,7 @@ def load_audio(file: str | bytes, sr: int = 16_000) -> np.ndarray:
 
 
 def store_params_in_session(
-    speak: str, audio_speed: float, temperature: float, enable_thinking: bool,
+    speak: str, audio_speed: float, temperature: float | None, enable_thinking: bool,
     visualization: str = "",
 ) -> None:
     """
@@ -791,7 +797,10 @@ def store_params_in_session(
     session.permanent = True
     session["speak"] = speak.lower() == "true"  # Convert "true" to True, for example
     session["audio_speed"] = audio_speed
-    session["temperature"] = temperature
+    if temperature is None:
+        session.pop("temperature", None)
+    else:
+        session["temperature"] = temperature
     session["enable_thinking"] = enable_thinking
     if visualization:
         session["visualization"] = visualization

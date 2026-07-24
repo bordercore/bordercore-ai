@@ -163,7 +163,7 @@ class Inference:
 
         self.context = Context()
         self.model_info = get_model_info()
-        self.temperature = temperature or self.temperature_default
+        self.temperature = temperature
 
         self.tool_name = tool_name
         self.tool_list = tool_list
@@ -868,7 +868,10 @@ class Inference:
             "model": self.model,
             "tokenizer": self.tokenizer,
             "max_new_tokens": self.max_new_tokens,
-            "do_sample": self.get_config_option("do_sample", True),
+            "do_sample": (
+                self.get_config_option("do_sample", True)
+                and self.temperature != 0
+            ),
             "streamer": streamer,
         }
 
@@ -879,10 +882,11 @@ class Inference:
 
         if pipeline_args["do_sample"]:
             pipeline_args.update({
-                "temperature": self.temperature,
                 "top_p": self.top_p,
                 "top_k": self.top_k,
             })
+            if self.temperature is not None:
+                pipeline_args["temperature"] = self.temperature
 
         if not self.tools and "llama" in self.model_name.lower():
             pipeline_args["eos_token_id"] = [
@@ -933,13 +937,18 @@ class Inference:
 
         # Use the llama-cpp-python chat completion API with streaming
         try:
+            generation_args: Dict[str, Any] = {
+                "messages": messages,
+                "max_tokens": self.max_new_tokens,
+                "top_p": self.top_p,
+                "top_k": self.top_k,
+                "stream": True,
+            }
+            if self.temperature is not None:
+                generation_args["temperature"] = self.temperature
+
             response = self.model.create_chat_completion(
-                messages=messages,
-                max_tokens=self.max_new_tokens,
-                temperature=self.temperature,
-                top_p=self.top_p,
-                top_k=self.top_k,
-                stream=True
+                **generation_args
             )
 
             for chunk in response:

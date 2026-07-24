@@ -661,13 +661,13 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       model: model.name,
       audio_speed: audioSpeed,
       speak: switches.text2speech,
-      temperature,
       wolfram_alpha: switches.wolframAlpha,
       enable_thinking: switches.enableThinking,
       visualization,
       url,
       ...args,
     };
+    if (temperature !== null) payload.temperature = temperature;
 
     audioHook.startTTSResponse(switches.text2speech, ttsHost, ttsVoice, audioSpeed);
     let latestVisibleContent = "";

@@ -15,6 +15,48 @@ def test_sanitize_string():
     assert chatbot.sanitize_string("foobar ") == "foobar"
 
 
+def test_temperature_defaults_to_model_configuration():
+    """An omitted temperature remains omitted instead of becoming 0.7."""
+    chatbot = ChatBot()
+
+    assert chatbot.temperature is None
+    assert chatbot.get_temperature({}) is None
+
+
+def test_zero_temperature_is_preserved():
+    """Zero is a valid explicit request and must not be silently rewritten."""
+    chatbot = ChatBot(temperature=0)
+
+    assert chatbot.temperature == 0
+    assert chatbot.get_temperature({"temperature": 0}) == 0
+
+
+@patch("modules.chatbot.OpenAI")
+def test_explicit_temperature_is_forwarded_to_openai_compatible_server(openai_class):
+    """Explicit presets reach the OpenAI-compatible vLLM/llama.cpp API."""
+    response = []
+    openai_class.return_value.chat.completions.create.return_value = response
+    chatbot = ChatBot(model_name="test-model", temperature=0.2)
+
+    assert list(chatbot.send_message_to_model_openai({})) == []
+
+    kwargs = openai_class.return_value.chat.completions.create.call_args.kwargs
+    assert kwargs["temperature"] == 0.2
+
+
+@patch("modules.chatbot.OpenAI")
+def test_model_default_omits_temperature_for_openai_compatible_server(openai_class):
+    """Model default lets the serving engine choose its configured temperature."""
+    response = []
+    openai_class.return_value.chat.completions.create.return_value = response
+    chatbot = ChatBot(model_name="test-model")
+
+    assert list(chatbot.send_message_to_model_openai({})) == []
+
+    kwargs = openai_class.return_value.chat.completions.create.call_args.kwargs
+    assert "temperature" not in kwargs
+
+
 @patch.dict(
     "modules.chatbot.model_info",
     {

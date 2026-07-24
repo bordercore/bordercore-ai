@@ -128,8 +128,8 @@ interface ChatStoreContextType {
   setVisualization: (v: VisualizationType) => void;
   gpuTelemetryVisualization: GpuTelemetryVisualization;
   setGpuTelemetryVisualization: (v: GpuTelemetryVisualization) => void;
-  temperature: number;
-  setTemperature: (temp: number) => void;
+  temperature: number | null;
+  setTemperature: (temp: number | null) => void;
   audioSpeed: number;
   setAudioSpeed: (speed: number) => void;
   ttsHost: string;
@@ -226,7 +226,13 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   );
   const [gpuTelemetryVisualization, setGpuTelemetryVisualization] =
     useState<GpuTelemetryVisualization>(loadGpuTelemetryVisualization);
-  const [temperature, setTemperature] = useState(session.temperature || 0.7);
+  const [temperature, setTemperature] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const saved = window.localStorage.getItem("temperature");
+    if (saved === null || saved === "default") return null;
+    const value = Number(saved);
+    return Number.isFinite(value) && value >= 0 && value <= 2 ? value : null;
+  });
   const [audioSpeed, setAudioSpeed] = useState(session.audio_speed || 1);
   const [ttsHost, setTtsHost] = useState<string>(() => {
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("ttsHost") : null;
@@ -307,6 +313,12 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   useEffect(() => {
     window.localStorage.setItem("ttsVoice", ttsVoice);
   }, [ttsVoice]);
+  useEffect(() => {
+    window.localStorage.setItem(
+      "temperature",
+      temperature === null ? "default" : String(temperature)
+    );
+  }, [temperature]);
   useEffect(() => {
     window.localStorage.setItem(
       "asrIdleTimeoutMinutes",

@@ -35,8 +35,8 @@ const GPU_TELEMETRY_OPTIONS: { value: GpuTelemetryVisualization; label: string }
 
 interface PreferencesMenuProps {
   show: boolean;
-  temperature: number;
-  onTemperatureChange: (value: number) => void;
+  temperature: number | null;
+  onTemperatureChange: (value: number | null) => void;
   audioSpeed: number;
   onAudioSpeedChange: (value: number) => void;
   ttsHost: string;
@@ -102,6 +102,17 @@ export default function PreferencesMenu({
 }: PreferencesMenuProps) {
   if (!show) return null;
 
+  const temperaturePreset =
+    temperature === null
+      ? "default"
+      : temperature === 0.2
+        ? "precise"
+        : temperature === 0.7
+          ? "balanced"
+          : temperature === 1
+            ? "creative"
+            : "custom";
+
   return (
     <div id="menu">
       <h4
@@ -145,16 +156,39 @@ export default function PreferencesMenu({
           <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
             Temperature
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <Slider
-              value={temperature}
-              onChange={onTemperatureChange}
-              min={0.0}
-              max={1.0}
-              step={0.1}
-              showInput={false}
-            />
-            <span className="pref-hint">0 (Predictable) to 1 (Random)</span>
+          <select
+            className="waiting-animation-select"
+            value={temperaturePreset}
+            onChange={event => {
+              const preset = event.target.value;
+              if (preset === "default") onTemperatureChange(null);
+              else if (preset === "precise") onTemperatureChange(0.2);
+              else if (preset === "balanced") onTemperatureChange(0.7);
+              else if (preset === "creative") onTemperatureChange(1);
+              else onTemperatureChange(0.8);
+            }}
+            aria-label="Model temperature preset"
+          >
+            <option value="default">Model default</option>
+            <option value="precise">Precise (0.2)</option>
+            <option value="balanced">Balanced (0.7)</option>
+            <option value="creative">Creative (1.0)</option>
+            <option value="custom">Custom</option>
+          </select>
+          {temperaturePreset === "custom" && temperature !== null && (
+            <div style={{ marginTop: "0.55rem" }}>
+              <Slider
+                value={temperature}
+                onChange={onTemperatureChange}
+                min={0}
+                max={2}
+                step={0.1}
+                showInput
+              />
+            </div>
+          )}
+          <div className="pref-hint" style={{ marginTop: "0.35rem" }}>
+            Model default uses the selected model&apos;s native temperature
           </div>
         </div>
         <div>
