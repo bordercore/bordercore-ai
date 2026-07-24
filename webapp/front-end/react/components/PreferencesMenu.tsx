@@ -1,6 +1,26 @@
 import React from "react";
 import Switch from "react-switch";
 import Slider from "./Slider";
+import { VisualizationType, WaitingAnimation } from "../stores/ChatStoreContext";
+
+const VISUALIZATION_OPTIONS: { value: VisualizationType; label: string }[] = [
+  { value: "gpuOrb", label: "GPU Orb" },
+  { value: "thinkingIcon", label: "Thinking" },
+  { value: "nexus", label: "Nexus" },
+  { value: "waveform", label: "Waveform" },
+  { value: "sentinelOrb", label: "Sentinel Orb" },
+];
+
+const WAITING_ANIMATION_OPTIONS: { value: WaitingAnimation; label: string }[] = [
+  { value: "spinner", label: "Spinner" },
+  { value: "tokenStream", label: "Token Stream" },
+  { value: "scramble", label: "Scramble Glyphs" },
+  { value: "typingDots", label: "Typing Dots" },
+  { value: "shimmerBubble", label: "Shimmer Bubble" },
+  { value: "travelingBorder", label: "Traveling Border" },
+  { value: "eqBars", label: "EQ Bars" },
+  { value: "radarSweep", label: "Radar Sweep" },
+];
 
 interface PreferencesMenuProps {
   show: boolean;
@@ -14,6 +34,10 @@ interface PreferencesMenuProps {
   ttsVoice: string;
   onTtsVoiceChange: (value: string) => void;
   voiceList: string[];
+  visualization: VisualizationType;
+  onVisualizationChange: (value: VisualizationType) => void;
+  waitingAnimation: WaitingAnimation;
+  onWaitingAnimationChange: (value: WaitingAnimation) => void;
   cursorEffect: boolean;
   onCursorEffectChange: (value: boolean) => void;
   cursorDensity: number;
@@ -40,6 +64,10 @@ export default function PreferencesMenu({
   ttsVoice,
   onTtsVoiceChange,
   voiceList,
+  visualization,
+  onVisualizationChange,
+  waitingAnimation,
+  onWaitingAnimationChange,
   cursorEffect,
   onCursorEffectChange,
   cursorDensity,
@@ -147,6 +175,41 @@ export default function PreferencesMenu({
             </select>
             <span className="pref-hint">Reference voice for cloning TTS (ignored by Kokoro)</span>
           </div>
+        </div>
+        <hr className="divider" />
+        <div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+            Visualization
+          </div>
+          <select
+            className="waiting-animation-select"
+            value={visualization}
+            onChange={e => onVisualizationChange(e.target.value as VisualizationType)}
+            aria-label="Visualization style"
+          >
+            {VISUALIZATION_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+            Waiting Animation
+          </div>
+          <select
+            className="waiting-animation-select"
+            value={waitingAnimation}
+            onChange={e => onWaitingAnimationChange(e.target.value as WaitingAnimation)}
+            aria-label="Waiting animation style"
+          >
+            {WAITING_ANIMATION_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <div className="pref-label" style={{ marginBottom: "0.4rem" }}>

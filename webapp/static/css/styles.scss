@@ -690,7 +690,7 @@ body {
 // ─── Thinking Icon ───────────────────────────────────────────
 .thinking-area {
   display: flex;
-  min-height: 160px;
+  min-height: 139px;
   justify-content: center;
 }
 
@@ -740,6 +740,83 @@ body {
   gap: 0.4rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.neon-reactor {
+  position: relative;
+  overflow: hidden;
+  padding: 0.7rem;
+  border: 1px solid rgb(0 234 255 / 16%);
+  border-radius: 0.75rem;
+  margin-top: 0.75rem;
+  background:
+    linear-gradient(180deg, rgb(13 19 49 / 72%), rgb(6 9 24 / 92%)),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 19px,
+      rgb(0 234 255 / 3%) 20px
+    );
+  box-shadow:
+    inset 0 0 22px rgb(0 234 255 / 4%),
+    0 0 18px rgb(0 0 0 / 24%);
+
+  &::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 1px;
+    animation: reactor-scan 4s linear infinite;
+    background: linear-gradient(90deg, transparent, rgb(0 234 255 / 55%), transparent);
+    content: "";
+    pointer-events: none;
+  }
+}
+
+.neon-reactor__header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.neon-reactor__live {
+  color: var(--accent-green);
+  text-shadow: 0 0 7px rgb(52 211 153 / 75%);
+}
+
+.neon-reactor__idle {
+  color: var(--text-muted);
+}
+
+.neon-reactor__canvas {
+  display: block;
+  width: 100%;
+  height: 220px;
+}
+
+@keyframes reactor-scan {
+  0% {
+    opacity: 0;
+    transform: translateY(-215px);
+  }
+
+  15%, 85% {
+    opacity: 0.7;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
 }
 
 .toggle-item {
@@ -922,6 +999,7 @@ body {
   top: 4.5rem;
   right: 1.5rem;
   min-width: 380px;
+  max-height: calc(100vh - 6rem);
   padding: 1.25rem;
   border: 1px solid var(--border-accent);
   border: 2px solid transparent;
@@ -943,6 +1021,7 @@ body {
       )
       border-box;
   box-shadow: 0 12px 48px rgb(0 0 0 / 50%), 0 0 20px rgb(0 234 255 / 8%);
+  overflow-y: auto;
 }
 
 @property --bg-angle {

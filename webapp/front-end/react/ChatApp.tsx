@@ -15,6 +15,7 @@ import MessageList from "./components/MessageList";
 import ModelSelect from "./components/ModelSelect";
 import ThinkingIcon from "./components/ThinkingIcon";
 import SentinelOrb from "./components/SentinelOrb";
+import NeonPulseReactor from "./components/NeonPulseReactor";
 import AuroraBackground from "./components/AuroraBackground";
 
 // Decorative / opt-in visualizations are code-split so initial load
@@ -259,6 +260,19 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       document.removeEventListener("click", handleDocClick);
     };
   }, []);
+
+  // Managed engines can still be warming up when the page first loads. Keep
+  // refreshing their status so an initially disabled prompt becomes usable
+  // without requiring the user to reload the whole page.
+  useEffect(() => {
+    if (model.loaded !== false) return;
+
+    const intervalId = window.setInterval(() => {
+      doGet("/info", (response: any) => setModel(response.data), "Error getting model info");
+    }, 3000);
+
+    return () => window.clearInterval(intervalId);
+  }, [model.loaded, setModel]);
 
   // --- Helper functions ---
   function getModelAttribute(modelName: string, attribute: string) {
@@ -856,15 +870,15 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           <div className="sidebar-section sidebar-section--viz">
             <div className="thinking-area">
               <Suspense fallback={null}>
-                {visualization === "gpuOrb" && <GpuOrb active={isGenerating} size={140} />}
-                {visualization === "nexus" && <NexusViz active={isGenerating} size={140} />}
-                {visualization === "waveform" && <WaveformViz active={isGenerating} size={140} />}
+                {visualization === "gpuOrb" && <GpuOrb active={isGenerating} size={126} />}
+                {visualization === "nexus" && <NexusViz active={isGenerating} size={126} />}
+                {visualization === "waveform" && <WaveformViz active={isGenerating} size={126} />}
               </Suspense>
               {visualization === "thinkingIcon" && (
-                <ThinkingIcon active={isGenerating} size={140} />
+                <ThinkingIcon active={isGenerating} size={126} />
               )}
               {visualization === "sentinelOrb" && (
-                <SentinelOrb working={isGenerating} size={320} tendrils={5} quality="high" />
+                <SentinelOrb working={isGenerating} size={282} tendrils={5} quality="high" />
               )}
             </div>
             {notice && (
@@ -880,11 +894,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               switches={switches}
               onToggle={handleToggleSwitch}
               onSensorToggle={handleSensorToggle}
-              visualization={visualization}
-              onVisualizationChange={setVisualization}
-              waitingAnimation={waitingAnimation}
-              onWaitingAnimationChange={setWaitingAnimation}
             />
+            <NeonPulseReactor active={Boolean(model.loaded_local_models?.length)} />
           </div>
         </div>
       </div>
@@ -913,6 +924,10 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           ttsVoice={ttsVoice}
           onTtsVoiceChange={setTtsVoice}
           voiceList={session.voice_list || []}
+          visualization={visualization}
+          onVisualizationChange={setVisualization}
+          waitingAnimation={waitingAnimation}
+          onWaitingAnimationChange={setWaitingAnimation}
           cursorEffect={cursorEffect}
           onCursorEffectChange={setCursorEffect}
           cursorDensity={cursorDensity}

@@ -20,7 +20,7 @@
     "name": "three"
   },
   "front-end/entries/chatbot.tsx": {
-    "file": "dist/js/chatbot-TO2pKhmH.js",
+    "file": "dist/js/chatbot-XbZ1X44V.js",
     "name": "dist/js/chatbot",
     "src": "front-end/entries/chatbot.tsx",
     "isEntry": true,
@@ -44,16 +44,16 @@
     ]
   },
   "front-end/entries/styles-css.js": {
-    "file": "dist/css/styles-CJll86yf.js",
+    "file": "dist/css/styles-cMiHEWLd.js",
     "name": "dist/css/styles",
     "src": "front-end/entries/styles-css.js",
     "isEntry": true,
     "css": [
-      "styles-afUhz-W1.css"
+      "styles-DJVC2GBR.css"
     ]
   },
   "front-end/react/components/CursorLines.tsx": {
-    "file": "assets/CursorLines-BkQG5JjP.js",
+    "file": "assets/CursorLines-CBYotOpm.js",
     "name": "CursorLines",
     "src": "front-end/react/components/CursorLines.tsx",
     "isDynamicEntry": true,
@@ -67,7 +67,7 @@
     ]
   },
   "front-end/react/components/GpuOrb.tsx": {
-    "file": "assets/GpuOrb-CX7cyojC.js",
+    "file": "assets/GpuOrb-COJ532YY.js",
     "name": "GpuOrb",
     "src": "front-end/react/components/GpuOrb.tsx",
     "isDynamicEntry": true,
@@ -82,7 +82,7 @@
     ]
   },
   "front-end/react/components/NexusViz.tsx": {
-    "file": "assets/NexusViz-DAOqoj-r.js",
+    "file": "assets/NexusViz-C-DZSnQa.js",
     "name": "NexusViz",
     "src": "front-end/react/components/NexusViz.tsx",
     "isDynamicEntry": true,
@@ -96,7 +96,7 @@
     ]
   },
   "front-end/react/components/Starfield.tsx": {
-    "file": "assets/Starfield-5Ux8XOnu.js",
+    "file": "assets/Starfield-CSM1w2vq.js",
     "name": "Starfield",
     "src": "front-end/react/components/Starfield.tsx",
     "isDynamicEntry": true,
@@ -110,7 +110,7 @@
     ]
   },
   "front-end/react/components/WaveformViz.tsx": {
-    "file": "assets/WaveformViz-BjFsmnw4.js",
+    "file": "assets/WaveformViz-Esfxrwaw.js",
     "name": "WaveformViz",
     "src": "front-end/react/components/WaveformViz.tsx",
     "isDynamicEntry": true,
@@ -124,7 +124,7 @@
     ]
   },
   "local/optional.js": {
-    "file": "assets/optional-CVp9OH9H.js",
+    "file": "assets/optional-rDeM7JOu.js",
     "name": "optional",
     "src": "local/optional.js",
     "isDynamicEntry": true,
