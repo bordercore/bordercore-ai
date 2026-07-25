@@ -8,6 +8,11 @@ import { useChatStore, ModelInfo, Switches } from "./stores/ChatStoreContext";
 import { doGet, doPost } from "./utils/reactUtils";
 import { convertBase64ToBytes } from "./utils/audio";
 import { animateCSS } from "./utils/animateCSS";
+import {
+  markResponseInterrupted,
+  messagesForModel,
+  updateResponseContent,
+} from "./utils/conversationInterruption";
 
 import Nav from "./components/Nav";
 import ChatInput from "./components/ChatInput";
@@ -145,6 +150,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   const [visibleNotice, setVisibleNotice] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const latestAssistantIdRef = useRef<number | null>(null);
+  const blockedAssistantIdsRef = useRef(new Set<number>());
 
   const sensorDetectModeRef = useRef(true);
   const sensorThreshold = settings.sensor_threshold ?? 100;
@@ -165,6 +172,16 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     onSpeechResult: handleSpeechResult,
     setNotice,
   });
+  const interruptTTSPlayback = audioHook.interruptTTSPlayback;
+  const handleVoiceBargeIn = useCallback(() => {
+    const stoppedAudio = interruptTTSPlayback();
+    const stoppedGeneration = stopGeneration("barge-in");
+    const assistantId = latestAssistantIdRef.current;
+    if ((!stoppedAudio && !stoppedGeneration) || assistantId === null) return;
+
+    blockedAssistantIdsRef.current.add(assistantId);
+    setChatHistory(previous => markResponseInterrupted(previous, assistantId));
+  }, [interruptTTSPlayback, setChatHistory, stopGeneration]);
   const fallbackTtsVoices = useMemo(() => session.voice_list || [], [session.voice_list]);
   const ttsCapabilities = useTtsCapabilities(ttsHost, fallbackTtsVoices);
 
@@ -199,10 +216,10 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   const vadHook = useVAD({
     audioMotionRef: audioHook.audioMotionRef,
-    audioElementRef: audioHook.audioElementRef,
     micStreamRef: audioHook.micStreamRef,
     connectStream: audioHook.connectStream,
     onSpeechResult: handleSpeechResult,
+    onBargeIn: handleVoiceBargeIn,
     setNotice,
   });
 
@@ -370,6 +387,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     return array.map(obj => {
       const newObj = { ...obj };
       if ("thinking" in newObj) delete newObj.thinking;
+      if ("interrupted" in newObj) delete newObj.interrupted;
       return newObj;
     });
   }
@@ -433,6 +451,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   function handleNewChat() {
     audioHook.pauseAudio();
+    latestAssistantIdRef.current = null;
+    blockedAssistantIdsRef.current.clear();
     setChatHistory([chatHistory[0]]);
     setClipboard(null);
     setUrl("");
@@ -481,6 +501,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   function handleStopGeneration() {
     audioHook.pauseAudio();
+    const assistantId = latestAssistantIdRef.current;
+    if (assistantId !== null) blockedAssistantIdsRef.current.add(assistantId);
     stopGeneration();
   }
 
@@ -693,10 +715,11 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           el.id === clipboard.id ? { ...el, content: el.content + ": " + clipboard.content } : el
         )
       : currentHistory;
-    const messages = removeThinkingField(messagesWithClipboard);
+    const messages = removeThinkingField(messagesForModel(messagesWithClipboard));
 
     // Add empty assistant message for streaming
     const assistantId = nextId();
+    latestAssistantIdRef.current = assistantId;
     const historyWithAssistant = [
       ...currentHistory,
       { id: assistantId, content: "", role: "assistant" as const },
@@ -734,18 +757,23 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       controlValue,
       onStreamStart: () => {},
       onStreamChunk: (cleanedContent: string) => {
+        if (
+          latestAssistantIdRef.current !== assistantId ||
+          blockedAssistantIdsRef.current.has(assistantId)
+        ) {
+          return;
+        }
         latestVisibleContent = cleanedContent;
         audioHook.appendTTSResponse(cleanedContent);
-        setChatHistory(prev => {
-          const updated = [...prev];
-          updated[updated.length - 1] = {
-            ...updated[updated.length - 1],
-            content: cleanedContent,
-          };
-          return updated;
-        });
+        setChatHistory(prev => updateResponseContent(prev, assistantId, cleanedContent));
       },
       onStreamEnd: (_result: string, buffer: string) => {
+        if (
+          latestAssistantIdRef.current !== assistantId ||
+          blockedAssistantIdsRef.current.has(assistantId)
+        ) {
+          return;
+        }
         // Handle control payloads
         if (
           buffer.slice(0, controlValue.length) === controlValue &&
@@ -758,23 +786,17 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               playSong(jsonObject.music_info[0]);
             } else {
               setChatHistory(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = {
-                  ...updated[updated.length - 1],
-                  content: "No music found.",
-                };
-                return updated;
+                return prev.map(message =>
+                  message.id === assistantId ? { ...message, content: "No music found." } : message
+                );
               });
             }
           } else if (jsonObject?.content && jsonObject?.lights) {
             latestVisibleContent = jsonObject.content;
             setChatHistory(prev => {
-              const updated = [...prev];
-              updated[updated.length - 1] = {
-                ...updated[updated.length - 1],
-                content: jsonObject.content,
-              };
-              return updated;
+              return prev.map(message =>
+                message.id === assistantId ? { ...message, content: jsonObject.content } : message
+              );
             });
           }
         }
@@ -785,21 +807,23 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
         setError({ body: "Error communicating with webapp.", variant: "danger" });
         console.error("Error:", err);
       },
-      onAbort: (_hasContent: boolean) => {
+      onAbort: (_hasContent: boolean, reason) => {
         setChatHistory(prev => {
-          const updated = [...prev];
-          const lastMessage = updated[updated.length - 1];
-          if (lastMessage?.role === "assistant") {
-            if (!lastMessage.content || !lastMessage.content.trim()) {
-              return updated.slice(0, -1);
-            } else {
-              updated[updated.length - 1] = {
-                ...lastMessage,
-                content: `${lastMessage.content.trimEnd()}\n\n_Generation stopped._`,
-              };
-            }
+          if (reason === "barge-in") {
+            return markResponseInterrupted(prev, assistantId);
           }
-          return updated;
+          if (reason === "replaced") return prev;
+
+          return prev.map(message =>
+            message.id === assistantId
+              ? {
+                  ...message,
+                  content: message.content.trim()
+                    ? `${message.content.trimEnd()}\n\n_Generation stopped._`
+                    : "_Generation stopped._",
+                }
+              : message
+          );
         });
       },
       setWaiting,

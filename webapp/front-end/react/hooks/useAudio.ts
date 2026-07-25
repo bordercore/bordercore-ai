@@ -27,6 +27,7 @@ export default function useAudio(options: UseAudioOptions) {
   const ttsSessionRef = useRef(0);
   const ttsQueueRef = useRef<Promise<void>>(Promise.resolve());
   const ttsNextStartRef = useRef(0);
+  const ttsPendingSegmentsRef = useRef(0);
   const speechSegmenterRef = useRef(
     new SpeechSegmenter({
       pronunciations: session.tts_pronunciations ?? {},
@@ -74,6 +75,13 @@ export default function useAudio(options: UseAudioOptions) {
   }, []);
 
   const cancelTTSPlayback = useCallback(() => {
+    const context = ttsCtxRef.current ?? audioMotionRef.current?.audioCtx;
+    const hadActivePlayback =
+      ttsAbortRef.current !== null ||
+      ttsSourcesRef.current.length > 0 ||
+      ttsPendingSegmentsRef.current > 0 ||
+      (context !== undefined && ttsNextStartRef.current > context.currentTime);
+
     if (ttsAbortRef.current) {
       ttsAbortRef.current.abort();
       ttsAbortRef.current = null;
@@ -98,8 +106,10 @@ export default function useAudio(options: UseAudioOptions) {
     ttsSourcesRef.current = [];
     ttsQueueRef.current = Promise.resolve();
     ttsNextStartRef.current = 0;
+    ttsPendingSegmentsRef.current = 0;
     ttsSessionRef.current += 1;
     speechSegmenterRef.current.reset();
+    return hadActivePlayback;
   }, []);
 
   const synthesizeSegment = useCallback(async (response: string, sessionId: number) => {
@@ -262,9 +272,15 @@ export default function useAudio(options: UseAudioOptions) {
     (segments: string[]) => {
       const sessionId = ttsSessionRef.current;
       for (const segment of segments) {
+        ttsPendingSegmentsRef.current += 1;
         ttsQueueRef.current = ttsQueueRef.current
           .then(() => synthesizeSegment(segment, sessionId))
-          .catch(error => console.error("TTS segment failed:", error));
+          .catch(error => console.error("TTS segment failed:", error))
+          .finally(() => {
+            if (sessionId === ttsSessionRef.current) {
+              ttsPendingSegmentsRef.current = Math.max(0, ttsPendingSegmentsRef.current - 1);
+            }
+          });
       }
     },
     [synthesizeSegment]
@@ -400,6 +416,15 @@ export default function useAudio(options: UseAudioOptions) {
     }
   }, [cancelTTSPlayback]);
 
+  const interruptTTSPlayback = useCallback(() => {
+    const interrupted = cancelTTSPlayback();
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current.src = "";
+    }
+    return interrupted;
+  }, [cancelTTSPlayback]);
+
   return {
     audioElementRef,
     audioMotionRef,
@@ -412,5 +437,6 @@ export default function useAudio(options: UseAudioOptions) {
     handleListen,
     stopRecording,
     pauseAudio,
+    interruptTTSPlayback,
   };
 }

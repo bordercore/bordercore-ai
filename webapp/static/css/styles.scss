@@ -502,6 +502,19 @@ body {
   color: var(--accent-purple);
 }
 
+.message-interrupted {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid rgb(236 72 153 / 25%);
+  border-radius: 999px;
+  margin-top: 0.45rem;
+  color: var(--accent-pink);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 // ─── Chat Input ──────────────────────────────────────────────
 .chat-input-area {
   flex-shrink: 0;

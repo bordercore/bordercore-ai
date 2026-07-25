@@ -21,6 +21,11 @@ export default function MessageItem({ message }: MessageItemProps) {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
+        {message.interrupted && (
+          <div className="message-interrupted" role="status">
+            Response interrupted
+          </div>
+        )}
       </div>
     </div>
   );

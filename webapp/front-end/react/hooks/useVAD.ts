@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import { encodeWAV } from "../utils/audio";
 import axios from "axios";
 import AudioMotionAnalyzer from "audiomotion-analyzer";
@@ -8,33 +8,40 @@ declare const vad: any;
 
 interface UseVADOptions {
   audioMotionRef: React.RefObject<AudioMotionAnalyzer | null>;
-  audioElementRef: React.RefObject<HTMLAudioElement | null>;
   micStreamRef: React.MutableRefObject<MediaStreamAudioSourceNode | null>;
   connectStream: (stream: MediaStream) => void;
   onSpeechResult: (text: string) => void;
+  onBargeIn: () => void;
   setNotice: (notice: string) => void;
 }
 
 export default function useVAD(options: UseVADOptions) {
-  const {
-    audioMotionRef,
-    audioElementRef,
-    micStreamRef,
-    connectStream,
-    onSpeechResult,
-    setNotice,
-  } = options;
+  const { audioMotionRef, micStreamRef, connectStream, onSpeechResult, onBargeIn, setNotice } =
+    options;
 
   const vadRef = useRef<any>(null);
+  const bargeInTimerRef = useRef<number | null>(null);
+  const bargeInConfirmedRef = useRef(false);
+
+  const confirmBargeIn = useCallback(() => {
+    if (bargeInConfirmedRef.current) return;
+    bargeInConfirmedRef.current = true;
+    if (bargeInTimerRef.current !== null) {
+      window.clearTimeout(bargeInTimerRef.current);
+      bargeInTimerRef.current = null;
+    }
+    onBargeIn();
+  }, [onBargeIn]);
 
   const startVAD = useCallback(async () => {
     vadRef.current = await vad.MicVAD.new({
       onSpeechStart: () => {
-        // Stop any TTS currently playing
-        if (audioElementRef.current) {
-          audioElementRef.current.pause();
-          audioElementRef.current.src = "";
-        }
+        bargeInConfirmedRef.current = false;
+        if (bargeInTimerRef.current !== null) window.clearTimeout(bargeInTimerRef.current);
+        bargeInTimerRef.current = window.setTimeout(() => {
+          bargeInTimerRef.current = null;
+          confirmBargeIn();
+        }, 150);
 
         setNotice("Listening...");
         if (audioMotionRef.current) {
@@ -43,6 +50,10 @@ export default function useVAD(options: UseVADOptions) {
         }
       },
       onSpeechEnd: (audio: Float32Array) => {
+        // A short utterance that ends inside the debounce window is itself
+        // confirmation. Interrupt before starting ASR so a fast transcript
+        // cannot accidentally cancel the next response.
+        confirmBargeIn();
         setNotice("");
         const wavBuffer = encodeWAV(audio);
         const blob = new Blob([wavBuffer], { type: "audio/wav" });
@@ -69,9 +80,14 @@ export default function useVAD(options: UseVADOptions) {
     }
     connectStream(vadRef.current.stream);
     vadRef.current.start();
-  }, [audioMotionRef, audioElementRef, connectStream, onSpeechResult, setNotice]);
+  }, [audioMotionRef, confirmBargeIn, connectStream, onSpeechResult, setNotice]);
 
   const stopVAD = useCallback(() => {
+    if (bargeInTimerRef.current !== null) {
+      window.clearTimeout(bargeInTimerRef.current);
+      bargeInTimerRef.current = null;
+    }
+    bargeInConfirmedRef.current = false;
     if (audioMotionRef.current && micStreamRef.current) {
       audioMotionRef.current.disconnectInput(micStreamRef.current, true);
     }
@@ -79,6 +95,8 @@ export default function useVAD(options: UseVADOptions) {
       vadRef.current.pause();
     }
   }, [audioMotionRef, micStreamRef]);
+
+  useEffect(() => stopVAD, [stopVAD]);
 
   return { startVAD, stopVAD };
 }

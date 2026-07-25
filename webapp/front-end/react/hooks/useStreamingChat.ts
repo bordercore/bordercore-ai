@@ -1,4 +1,5 @@
 import { useRef, useCallback } from "react";
+import { AbortReason, isResponseAbort, ResponseAbortRegistry } from "../utils/responseAbort";
 
 interface StreamingChatOptions {
   chatEndpoint: string;
@@ -7,13 +8,14 @@ interface StreamingChatOptions {
   onStreamChunk: (content: string, buffer: string) => void;
   onStreamEnd: (result: string, buffer: string) => void;
   onStreamError: (error: Error) => void;
-  onAbort: (hasContent: boolean) => void;
+  onAbort: (hasContent: boolean, reason: AbortReason) => void;
   setWaiting: (waiting: boolean) => void;
   setIsGenerating: (generating: boolean) => void;
 }
 
 export default function useStreamingChat() {
   const abortControllerRef = useRef<AbortController | null>(null);
+  const abortRegistryRef = useRef(new ResponseAbortRegistry());
 
   const isGenerating = abortControllerRef.current !== null;
 
@@ -45,7 +47,7 @@ export default function useStreamingChat() {
 
       // Abort any existing request
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+        abortRegistryRef.current.abort(abortControllerRef.current, "replaced");
       }
 
       const abortController = new AbortController();
@@ -139,7 +141,7 @@ export default function useStreamingChat() {
                   })
                   .catch(error => {
                     if (error.name === "AbortError") {
-                      controller.close();
+                      controller.error(error);
                       return;
                     }
                     console.error(error);
@@ -154,6 +156,9 @@ export default function useStreamingChat() {
           return new Response(stream).text();
         })
         .then(result => {
+          if (abortController.signal.aborted) {
+            throw new DOMException("The request was aborted.", "AbortError");
+          }
           const elapsed = Date.now() - start!;
           const wordCount = result.trim().split(/\s+/).length;
           const speed = Math.round(wordCount / (elapsed / 1000));
@@ -162,8 +167,8 @@ export default function useStreamingChat() {
           onStreamEnd(result, buffer);
         })
         .catch(exception => {
-          if (exception.name === "AbortError") {
-            onAbort(buffer.length > 0);
+          if (isResponseAbort(exception, abortController.signal)) {
+            onAbort(buffer.length > 0, abortRegistryRef.current.reasonFor(abortController));
             return;
           }
           onStreamError(exception);
@@ -180,10 +185,12 @@ export default function useStreamingChat() {
     []
   );
 
-  const stopGeneration = useCallback(() => {
+  const stopGeneration = useCallback((reason: AbortReason = "manual") => {
     if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+      abortRegistryRef.current.abort(abortControllerRef.current, reason);
+      return true;
     }
+    return false;
   }, []);
 
   return { sendMessage, stopGeneration, isGenerating, abortControllerRef };

@@ -13,6 +13,7 @@ export interface ChatMessage {
   content: string;
   role: "system" | "user" | "assistant";
   thinking?: string;
+  interrupted?: boolean;
 }
 
 export interface Switches {

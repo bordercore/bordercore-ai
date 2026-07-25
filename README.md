@@ -110,7 +110,11 @@ an option to keep the model loaded with no timeout.
 
 For manual recording, turn **Speech to Text** on, speak, and turn it off to
 stop recording and submit the audio for transcription. When VAD is enabled,
-voice activity detection can stop the recording automatically.
+voice activity detection can stop the recording automatically. VAD also
+supports voice barge-in: speaking while an answer is being generated or read
+aloud stops the active TTS playback and requests, aborts generation, and marks
+the partial assistant response as interrupted. The next request is told that
+the interrupted response may not have been fully heard.
 
 ## RAG (Retrieval Augmented Generation)
 
