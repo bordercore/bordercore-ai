@@ -123,7 +123,8 @@ Upload audio files to convert them to text, then ask questions based on the gene
 ## Multimodality
 
 Support for the **Qwen3-VL** and unified Qwen vision models for analyzing
-images. Upload images or drag-and-drop them into the UI.
+images. Upload images, drag-and-drop them into the UI, or paste an image from
+the clipboard while Vision mode is active.
 
 ## Tool Calling
 

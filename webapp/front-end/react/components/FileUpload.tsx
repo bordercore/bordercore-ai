@@ -68,6 +68,7 @@ export default function FileUpload({
               onChange={onFileUploadVision}
             />
           </div>
+          {!visionImage && <span className="vision-paste-hint ml-2">or paste from clipboard</span>}
           {visionImage && (
             <div className="flex items-center">
               <div>

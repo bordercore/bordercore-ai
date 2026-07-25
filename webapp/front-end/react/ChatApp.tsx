@@ -224,8 +224,29 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     onSensorData: handleSensorData,
   });
 
+  const setVisionFile = useCallback(
+    (file: File) => {
+      setVisionImage(file);
+
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        setImageSrc(event.target!.result as string);
+      };
+      reader.readAsDataURL(file);
+    },
+    [setImageSrc, setVisionImage]
+  );
+
   // --- Clipboard paste hook ---
   useClipboardPaste({
+    onImage: useCallback(
+      (image: File) => {
+        if (mode !== "Vision") return false;
+        setVisionFile(image);
+        return true;
+      },
+      [mode, setVisionFile]
+    ),
     onURL: useCallback(
       (pastedUrl: string) => {
         setUrl(pastedUrl);
@@ -558,13 +579,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   function handleFileUploadVision(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    setVisionImage(file);
-
-    const reader = new FileReader();
-    reader.onload = function (ev) {
-      setImageSrc(ev.target!.result as string);
-    };
-    reader.readAsDataURL(file);
+    setVisionFile(file);
   }
 
   function handleImageDrop(event: React.DragEvent) {
@@ -572,12 +587,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     setIsDragOver(false);
     const image = event.dataTransfer.files[0];
     if (image && image.type.indexOf("image/") >= 0) {
-      setVisionImage(image);
-      const reader = new FileReader();
-      reader.onload = function (ev) {
-        setImageSrc(ev.target!.result as string);
-      };
-      reader.readAsDataURL(image);
+      setVisionFile(image);
     }
   }
 
