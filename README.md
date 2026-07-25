@@ -50,6 +50,12 @@ Exact normalized sentences are available in the browser's debug console as
 `[TTS] normalized segment` entries. Configure pronunciation and omission rules
 in `settings.py`:
 
+While streaming TTS plays, the sentence currently being spoken is highlighted
+in the corresponding assistant response. The browser maps normalized speech
+back to the rendered Markdown without changing the stored message. The
+highlight advances with playback and clears immediately when speech completes,
+is paused, is interrupted, fails, or is replaced by another response.
+
 ```python
 tts_pronunciations = {
     "BordercoreAI": "Bordercore A I",
@@ -115,6 +121,29 @@ supports voice barge-in: speaking while an answer is being generated or read
 aloud stops the active TTS playback and requests, aborts generation, and marks
 the partial assistant response as interrupted. The next request is told that
 the interrupted response may not have been fully heard.
+
+### Voice latency diagnostics
+
+The controls sidebar shows timing for the latest manual or VAD voice turn:
+
+- **ASR** runs from detected speech end to the completed transcription.
+- **First token** runs from the LLM request to the first streamed response
+  chunk.
+- **First sentence** runs from the first token to the first segment ready for
+  TTS.
+- **First audio** runs from speech end to the first scheduled audible buffer.
+- **Total turn** runs from detected speech start to completion, interruption,
+  cancellation, or failure.
+- **TTS RTF** is synthesis time divided by generated audio duration. Values
+  below `1.0×` mean synthesis is faster than real time.
+- **Queue / buffer** reports peak sentence queue depth and scheduled audio.
+
+Each turn has a stable ID across ASR, LLM streaming, and TTS. Completed,
+interrupted, cancelled, and failed turns are counted separately. A structured
+summary is written to the browser console and the server log as
+`voice_turn_metrics`, providing a future integration point for
+Prometheus/OpenTelemetry. These summaries contain timings and counters only;
+audio, transcripts, prompts, and model responses are not included.
 
 ## RAG (Retrieval Augmented Generation)
 

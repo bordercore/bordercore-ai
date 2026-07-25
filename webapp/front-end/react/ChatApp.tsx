@@ -24,6 +24,7 @@ import NeonPulseReactor from "./components/NeonPulseReactor";
 import GpuSignalScanner from "./components/GpuSignalScanner";
 import ThermalPowerCore from "./components/ThermalPowerCore";
 import NeuralActivityConstellation from "./components/NeuralActivityConstellation";
+import VoiceLatencyPanel from "./components/VoiceLatencyPanel";
 
 // Decorative / opt-in visualizations are code-split so initial load
 // doesn't pay for them (notably three.js via GpuOrb, ~170 kB gzipped).
@@ -47,6 +48,8 @@ import useVAD from "./hooks/useVAD";
 import useSensor from "./hooks/useSensor";
 import useClipboardPaste from "./hooks/useClipboardPaste";
 import useEvent from "./hooks/useEvent";
+import useVoiceMetrics from "./hooks/useVoiceMetrics";
+import { ActiveSpokenSegment, finishSpokenSegment } from "./utils/spokenHighlight";
 
 interface ChatAppProps {
   session: any;
@@ -148,9 +151,11 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   const [showUnloadModal, setShowUnloadModal] = useState(false);
   const [showClipboardModal, setShowClipboardModal] = useState(false);
   const [visibleNotice, setVisibleNotice] = useState("");
+  const [activeSpokenSegment, setActiveSpokenSegment] = useState<ActiveSpokenSegment | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const latestAssistantIdRef = useRef<number | null>(null);
+  const latestVoiceTurnIdRef = useRef<string | null>(null);
   const blockedAssistantIdsRef = useRef(new Set<number>());
 
   const sensorDetectModeRef = useRef(true);
@@ -158,18 +163,35 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
   // --- Hooks ---
   const { sendMessage, stopGeneration } = useStreamingChat();
+  const voiceMetrics = useVoiceMetrics();
 
   // Use ref to always call the latest handleSendMessage (avoids stale closures)
   const handleSendMessageRef = useRef(handleSendMessage);
   handleSendMessageRef.current = handleSendMessage;
 
-  const handleSpeechResult = useCallback((text: string) => {
-    handleSendMessageRef.current(text);
+  const handleSpeechResult = useCallback((text: string, voiceTurnId?: string) => {
+    handleSendMessageRef.current(text, voiceTurnId);
   }, []);
 
   const audioHook = useAudio({
     session,
     onSpeechResult: handleSpeechResult,
+    onVoiceTurnStart: () => voiceMetrics.beginTurn("manual"),
+    onSpeechEnded: voiceMetrics.markSpeechEnded,
+    onAsrStarted: voiceMetrics.markAsrStarted,
+    onTranscriptionReady: voiceMetrics.markTranscriptionReady,
+    onVoiceTurnFailed: turnId => voiceMetrics.finish(turnId, "failed"),
+    onFirstTtsSentence: voiceMetrics.markFirstSentence,
+    onTtsRequest: voiceMetrics.beginTtsSegment,
+    onTtsFirstByte: voiceMetrics.markTtsFirstByte,
+    onTtsSegmentComplete: voiceMetrics.completeTtsSegment,
+    onFirstAudio: voiceMetrics.markFirstAudio,
+    onTtsQueue: voiceMetrics.recordQueue,
+    onTtsIdle: turnId => voiceMetrics.finish(turnId, "completed"),
+    onTtsSegmentStart: setActiveSpokenSegment,
+    onTtsSegmentEnd: (responseId, sequence) =>
+      setActiveSpokenSegment(current => finishSpokenSegment(current, responseId, sequence)),
+    onTtsHighlightClear: () => setActiveSpokenSegment(null),
     setNotice,
   });
   const interruptTTSPlayback = audioHook.interruptTTSPlayback;
@@ -180,8 +202,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     if ((!stoppedAudio && !stoppedGeneration) || assistantId === null) return;
 
     blockedAssistantIdsRef.current.add(assistantId);
+    voiceMetrics.finish(latestVoiceTurnIdRef.current, "interrupted");
     setChatHistory(previous => markResponseInterrupted(previous, assistantId));
-  }, [interruptTTSPlayback, setChatHistory, stopGeneration]);
+  }, [interruptTTSPlayback, setChatHistory, stopGeneration, voiceMetrics]);
   const fallbackTtsVoices = useMemo(() => session.voice_list || [], [session.voice_list]);
   const ttsCapabilities = useTtsCapabilities(ttsHost, fallbackTtsVoices);
 
@@ -220,6 +243,11 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     connectStream: audioHook.connectStream,
     onSpeechResult: handleSpeechResult,
     onBargeIn: handleVoiceBargeIn,
+    onVoiceTurnStart: () => voiceMetrics.beginTurn("vad"),
+    onSpeechEnded: voiceMetrics.markSpeechEnded,
+    onAsrStarted: voiceMetrics.markAsrStarted,
+    onTranscriptionReady: voiceMetrics.markTranscriptionReady,
+    onVoiceTurnFailed: turnId => voiceMetrics.finish(turnId, "failed"),
     setNotice,
   });
 
@@ -452,6 +480,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   function handleNewChat() {
     audioHook.pauseAudio();
     latestAssistantIdRef.current = null;
+    latestVoiceTurnIdRef.current = null;
     blockedAssistantIdsRef.current.clear();
     setChatHistory([chatHistory[0]]);
     setClipboard(null);
@@ -460,33 +489,38 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     setVisionImage(null);
   }
 
-  function handleSendMessage(message?: string) {
+  function handleSendMessage(message?: string, voiceTurnId?: string) {
     const msg = message ?? prompt;
     if (mode === "RAG") {
-      handleSendMessageRag();
+      handleSendMessageRag(voiceTurnId);
     } else if (mode === "Audio") {
-      handleSendMessageAudio();
+      handleSendMessageAudio(voiceTurnId);
     } else if (mode === "Vision") {
-      handleSendMessageVision();
+      handleSendMessageVision(false, voiceTurnId);
     } else {
-      sendMessageToChatbot(msg);
+      sendMessageToChatbot(msg, {}, false, voiceTurnId);
     }
   }
 
-  function handleSendMessageRag() {
-    sendMessageToChatbot(prompt, { sha1sum });
+  function handleSendMessageRag(voiceTurnId?: string) {
+    sendMessageToChatbot(prompt, { sha1sum }, false, voiceTurnId);
   }
 
-  function handleSendMessageAudio() {
+  function handleSendMessageAudio(voiceTurnId?: string) {
     if (!audioFileTranscript) return;
-    sendMessageToChatbot(prompt, { transcript: audioFileTranscript });
+    sendMessageToChatbot(prompt, { transcript: audioFileTranscript }, false, voiceTurnId);
   }
 
-  function handleSendMessageVision(regenerate = false) {
+  function handleSendMessageVision(regenerate = false, voiceTurnId?: string) {
     if (!visionImage) return;
     const reader = new FileReader();
     reader.onload = function (event) {
-      sendMessageToChatbot(prompt, { image: event.target!.result as string }, regenerate);
+      sendMessageToChatbot(
+        prompt,
+        { image: event.target!.result as string },
+        regenerate,
+        voiceTurnId
+      );
     };
     reader.readAsDataURL(visionImage);
   }
@@ -503,6 +537,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     audioHook.pauseAudio();
     const assistantId = latestAssistantIdRef.current;
     if (assistantId !== null) blockedAssistantIdsRef.current.add(assistantId);
+    voiceMetrics.finish(latestVoiceTurnIdRef.current, "cancelled");
     stopGeneration();
   }
 
@@ -686,7 +721,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   function sendMessageToChatbot(
     message: string,
     args: Record<string, any> = {},
-    regenerate = false
+    regenerate = false,
+    voiceTurnId: string | null = null
   ) {
     if (mode === "Vision" && getModelAttribute(model.name, "qwen_vision") === null) {
       setError({
@@ -720,6 +756,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     // Add empty assistant message for streaming
     const assistantId = nextId();
     latestAssistantIdRef.current = assistantId;
+    latestVoiceTurnIdRef.current = voiceTurnId;
+    voiceMetrics.markLlmRequested(voiceTurnId);
     const historyWithAssistant = [
       ...currentHistory,
       { id: assistantId, content: "", role: "assistant" as const },
@@ -742,13 +780,16 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       ...args,
     };
     if (temperature !== null) payload.temperature = temperature;
+    if (voiceTurnId) payload.voice_turn_id = voiceTurnId;
 
     audioHook.startTTSResponse(
       switches.text2speech,
       ttsHost,
       ttsVoice,
       audioSpeed,
-      ttsCapabilities.resolvedHost === ttsHost ? ttsCapabilities.capabilities?.engine || "" : ""
+      ttsCapabilities.resolvedHost === ttsHost ? ttsCapabilities.capabilities?.engine || "" : "",
+      voiceTurnId,
+      assistantId
     );
     let latestVisibleContent = "";
 
@@ -763,6 +804,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
         ) {
           return;
         }
+        voiceMetrics.markFirstToken(voiceTurnId);
         latestVisibleContent = cleanedContent;
         audioHook.appendTTSResponse(cleanedContent);
         setChatHistory(prev => updateResponseContent(prev, assistantId, cleanedContent));
@@ -802,12 +844,18 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
         }
 
         audioHook.finishTTSResponse(latestVisibleContent);
+        if (!switches.text2speech) voiceMetrics.finish(voiceTurnId, "completed");
       },
       onStreamError: (err: Error) => {
+        voiceMetrics.finish(voiceTurnId, "failed");
         setError({ body: "Error communicating with webapp.", variant: "danger" });
         console.error("Error:", err);
       },
       onAbort: (_hasContent: boolean, reason) => {
+        voiceMetrics.finish(
+          voiceTurnId,
+          reason === "barge-in" ? "interrupted" : reason === "manual" ? "cancelled" : "cancelled"
+        );
         setChatHistory(prev => {
           if (reason === "barge-in") {
             return markResponseInterrupted(prev, assistantId);
@@ -923,6 +971,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               waiting={waiting}
               waitingAnimation={waitingAnimation}
               error={error}
+              activeSpokenSegment={activeSpokenSegment}
             />
             <ImagePreview visionImage={visionImage} imageSrc={imageSrc} />
           </div>
@@ -1016,6 +1065,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
             {gpuTelemetryVisualization === "neuralActivityConstellation" && (
               <NeuralActivityConstellation active={Boolean(model.loaded_local_models?.length)} />
             )}
+            <VoiceLatencyPanel turns={voiceMetrics.turns} />
           </div>
         </div>
       </div>

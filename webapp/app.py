@@ -24,6 +24,7 @@ import base64
 import json
 import logging
 import os
+import time
 # import warnings
 from pathlib import Path
 from threading import Event
@@ -51,6 +52,7 @@ from modules.model_manager import ModelManager
 from modules.music import MusicServiceError
 from modules.rag import RAG
 from modules.util import get_model_info
+from modules.voice_metrics import normalize_voice_metrics
 from modules.vllm_manager import (
     get_active_vllm_model,
     hide_managed_checkpoint_duplicates,
@@ -375,6 +377,11 @@ def speech2text() -> ResponseReturnValue:
     if uploaded_audio is None:
         return jsonify({"error": "Missing audio upload"}), 400
 
+    voice_turn_id = request.form.get("voice_turn_id")
+    asr_started_at = time.perf_counter()
+    if voice_turn_id:
+        logger.info("voice_turn_asr_started turn_id=%s", voice_turn_id)
+
     try:
         audio_data = load_audio(uploaded_audio.read())
     except RuntimeError as exc:
@@ -390,6 +397,13 @@ def speech2text() -> ResponseReturnValue:
             "error": "Speech transcription is unavailable",
             "asr": asr_service.status(),
         }), 503
+
+    if voice_turn_id:
+        logger.info(
+            "voice_turn_asr_completed turn_id=%s duration_ms=%.1f",
+            voice_turn_id,
+            (time.perf_counter() - asr_started_at) * 1000,
+        )
 
     return jsonify(
         {
@@ -526,6 +540,9 @@ def chat() -> Response:
     """
     message = json.loads(request.form["message"])
     model_name = request.form["model"]
+    voice_turn_id = request.form.get("voice_turn_id")
+    if voice_turn_id:
+        logger.info("voice_turn_llm_started turn_id=%s model=%s", voice_turn_id, model_name)
     speak = request.form.get("speak", "false")
     audio_speed = float(request.form.get("audio_speed", 1.0))  # Playback speed
     temperature = (
@@ -574,6 +591,17 @@ def chat() -> Response:
     )
     response.call_on_close(stop_event.set)
     return response
+
+
+@app.route("/metrics/voice", methods=["POST"])
+def voice_metrics() -> ResponseReturnValue:
+    """Validate and log one content-free voice latency summary."""
+    try:
+        metrics = normalize_voice_metrics(request.get_json(silent=True))
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    logger.info("voice_turn_metrics %s", json.dumps(metrics, sort_keys=True))
+    return "", 204
 
 
 @app.route("/info")

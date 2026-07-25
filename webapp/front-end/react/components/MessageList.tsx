@@ -5,12 +5,14 @@ import MessageItem from "./MessageItem";
 import WaitingIndicator from "./WaitingIndicator";
 import useCodeCopyObserver from "../hooks/useCodeCopyObserver";
 import { ChatMessage, WaitingAnimation } from "../stores/ChatStoreContext";
+import { ActiveSpokenSegment } from "../utils/spokenHighlight";
 
 interface MessageListProps {
   messages: ChatMessage[];
   waiting: boolean;
   waitingAnimation: WaitingAnimation;
   error: any;
+  activeSpokenSegment: ActiveSpokenSegment | null;
 }
 
 const variantColorMap: Record<string, string> = {
@@ -24,6 +26,7 @@ export default function MessageList({
   waiting,
   waitingAnimation,
   error,
+  activeSpokenSegment,
 }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   useCodeCopyObserver(containerRef);
@@ -38,7 +41,7 @@ export default function MessageList({
   return (
     <div id="message-container" className="items-start" ref={containerRef}>
       {messages.map(message => (
-        <MessageItem key={message.id} message={message} />
+        <MessageItem key={message.id} message={message} activeSpokenSegment={activeSpokenSegment} />
       ))}
       {waiting && <WaitingIndicator animation={waitingAnimation} />}
       {error && (
