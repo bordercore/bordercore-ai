@@ -51,6 +51,7 @@ import useEvent from "./hooks/useEvent";
 import useVoiceMetrics from "./hooks/useVoiceMetrics";
 import { ActiveSpokenSegment, finishSpokenSegment } from "./utils/spokenHighlight";
 import { validateSpeechTranscript } from "./utils/speechTranscript";
+import { VadRuntimeState } from "./utils/vadRuntime";
 
 interface ChatAppProps {
   session: any;
@@ -155,6 +156,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   const [showClipboardModal, setShowClipboardModal] = useState(false);
   const [visibleNotice, setVisibleNotice] = useState("");
   const [activeSpokenSegment, setActiveSpokenSegment] = useState<ActiveSpokenSegment | null>(null);
+  const [vadRuntimeState, setVadRuntimeState] = useState<VadRuntimeState>({ status: "off" });
+  const vadStartupFailedRef = useRef(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const latestAssistantIdRef = useRef<number | null>(null);
@@ -255,6 +258,26 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     setTtsVoice,
   ]);
 
+  const handleVadRuntimeState = useCallback(
+    (state: VadRuntimeState) => {
+      setVadRuntimeState(state);
+      if (state.status === "starting") {
+        setNotice("Starting voice detection…");
+        return;
+      }
+      if (state.status === "ready") {
+        setNotice("");
+        return;
+      }
+      if (state.status !== "error") return;
+      vadStartupFailedRef.current = true;
+      setNotice(state.message);
+      setSwitches({ ...switches, vad: false });
+      window.setTimeout(() => setNotice(""), 4000);
+    },
+    [setNotice, setSwitches, switches]
+  );
+
   const vadHook = useVAD({
     audioMotionRef: audioHook.audioMotionRef,
     micStreamRef: audioHook.micStreamRef,
@@ -275,6 +298,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
         "misfire",
         `Speech did not reach the ${vadConfig.minSpeechMs} ms minimum`
       ),
+    onRuntimeStateChange: handleVadRuntimeState,
     config: vadConfig,
     setNotice,
   });
@@ -363,6 +387,11 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       if (switches.vad) {
         startVAD();
       } else {
+        if (vadStartupFailedRef.current) {
+          vadStartupFailedRef.current = false;
+        } else {
+          setVadRuntimeState({ status: "off" });
+        }
         stopVAD();
       }
     }
@@ -1111,6 +1140,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               turns={voiceMetrics.turns}
               vadConfig={vadConfig}
               vadEnabled={switches.vad}
+              vadRuntimeState={vadRuntimeState}
             />
           </div>
         </div>

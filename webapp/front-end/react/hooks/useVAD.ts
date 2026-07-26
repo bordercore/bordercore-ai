@@ -3,12 +3,19 @@ import { encodeWAV } from "../utils/audio";
 import axios from "axios";
 import AudioMotionAnalyzer from "audiomotion-analyzer";
 import { VadConfig } from "../utils/vadConfig";
+import { describeVadStartupError, VadRuntimeState } from "../utils/vadRuntime";
 
 // Declare global vad type from CDN script
 declare const vad: any;
 
 const VAD_ASSET_BASE = "https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.29/dist/";
 const ONNX_WASM_BASE = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/";
+
+interface VadInstance {
+  pause: () => void;
+  start: () => void;
+  stream: MediaStream;
+}
 
 interface UseVADOptions {
   audioMotionRef: React.RefObject<AudioMotionAnalyzer | null>;
@@ -25,6 +32,7 @@ interface UseVADOptions {
   onVadConfirmed: (turnId: string | null) => void;
   onVadComplete: (turnId: string | null) => void;
   onVadMisfire: (turnId: string | null) => void;
+  onRuntimeStateChange: (state: VadRuntimeState) => void;
   config: VadConfig;
   setNotice: (notice: string) => void;
 }
@@ -45,11 +53,12 @@ export default function useVAD(options: UseVADOptions) {
     onVadConfirmed,
     onVadComplete,
     onVadMisfire,
+    onRuntimeStateChange,
     config,
     setNotice,
   } = options;
 
-  const vadRef = useRef<any>(null);
+  const vadRef = useRef<VadInstance | null>(null);
   const vadGenerationRef = useRef(0);
   const bargeInConfirmedRef = useRef(false);
   const voiceTurnIdRef = useRef<string | null>(null);
@@ -64,88 +73,99 @@ export default function useVAD(options: UseVADOptions) {
   const startVAD = useCallback(async () => {
     const generation = ++vadGenerationRef.current;
     if (vadRef.current) vadRef.current.pause();
-    const instance = await vad.MicVAD.new({
-      model: "v5",
-      baseAssetPath: VAD_ASSET_BASE,
-      onnxWASMBasePath: ONNX_WASM_BASE,
-      // Pin the documented detector defaults so a future library update
-      // cannot silently change turn timing or sensitivity.
-      positiveSpeechThreshold: config.positiveSpeechThreshold,
-      negativeSpeechThreshold: config.negativeSpeechThreshold,
-      // End turns promptly after sustained silence while retaining enough
-      // room for natural pauses and hesitation.
-      redemptionMs: config.redemptionMs,
-      preSpeechPadMs: config.preSpeechPadMs,
-      // Keep short conversational utterances such as "Howdy" while still
-      // rejecting clicks and other very brief transients.
-      minSpeechMs: config.minSpeechMs,
-      onFrameProcessed: (probabilities: { isSpeech: number }) => {
-        onVadFrame(voiceTurnIdRef.current, probabilities.isSpeech);
-      },
-      onSpeechStart: () => {
-        voiceTurnIdRef.current = onVoiceTurnStart();
-        bargeInConfirmedRef.current = false;
+    onRuntimeStateChange({ status: "starting" });
+    let instance: VadInstance | null = null;
+    try {
+      const createdInstance = (await vad.MicVAD.new({
+        model: "v5",
+        baseAssetPath: VAD_ASSET_BASE,
+        onnxWASMBasePath: ONNX_WASM_BASE,
+        // Pin the documented detector defaults so a future library update
+        // cannot silently change turn timing or sensitivity.
+        positiveSpeechThreshold: config.positiveSpeechThreshold,
+        negativeSpeechThreshold: config.negativeSpeechThreshold,
+        // End turns promptly after sustained silence while retaining enough
+        // room for natural pauses and hesitation.
+        redemptionMs: config.redemptionMs,
+        preSpeechPadMs: config.preSpeechPadMs,
+        // Keep short conversational utterances such as "Howdy" while still
+        // rejecting clicks and other very brief transients.
+        minSpeechMs: config.minSpeechMs,
+        onFrameProcessed: (probabilities: { isSpeech: number }) => {
+          onVadFrame(voiceTurnIdRef.current, probabilities.isSpeech);
+        },
+        onSpeechStart: () => {
+          voiceTurnIdRef.current = onVoiceTurnStart();
+          bargeInConfirmedRef.current = false;
 
-        setNotice("Listening...");
-        if (audioMotionRef.current) {
-          audioMotionRef.current.gradient = "rainbow";
-          audioMotionRef.current.volume = 0;
-        }
-      },
-      // Do not interrupt on tentative speech. Silero invokes this only after
-      // the segment has accumulated minSpeechMs of speech-positive frames.
-      onSpeechRealStart: confirmBargeIn,
-      onSpeechEnd: (audio: Float32Array) => {
-        // onSpeechRealStart should already have confirmed a valid segment.
-        // Keep this as a safeguard for runtimes that omit that callback.
-        confirmBargeIn();
-        const turnId = voiceTurnIdRef.current;
-        onVadComplete(turnId);
-        voiceTurnIdRef.current = null;
-        onSpeechEnded(turnId);
-        onAsrStarted(turnId);
-        setNotice("");
-        const wavBuffer = encodeWAV(audio);
-        const blob = new Blob([wavBuffer], { type: "audio/wav" });
-        const formData = new FormData();
-        formData.append("audio", blob);
-        if (turnId) formData.append("voice_turn_id", turnId);
-        setNotice("Waiting for speech to text");
+          setNotice("Listening...");
+          if (audioMotionRef.current) {
+            audioMotionRef.current.gradient = "rainbow";
+            audioMotionRef.current.volume = 0;
+          }
+        },
+        // Do not interrupt on tentative speech. Silero invokes this only after
+        // the segment has accumulated minSpeechMs of speech-positive frames.
+        onSpeechRealStart: confirmBargeIn,
+        onSpeechEnd: (audio: Float32Array) => {
+          // onSpeechRealStart should already have confirmed a valid segment.
+          // Keep this as a safeguard for runtimes that omit that callback.
+          confirmBargeIn();
+          const turnId = voiceTurnIdRef.current;
+          onVadComplete(turnId);
+          voiceTurnIdRef.current = null;
+          onSpeechEnded(turnId);
+          onAsrStarted(turnId);
+          setNotice("");
+          const wavBuffer = encodeWAV(audio);
+          const blob = new Blob([wavBuffer], { type: "audio/wav" });
+          const formData = new FormData();
+          formData.append("audio", blob);
+          if (turnId) formData.append("voice_turn_id", turnId);
+          setNotice("Waiting for speech to text");
 
-        axios
-          .post("/speech2text", formData)
-          .then(response => {
-            onTranscriptionReady(turnId);
-            setNotice("");
-            onSpeechResult(response.data.input, turnId || undefined);
-          })
-          .catch(error => {
-            onVoiceTurnFailed(turnId);
-            console.error("VAD speech-to-text request failed:", error);
-            setNotice("Speech to text failed");
-            window.setTimeout(() => setNotice(""), 2000);
-          });
-      },
-      onVADMisfire: () => {
-        const turnId = voiceTurnIdRef.current;
-        onVadComplete(turnId);
-        onVadMisfire(turnId);
-        voiceTurnIdRef.current = null;
-        bargeInConfirmedRef.current = false;
-        setNotice("");
-      },
-    });
-    if (generation !== vadGenerationRef.current) {
-      instance.pause();
-      return;
+          axios
+            .post("/speech2text", formData)
+            .then(response => {
+              onTranscriptionReady(turnId);
+              setNotice("");
+              onSpeechResult(response.data.input, turnId || undefined);
+            })
+            .catch(error => {
+              onVoiceTurnFailed(turnId);
+              console.error("VAD speech-to-text request failed:", error);
+              setNotice("Speech to text failed");
+              window.setTimeout(() => setNotice(""), 2000);
+            });
+        },
+        onVADMisfire: () => {
+          const turnId = voiceTurnIdRef.current;
+          onVadComplete(turnId);
+          onVadMisfire(turnId);
+          voiceTurnIdRef.current = null;
+          bargeInConfirmedRef.current = false;
+          setNotice("");
+        },
+      })) as VadInstance;
+      instance = createdInstance;
+      if (generation !== vadGenerationRef.current) {
+        createdInstance.pause();
+        return;
+      }
+      vadRef.current = createdInstance;
+
+      if (audioMotionRef.current) {
+        audioMotionRef.current.gradient = "rainbow";
+      }
+      connectStream(createdInstance.stream);
+      createdInstance.start();
+      onRuntimeStateChange({ status: "ready" });
+    } catch (error) {
+      if (generation !== vadGenerationRef.current) return;
+      if (instance) instance.pause();
+      vadRef.current = null;
+      onRuntimeStateChange({ status: "error", message: describeVadStartupError(error) });
     }
-    vadRef.current = instance;
-
-    if (audioMotionRef.current) {
-      audioMotionRef.current.gradient = "rainbow";
-    }
-    connectStream(vadRef.current.stream);
-    vadRef.current.start();
   }, [
     audioMotionRef,
     config,
@@ -160,6 +180,7 @@ export default function useVAD(options: UseVADOptions) {
     onVadComplete,
     onVadFrame,
     onVadMisfire,
+    onRuntimeStateChange,
     setNotice,
   ]);
 

@@ -7,11 +7,13 @@ import {
   VoiceTurnMetric,
 } from "../hooks/useVoiceMetrics";
 import { identifyVadPreset, VadConfig, VAD_PRESETS } from "../utils/vadConfig";
+import { VadRuntimeState } from "../utils/vadRuntime";
 
 interface VoiceLatencyPanelProps {
   turns: VoiceTurnMetric[];
   vadConfig: VadConfig;
   vadEnabled: boolean;
+  vadRuntimeState: VadRuntimeState;
 }
 
 function milliseconds(value: number | null): string {
@@ -21,8 +23,11 @@ function milliseconds(value: number | null): string {
 
 export function describeVoiceStatus(
   turn: VoiceTurnMetric | undefined,
-  vadEnabled: boolean
+  vadEnabled: boolean,
+  runtimeState: VadRuntimeState = vadEnabled ? { status: "ready" } : { status: "off" }
 ): string {
+  if (runtimeState.status === "error") return "Startup failed";
+  if (runtimeState.status === "starting") return "Starting VAD…";
   if (!vadEnabled) return "Off";
   if (!turn) return "Ready";
   if (turn.outcome !== "active") {
@@ -47,12 +52,13 @@ export default function VoiceLatencyPanel({
   turns,
   vadConfig,
   vadEnabled,
+  vadRuntimeState,
 }: VoiceLatencyPanelProps) {
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const turn = turns[turns.length - 1];
   const presetKey = identifyVadPreset(vadConfig);
   const preset = presetKey === "custom" ? "Custom" : VAD_PRESETS[presetKey].label;
-  const status = describeVoiceStatus(turn, vadEnabled);
+  const status = describeVoiceStatus(turn, vadEnabled, vadRuntimeState);
 
   const copyDiagnostics = async () => {
     const outcomes = turns.reduce<Record<string, number>>((counts, candidate) => {
@@ -64,6 +70,7 @@ export default function VoiceLatencyPanel({
       vad: {
         enabled: vadEnabled,
         status,
+        runtimeState: vadRuntimeState,
         preset,
         config: vadConfig,
       },
@@ -86,6 +93,12 @@ export default function VoiceLatencyPanel({
           <span>Voice diagnostics</span>
           <span className="voice-latency-outcome">{status}</span>
         </div>
+        {vadRuntimeState.status === "error" && (
+          <div className="voice-diagnostics-reason">
+            <span>VAD startup</span>
+            <strong>{vadRuntimeState.message}</strong>
+          </div>
+        )}
         <div className="voice-latency-empty">Complete a voice turn to see latency.</div>
         <button className="voice-diagnostics-copy" type="button" onClick={copyDiagnostics}>
           {copyState === "copied"
@@ -160,6 +173,12 @@ export default function VoiceLatencyPanel({
         <div className="voice-diagnostics-reason">
           <span>Latest result</span>
           <strong>{turn.outcomeReason}</strong>
+        </div>
+      )}
+      {vadRuntimeState.status === "error" && (
+        <div className="voice-diagnostics-reason">
+          <span>VAD startup</span>
+          <strong>{vadRuntimeState.message}</strong>
         </div>
       )}
       <div className="voice-latency-counts" aria-label="Voice turn outcomes this session">

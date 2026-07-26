@@ -435,7 +435,9 @@ and responsiveness or detection tradeoff. **Reset VAD defaults** restores the
 Balanced configuration. The controls sidebar shows the active VAD state, preset,
 timings, confidence, and the reason a segment was discarded. **Copy
 diagnostics** copies the current configuration and latest turn data as JSON for
-troubleshooting.
+troubleshooting. VAD startup reports microphone permission, missing-device,
+device-in-use, secure-connection, and model-loading failures, turns the VAD
+switch back off, and includes the failure in copied diagnostics.
 
 # Tests
 

@@ -25,6 +25,13 @@ describe("voice diagnostic status", () => {
   it("describes VAD availability before a turn", () => {
     expect(describeVoiceStatus(undefined, false)).toBe("Off");
     expect(describeVoiceStatus(undefined, true)).toBe("Ready");
+    expect(describeVoiceStatus(undefined, true, { status: "starting" })).toBe("Starting VAD…");
+    expect(
+      describeVoiceStatus(undefined, false, {
+        status: "error",
+        message: "No microphone was found",
+      })
+    ).toBe("Startup failed");
   });
 
   it("describes the active voice pipeline stage", () => {
