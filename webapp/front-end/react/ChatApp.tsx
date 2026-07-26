@@ -249,6 +249,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     onTranscriptionReady: voiceMetrics.markTranscriptionReady,
     onVoiceTurnFailed: turnId => voiceMetrics.finish(turnId, "failed"),
     onVadFrame: voiceMetrics.recordVadFrame,
+    onVadConfirmed: voiceMetrics.markVadConfirmed,
     onVadComplete: voiceMetrics.finalizeVad,
     onVadMisfire: turnId => voiceMetrics.finish(turnId, "misfire"),
     setNotice,

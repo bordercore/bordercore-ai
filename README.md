@@ -122,7 +122,9 @@ aloud stops the active TTS playback and requests, aborts generation, and marks
 the partial assistant response as interrupted. The next request is told that
 the interrupted response may not have been fully heard. Browser VAD uses the
 Silero V5 model through pinned `vad-web` and ONNX Runtime versions so runtime
-updates do not silently change turn detection.
+updates do not silently change turn detection. Speech must reach Silero's
+minimum confirmed duration before triggering barge-in, so rejected clicks,
+coughs, and other VAD misfires do not interrupt the assistant.
 
 ### Voice latency diagnostics
 
@@ -142,6 +144,7 @@ The controls sidebar shows timing for the latest manual or VAD voice turn:
 - **VAD confidence / speech frames** reports average and peak Silero speech
   probability plus the proportion of analyzed frames above the configured
   speech threshold. Short detections rejected by VAD are counted as misfires.
+- **VAD confirmation** measures tentative speech start to confirmed speech.
 
 Each turn has a stable ID across ASR, LLM streaming, and TTS. Completed,
 interrupted, cancelled, failed, and VAD-misfire turns are counted separately.

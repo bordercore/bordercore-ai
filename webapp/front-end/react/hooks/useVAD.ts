@@ -21,6 +21,7 @@ interface UseVADOptions {
   onTranscriptionReady: (turnId: string | null) => void;
   onVoiceTurnFailed: (turnId: string | null) => void;
   onVadFrame: (turnId: string | null, speechProbability: number) => void;
+  onVadConfirmed: (turnId: string | null) => void;
   onVadComplete: (turnId: string | null) => void;
   onVadMisfire: (turnId: string | null) => void;
   setNotice: (notice: string) => void;
@@ -39,25 +40,22 @@ export default function useVAD(options: UseVADOptions) {
     onTranscriptionReady,
     onVoiceTurnFailed,
     onVadFrame,
+    onVadConfirmed,
     onVadComplete,
     onVadMisfire,
     setNotice,
   } = options;
 
   const vadRef = useRef<any>(null);
-  const bargeInTimerRef = useRef<number | null>(null);
   const bargeInConfirmedRef = useRef(false);
   const voiceTurnIdRef = useRef<string | null>(null);
 
   const confirmBargeIn = useCallback(() => {
     if (bargeInConfirmedRef.current) return;
     bargeInConfirmedRef.current = true;
-    if (bargeInTimerRef.current !== null) {
-      window.clearTimeout(bargeInTimerRef.current);
-      bargeInTimerRef.current = null;
-    }
+    onVadConfirmed(voiceTurnIdRef.current);
     onBargeIn();
-  }, [onBargeIn]);
+  }, [onBargeIn, onVadConfirmed]);
 
   const startVAD = useCallback(async () => {
     vadRef.current = await vad.MicVAD.new({
@@ -79,11 +77,6 @@ export default function useVAD(options: UseVADOptions) {
       onSpeechStart: () => {
         voiceTurnIdRef.current = onVoiceTurnStart();
         bargeInConfirmedRef.current = false;
-        if (bargeInTimerRef.current !== null) window.clearTimeout(bargeInTimerRef.current);
-        bargeInTimerRef.current = window.setTimeout(() => {
-          bargeInTimerRef.current = null;
-          confirmBargeIn();
-        }, 150);
 
         setNotice("Listening...");
         if (audioMotionRef.current) {
@@ -91,10 +84,12 @@ export default function useVAD(options: UseVADOptions) {
           audioMotionRef.current.volume = 0;
         }
       },
+      // Do not interrupt on tentative speech. Silero invokes this only after
+      // the segment has accumulated minSpeechMs of speech-positive frames.
+      onSpeechRealStart: confirmBargeIn,
       onSpeechEnd: (audio: Float32Array) => {
-        // A short utterance that ends inside the debounce window is itself
-        // confirmation. Interrupt before starting ASR so a fast transcript
-        // cannot accidentally cancel the next response.
+        // onSpeechRealStart should already have confirmed a valid segment.
+        // Keep this as a safeguard for runtimes that omit that callback.
         confirmBargeIn();
         const turnId = voiceTurnIdRef.current;
         onVadComplete(turnId);
@@ -128,10 +123,6 @@ export default function useVAD(options: UseVADOptions) {
         onVadComplete(turnId);
         onVadMisfire(turnId);
         voiceTurnIdRef.current = null;
-        if (bargeInTimerRef.current !== null) {
-          window.clearTimeout(bargeInTimerRef.current);
-          bargeInTimerRef.current = null;
-        }
         bargeInConfirmedRef.current = false;
         setNotice("");
       },
@@ -159,10 +150,6 @@ export default function useVAD(options: UseVADOptions) {
   ]);
 
   const stopVAD = useCallback(() => {
-    if (bargeInTimerRef.current !== null) {
-      window.clearTimeout(bargeInTimerRef.current);
-      bargeInTimerRef.current = null;
-    }
     bargeInConfirmedRef.current = false;
     if (audioMotionRef.current && micStreamRef.current) {
       audioMotionRef.current.disconnectInput(micStreamRef.current, true);

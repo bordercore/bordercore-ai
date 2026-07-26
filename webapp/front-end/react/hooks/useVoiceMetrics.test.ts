@@ -12,6 +12,7 @@ const completedTurn: VoiceTurnMetric = {
   source: "vad",
   startedAt: 100,
   speechEndedAt: 500,
+  vadConfirmedAt: 350,
   asrStartedAt: 510,
   transcriptionReadyAt: 800,
   llmRequestedAt: 820,
@@ -72,6 +73,7 @@ describe("voice metrics", () => {
       vadSpeechFrameCount: 15,
       vadAverageSpeechProbability: 0.68,
       vadPeakSpeechProbability: 0.97,
+      vadConfirmationLatencyMs: 250,
       ttsSegmentCount: 2,
       ttsSegments: [
         {

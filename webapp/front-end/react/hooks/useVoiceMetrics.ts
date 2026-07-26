@@ -22,6 +22,7 @@ export interface VoiceTurnMetric {
   source: VoiceTurnSource;
   startedAt: number;
   speechEndedAt?: number;
+  vadConfirmedAt?: number;
   asrStartedAt?: number;
   transcriptionReadyAt?: number;
   llmRequestedAt?: number;
@@ -76,6 +77,7 @@ export function summarizeVoiceTurn(turn: VoiceTurnMetric) {
     vadSpeechFrameCount: turn.vadSpeechFrameCount,
     vadAverageSpeechProbability: turn.vadAverageSpeechProbability,
     vadPeakSpeechProbability: turn.vadPeakSpeechProbability,
+    vadConfirmationLatencyMs: durationBetween(turn.startedAt, turn.vadConfirmedAt),
     ttsSegmentCount: turn.ttsSegments.length,
     ttsSegments: turn.ttsSegments.map(segment => {
       const synthesisDurationMs = durationBetween(segment.requestedAt, segment.completedAt);
@@ -267,6 +269,7 @@ export default function useVoiceMetrics() {
     turns,
     beginTurn,
     markSpeechEnded: (id: string | null) => mark(id, "speechEndedAt"),
+    markVadConfirmed: (id: string | null) => mark(id, "vadConfirmedAt"),
     markAsrStarted: (id: string | null) => mark(id, "asrStartedAt"),
     markTranscriptionReady: (id: string | null) => mark(id, "transcriptionReadyAt"),
     markLlmRequested: (id: string | null) => mark(id, "llmRequestedAt"),

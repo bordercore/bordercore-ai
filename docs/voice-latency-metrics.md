@@ -15,6 +15,15 @@ better.
 - 500 ms–1 s: good
 - Over 1.5 s: likely noticeable
 
+### VAD confirmation
+
+Time from tentative speech detection until the segment accumulates enough
+speech-positive frames to be accepted. Barge-in occurs at this point, so a
+misfire can be discarded without interrupting the assistant.
+
+- Around 250–350 ms is expected with the current 250 ms minimum
+- A much larger value suggests intermittent or low-confidence speech
+
 ### First token
 
 Time from sending the request until the LLM begins responding.
