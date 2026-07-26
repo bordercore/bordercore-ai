@@ -19,6 +19,7 @@ NUMBER_FIELDS = {
     "vadAverageSpeechProbability",
     "vadPeakSpeechProbability",
     "vadConfirmationLatencyMs",
+    "vadEndpointDelayMs",
 }
 OUTCOMES = {"completed", "interrupted", "cancelled", "failed", "misfire"}
 SOURCES = {"vad", "manual"}

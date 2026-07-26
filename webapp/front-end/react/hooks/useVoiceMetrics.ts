@@ -37,6 +37,7 @@ export interface VoiceTurnMetric {
   vadSpeechFrameCount: number;
   vadAverageSpeechProbability: number | null;
   vadPeakSpeechProbability: number | null;
+  vadEndpointDelayMs: number | null;
   ttsSegments: TtsSegmentMetric[];
 }
 
@@ -77,6 +78,7 @@ export function summarizeVoiceTurn(turn: VoiceTurnMetric) {
     vadSpeechFrameCount: turn.vadSpeechFrameCount,
     vadAverageSpeechProbability: turn.vadAverageSpeechProbability,
     vadPeakSpeechProbability: turn.vadPeakSpeechProbability,
+    vadEndpointDelayMs: turn.vadEndpointDelayMs,
     vadConfirmationLatencyMs: durationBetween(turn.startedAt, turn.vadConfirmedAt),
     ttsSegmentCount: turn.ttsSegments.length,
     ttsSegments: turn.ttsSegments.map(segment => {
@@ -106,7 +108,13 @@ export default function useVoiceMetrics() {
   const vadSamplesRef = useRef(
     new Map<
       string,
-      { frameCount: number; speechFrameCount: number; probabilityTotal: number; peak: number }
+      {
+        frameCount: number;
+        speechFrameCount: number;
+        probabilityTotal: number;
+        peak: number;
+        lastSpeechAt: number | null;
+      }
     >()
   );
 
@@ -152,6 +160,7 @@ export default function useVoiceMetrics() {
       vadSpeechFrameCount: 0,
       vadAverageSpeechProbability: null,
       vadPeakSpeechProbability: null,
+      vadEndpointDelayMs: null,
       ttsSegments: [],
     };
     setTurns(previous => [...previous.slice(-9), turn]);
@@ -240,9 +249,13 @@ export default function useVoiceMetrics() {
       speechFrameCount: 0,
       probabilityTotal: 0,
       peak: 0,
+      lastSpeechAt: null,
     };
     samples.frameCount += 1;
-    if (probability >= 0.3) samples.speechFrameCount += 1;
+    if (probability >= 0.3) {
+      samples.speechFrameCount += 1;
+      samples.lastSpeechAt = performance.now();
+    }
     samples.probabilityTotal += probability;
     samples.peak = Math.max(samples.peak, probability);
     vadSamplesRef.current.set(turnId, samples);
@@ -260,6 +273,10 @@ export default function useVoiceMetrics() {
         turn.vadAverageSpeechProbability =
           samples.frameCount > 0 ? samples.probabilityTotal / samples.frameCount : null;
         turn.vadPeakSpeechProbability = samples.frameCount > 0 ? samples.peak : null;
+        turn.vadEndpointDelayMs =
+          samples.lastSpeechAt === null
+            ? null
+            : Math.max(0, performance.now() - samples.lastSpeechAt);
       });
     },
     [update]

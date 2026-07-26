@@ -66,7 +66,9 @@ export default function useVAD(options: UseVADOptions) {
       // cannot silently change turn timing or sensitivity.
       positiveSpeechThreshold: 0.3,
       negativeSpeechThreshold: 0.25,
-      redemptionMs: 1400,
+      // End turns promptly after sustained silence while retaining enough
+      // room for natural pauses and hesitation.
+      redemptionMs: 900,
       preSpeechPadMs: 800,
       // Keep short conversational utterances such as "Howdy" while still
       // rejecting clicks and other very brief transients.

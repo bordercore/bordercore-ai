@@ -27,6 +27,7 @@ const completedTurn: VoiceTurnMetric = {
   vadSpeechFrameCount: 15,
   vadAverageSpeechProbability: 0.68,
   vadPeakSpeechProbability: 0.97,
+  vadEndpointDelayMs: 900,
   ttsSegments: [
     {
       id: 1,
@@ -74,6 +75,7 @@ describe("voice metrics", () => {
       vadAverageSpeechProbability: 0.68,
       vadPeakSpeechProbability: 0.97,
       vadConfirmationLatencyMs: 250,
+      vadEndpointDelayMs: 900,
       ttsSegmentCount: 2,
       ttsSegments: [
         {

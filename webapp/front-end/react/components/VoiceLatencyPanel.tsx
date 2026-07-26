@@ -36,6 +36,7 @@ export default function VoiceLatencyPanel({ turns }: VoiceLatencyPanelProps) {
   const rows = [
     ["ASR", durationBetween(turn.speechEndedAt, turn.transcriptionReadyAt)],
     ["VAD confirmation", durationBetween(turn.startedAt, turn.vadConfirmedAt)],
+    ["VAD endpoint", turn.vadEndpointDelayMs],
     ["First token", durationBetween(turn.llmRequestedAt, turn.firstTokenAt)],
     ["First sentence", durationBetween(turn.firstTokenAt, turn.firstSentenceAt)],
     ["First audio", durationBetween(turn.speechEndedAt ?? turn.llmRequestedAt, turn.firstAudioAt)],

@@ -145,6 +145,8 @@ The controls sidebar shows timing for the latest manual or VAD voice turn:
   probability plus the proportion of analyzed frames above the configured
   speech threshold. Short detections rejected by VAD are counted as misfires.
 - **VAD confirmation** measures tentative speech start to confirmed speech.
+- **VAD endpoint** measures the delay from the last speech-positive frame to
+  the committed end of the user turn. The current silence window is 900 ms.
 
 Each turn has a stable ID across ASR, LLM streaming, and TTS. Completed,
 interrupted, cancelled, failed, and VAD-misfire turns are counted separately.

@@ -22,6 +22,7 @@ def complete_payload():
         "vadAverageSpeechProbability": 0.68,
         "vadPeakSpeechProbability": 0.97,
         "vadConfirmationLatencyMs": 250,
+        "vadEndpointDelayMs": 900,
         "ttsSegments": [
             {
                 "id": 1,

@@ -24,6 +24,19 @@ misfire can be discarded without interrupting the assistant.
 - Around 250–350 ms is expected with the current 250 ms minimum
 - A much larger value suggests intermittent or low-confidence speech
 
+### VAD endpoint
+
+Time from the final speech-positive Silero frame until VAD commits the end of
+the utterance. The current redemption window is 900 ms, reduced from the
+library default of 1.4 seconds.
+
+- Around 900–1050 ms is expected because inference frames and callback
+  scheduling add a small amount of overhead
+- A substantially higher value suggests intermittent speech classifications
+  during background noise
+- If natural mid-sentence pauses are submitted as separate turns, the
+  redemption window is too aggressive for that speaker or environment
+
 ### First token
 
 Time from sending the request until the LLM begins responding.
@@ -104,6 +117,7 @@ that met the configured positive-speech threshold.
 ## Diagnosing bottlenecks
 
 - High **ASR**, with everything else low: speech recognition bottleneck
+- High **VAD endpoint**: background noise or a conservative redemption window
 - High **First token**: LLM or model bottleneck
 - Low **First token** but high **First sentence**: slow token generation or
   conservative sentence segmentation
