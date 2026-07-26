@@ -176,7 +176,11 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     (text: string, voiceTurnId?: string) => {
       const validation = validateSpeechTranscript(text);
       if (!validation.accepted) {
-        voiceMetrics.finish(voiceTurnId ?? null, "discarded");
+        voiceMetrics.finish(
+          voiceTurnId ?? null,
+          "discarded",
+          `Transcript rejected: ${validation.reason}`
+        );
         setNotice("Speech wasn't clear — please try again");
         window.setTimeout(() => setNotice(""), 2500);
         return false;
@@ -265,7 +269,12 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     onVadFrame: voiceMetrics.recordVadFrame,
     onVadConfirmed: voiceMetrics.markVadConfirmed,
     onVadComplete: voiceMetrics.finalizeVad,
-    onVadMisfire: turnId => voiceMetrics.finish(turnId, "misfire"),
+    onVadMisfire: turnId =>
+      voiceMetrics.finish(
+        turnId,
+        "misfire",
+        `Speech did not reach the ${vadConfig.minSpeechMs} ms minimum`
+      ),
     config: vadConfig,
     setNotice,
   });
@@ -1098,7 +1107,11 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
             {gpuTelemetryVisualization === "neuralActivityConstellation" && (
               <NeuralActivityConstellation active={Boolean(model.loaded_local_models?.length)} />
             )}
-            <VoiceLatencyPanel turns={voiceMetrics.turns} />
+            <VoiceLatencyPanel
+              turns={voiceMetrics.turns}
+              vadConfig={vadConfig}
+              vadEnabled={switches.vad}
+            />
           </div>
         </div>
       </div>

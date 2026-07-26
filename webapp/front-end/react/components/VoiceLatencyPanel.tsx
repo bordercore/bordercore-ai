@@ -1,13 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 
 import {
   averageTtsRealTimeFactor,
   durationBetween,
+  summarizeVoiceTurn,
   VoiceTurnMetric,
 } from "../hooks/useVoiceMetrics";
+import { identifyVadPreset, VadConfig, VAD_PRESETS } from "../utils/vadConfig";
 
 interface VoiceLatencyPanelProps {
   turns: VoiceTurnMetric[];
+  vadConfig: VadConfig;
+  vadEnabled: boolean;
 }
 
 function milliseconds(value: number | null): string {
@@ -15,12 +19,81 @@ function milliseconds(value: number | null): string {
   return value >= 1000 ? `${(value / 1000).toFixed(2)}s` : `${Math.round(value)}ms`;
 }
 
-export default function VoiceLatencyPanel({ turns }: VoiceLatencyPanelProps) {
+export function describeVoiceStatus(
+  turn: VoiceTurnMetric | undefined,
+  vadEnabled: boolean
+): string {
+  if (!vadEnabled) return "Off";
+  if (!turn) return "Ready";
+  if (turn.outcome !== "active") {
+    const labels = {
+      completed: "Completed",
+      interrupted: "Interrupted",
+      cancelled: "Cancelled",
+      failed: "Failed",
+      discarded: "Transcript discarded",
+      misfire: "Misfire discarded",
+    };
+    return labels[turn.outcome];
+  }
+  if (turn.firstAudioAt !== undefined) return "Responding";
+  if (turn.llmRequestedAt !== undefined) return "Thinking";
+  if (turn.asrStartedAt !== undefined) return "Transcribing";
+  if (turn.vadConfirmedAt !== undefined) return "Listening";
+  return "Speech detected";
+}
+
+export default function VoiceLatencyPanel({
+  turns,
+  vadConfig,
+  vadEnabled,
+}: VoiceLatencyPanelProps) {
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const turn = turns[turns.length - 1];
+  const presetKey = identifyVadPreset(vadConfig);
+  const preset = presetKey === "custom" ? "Custom" : VAD_PRESETS[presetKey].label;
+  const status = describeVoiceStatus(turn, vadEnabled);
+
+  const copyDiagnostics = async () => {
+    const outcomes = turns.reduce<Record<string, number>>((counts, candidate) => {
+      counts[candidate.outcome] = (counts[candidate.outcome] ?? 0) + 1;
+      return counts;
+    }, {});
+    const report = {
+      generatedAt: new Date().toISOString(),
+      vad: {
+        enabled: vadEnabled,
+        status,
+        preset,
+        config: vadConfig,
+      },
+      latestTurn: turn ? { status, ...summarizeVoiceTurn(turn) } : null,
+      sessionOutcomes: outcomes,
+    };
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(report, null, 2));
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
+    }
+    window.setTimeout(() => setCopyState("idle"), 2000);
+  };
+
   if (!turn) {
     return (
       <div className="voice-latency-panel">
+        <div className="voice-latency-header">
+          <span>Voice diagnostics</span>
+          <span className="voice-latency-outcome">{status}</span>
+        </div>
         <div className="voice-latency-empty">Complete a voice turn to see latency.</div>
+        <button className="voice-diagnostics-copy" type="button" onClick={copyDiagnostics}>
+          {copyState === "copied"
+            ? "Copied"
+            : copyState === "error"
+              ? "Copy failed"
+              : "Copy diagnostics"}
+        </button>
       </div>
     );
   }
@@ -46,12 +119,14 @@ export default function VoiceLatencyPanel({ turns }: VoiceLatencyPanelProps) {
   return (
     <div className="voice-latency-panel">
       <div className="voice-latency-header">
-        <span>Voice latency</span>
+        <span>Voice diagnostics</span>
         <span className={`voice-latency-outcome voice-latency-outcome--${turn.outcome}`}>
-          {turn.outcome}
+          {status}
         </span>
       </div>
       <div className="voice-latency-grid">
+        <span>VAD preset</span>
+        <strong>{preset}</strong>
         {rows.map(([label, value]) => (
           <React.Fragment key={label}>
             <span>{label}</span>
@@ -81,6 +156,12 @@ export default function VoiceLatencyPanel({ turns }: VoiceLatencyPanelProps) {
             : "—"}
         </strong>
       </div>
+      {turn.outcomeReason && (
+        <div className="voice-diagnostics-reason">
+          <span>Latest result</span>
+          <strong>{turn.outcomeReason}</strong>
+        </div>
+      )}
       <div className="voice-latency-counts" aria-label="Voice turn outcomes this session">
         <span>{outcomes.completed} complete</span>
         <span>{outcomes.interrupted} interrupted</span>
@@ -89,6 +170,13 @@ export default function VoiceLatencyPanel({ turns }: VoiceLatencyPanelProps) {
         <span>{outcomes.discarded} discarded</span>
         <span>{outcomes.misfire} VAD misfires</span>
       </div>
+      <button className="voice-diagnostics-copy" type="button" onClick={copyDiagnostics}>
+        {copyState === "copied"
+          ? "Copied"
+          : copyState === "error"
+            ? "Copy failed"
+            : "Copy diagnostics"}
+      </button>
     </div>
   );
 }

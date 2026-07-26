@@ -62,6 +62,7 @@ describe("voice metrics", () => {
       turnId: "voice-1",
       source: "vad",
       outcome: "completed",
+      outcomeReason: null,
       asrLatencyMs: 300,
       firstTokenLatencyMs: 180,
       firstSentenceLatencyMs: 250,

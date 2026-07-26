@@ -32,6 +32,7 @@ export interface VoiceTurnMetric {
   firstAudioAt?: number;
   completedAt?: number;
   outcome: VoiceTurnOutcome;
+  outcomeReason?: string;
   maxQueueDepth: number;
   maxBufferedAudioMs: number;
   vadFrameCount: number;
@@ -64,6 +65,7 @@ export function summarizeVoiceTurn(turn: VoiceTurnMetric) {
     turnId: turn.id,
     source: turn.source,
     outcome: turn.outcome,
+    outcomeReason: turn.outcomeReason ?? null,
     asrLatencyMs: durationBetween(turn.speechEndedAt, turn.transcriptionReadyAt),
     firstTokenLatencyMs: durationBetween(turn.llmRequestedAt, turn.firstTokenAt),
     firstSentenceLatencyMs: durationBetween(turn.firstTokenAt, turn.firstSentenceAt),
@@ -182,12 +184,13 @@ export default function useVoiceMetrics() {
   );
 
   const finish = useCallback(
-    (turnId: string | null, outcome: VoiceTurnOutcome) => {
+    (turnId: string | null, outcome: VoiceTurnOutcome, outcomeReason?: string) => {
       if (!turnId) return;
       if (finishedTurnsRef.current.has(turnId)) return;
       finishedTurnsRef.current.add(turnId);
       update(turnId, turn => {
         turn.outcome = outcome;
+        turn.outcomeReason = outcomeReason;
         turn.completedAt = performance.now();
       });
     },
