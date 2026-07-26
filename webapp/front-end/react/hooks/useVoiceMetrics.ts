@@ -6,6 +6,7 @@ export type VoiceTurnOutcome =
   | "interrupted"
   | "cancelled"
   | "failed"
+  | "discarded"
   | "misfire";
 export type VoiceTurnSource = "vad" | "manual";
 

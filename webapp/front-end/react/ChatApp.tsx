@@ -50,6 +50,7 @@ import useClipboardPaste from "./hooks/useClipboardPaste";
 import useEvent from "./hooks/useEvent";
 import useVoiceMetrics from "./hooks/useVoiceMetrics";
 import { ActiveSpokenSegment, finishSpokenSegment } from "./utils/spokenHighlight";
+import { validateSpeechTranscript } from "./utils/speechTranscript";
 
 interface ChatAppProps {
   session: any;
@@ -171,9 +172,20 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   const handleSendMessageRef = useRef(handleSendMessage);
   handleSendMessageRef.current = handleSendMessage;
 
-  const handleSpeechResult = useCallback((text: string, voiceTurnId?: string) => {
-    handleSendMessageRef.current(text, voiceTurnId);
-  }, []);
+  const handleSpeechResult = useCallback(
+    (text: string, voiceTurnId?: string) => {
+      const validation = validateSpeechTranscript(text);
+      if (!validation.accepted) {
+        voiceMetrics.finish(voiceTurnId ?? null, "discarded");
+        setNotice("Speech wasn't clear — please try again");
+        window.setTimeout(() => setNotice(""), 2500);
+        return false;
+      }
+      handleSendMessageRef.current(validation.text, voiceTurnId);
+      return true;
+    },
+    [setNotice, voiceMetrics]
+  );
 
   const audioHook = useAudio({
     session,

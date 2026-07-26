@@ -15,8 +15,8 @@
     "file": "assets/ogl-l0sNRNKZ.js",
     "name": "ogl"
   },
-  "_react-three-fiber.esm-X094WwTD.js": {
-    "file": "assets/react-three-fiber.esm-X094WwTD.js",
+  "_react-three-fiber.esm-C0tA_IhS.js": {
+    "file": "assets/react-three-fiber.esm-C0tA_IhS.js",
     "name": "react-three-fiber.esm",
     "imports": [
       "_three-Bnouvs2b.js",
@@ -29,7 +29,7 @@
     "name": "three"
   },
   "front-end/entries/chatbot.tsx": {
-    "file": "dist/js/chatbot-MQl0Rkkk.js",
+    "file": "dist/js/chatbot-Bx7PknBr.js",
     "name": "dist/js/chatbot",
     "src": "front-end/entries/chatbot.tsx",
     "isEntry": true,
@@ -53,16 +53,16 @@
     ]
   },
   "front-end/entries/styles-css.js": {
-    "file": "dist/css/styles-BiPDqCk4.js",
+    "file": "dist/css/styles-4IPtci3S.js",
     "name": "dist/css/styles",
     "src": "front-end/entries/styles-css.js",
     "isEntry": true,
     "css": [
-      "styles-CsxT1cI1.css"
+      "styles-BVKlQacB.css"
     ]
   },
   "front-end/react/components/CursorLines.tsx": {
-    "file": "assets/CursorLines-B5NKPE8y.js",
+    "file": "assets/CursorLines-DOqjUV9b.js",
     "name": "CursorLines",
     "src": "front-end/react/components/CursorLines.tsx",
     "isDynamicEntry": true,
@@ -75,13 +75,13 @@
     ]
   },
   "front-end/react/components/CyberspaceFlythrough.tsx": {
-    "file": "assets/CyberspaceFlythrough-C6zJi4Ai.js",
+    "file": "assets/CyberspaceFlythrough-CLtgKvDN.js",
     "name": "CyberspaceFlythrough",
     "src": "front-end/react/components/CyberspaceFlythrough.tsx",
     "isDynamicEntry": true,
     "imports": [
       "front-end/entries/chatbot.tsx",
-      "_react-three-fiber.esm-X094WwTD.js",
+      "_react-three-fiber.esm-C0tA_IhS.js",
       "_three-Bnouvs2b.js",
       "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-D5Txu6JT.js",
@@ -90,13 +90,13 @@
     ]
   },
   "front-end/react/components/GpuOrb.tsx": {
-    "file": "assets/GpuOrb-CgSTh72m.js",
+    "file": "assets/GpuOrb-DTBsoSSG.js",
     "name": "GpuOrb",
     "src": "front-end/react/components/GpuOrb.tsx",
     "isDynamicEntry": true,
     "imports": [
       "front-end/entries/chatbot.tsx",
-      "_react-three-fiber.esm-X094WwTD.js",
+      "_react-three-fiber.esm-C0tA_IhS.js",
       "_three-Bnouvs2b.js",
       "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-D5Txu6JT.js",
@@ -105,7 +105,7 @@
     ]
   },
   "front-end/react/components/NexusViz.tsx": {
-    "file": "assets/NexusViz-BQ7dh8RI.js",
+    "file": "assets/NexusViz-BERhRAop.js",
     "name": "NexusViz",
     "src": "front-end/react/components/NexusViz.tsx",
     "isDynamicEntry": true,
@@ -118,7 +118,7 @@
     ]
   },
   "front-end/react/components/Starfield.tsx": {
-    "file": "assets/Starfield-BrFSqrG3.js",
+    "file": "assets/Starfield-DqfNJnth.js",
     "name": "Starfield",
     "src": "front-end/react/components/Starfield.tsx",
     "isDynamicEntry": true,
@@ -131,7 +131,7 @@
     ]
   },
   "front-end/react/components/WaveformViz.tsx": {
-    "file": "assets/WaveformViz-BoxysHij.js",
+    "file": "assets/WaveformViz-rMJQhRKG.js",
     "name": "WaveformViz",
     "src": "front-end/react/components/WaveformViz.tsx",
     "isDynamicEntry": true,
@@ -144,7 +144,7 @@
     ]
   },
   "local/optional.js": {
-    "file": "assets/optional-FmxUs6jp.js",
+    "file": "assets/optional-DSRYebiQ.js",
     "name": "optional",
     "src": "local/optional.js",
     "isDynamicEntry": true,

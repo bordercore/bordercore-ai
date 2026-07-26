@@ -61,3 +61,10 @@ def test_normalize_voice_metrics_rejects_invalid_values(field, value):
 
     with pytest.raises(ValueError):
         normalize_voice_metrics(payload)
+
+
+def test_normalize_voice_metrics_accepts_discarded_outcome():
+    payload = complete_payload()
+    payload["outcome"] = "discarded"
+
+    assert normalize_voice_metrics(payload)["outcome"] == "discarded"

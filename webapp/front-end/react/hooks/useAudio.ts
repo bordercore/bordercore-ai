@@ -6,7 +6,7 @@ import { ActiveSpokenSegment } from "../utils/spokenHighlight";
 
 interface UseAudioOptions {
   session: any;
-  onSpeechResult: (text: string, voiceTurnId?: string) => void;
+  onSpeechResult: (text: string, voiceTurnId?: string) => boolean;
   onVoiceTurnStart: () => string;
   onSpeechEnded: (turnId: string | null) => void;
   onAsrStarted: (turnId: string | null) => void;
@@ -563,8 +563,8 @@ export default function useAudio(options: UseAudioOptions) {
               .post("/speech2text", formData)
               .then(response => {
                 onTranscriptionReady(turnId);
-                onSpeechResult(response.data.input, turnId || undefined);
-                if (!microphoneEnabledRef.current) setNotice("");
+                const accepted = onSpeechResult(response.data.input, turnId || undefined);
+                if (accepted && !microphoneEnabledRef.current) setNotice("");
               })
               .catch(error => {
                 onVoiceTurnFailed(turnId);

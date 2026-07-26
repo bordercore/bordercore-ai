@@ -155,6 +155,12 @@ A structured summary is written to the browser console and the server log as
 Prometheus/OpenTelemetry. These summaries contain timings and counters only;
 audio, transcripts, prompts, and model responses are not included.
 
+Before a transcription becomes a chat request, the browser rejects empty,
+punctuation-only, explicitly labeled non-speech, and narrowly matched Whisper
+subtitle boilerplate. Legitimate short replies such as “Yes,” “No,” and
+“Stop” remain valid. Rejected transcripts are counted as discarded turns and
+prompt the user to try again without another model call.
+
 ## RAG (Retrieval Augmented Generation)
 
 Chat with your uploaded documents.

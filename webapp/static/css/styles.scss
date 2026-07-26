@@ -582,7 +582,8 @@ body {
 
 .voice-latency-outcome--interrupted,
 .voice-latency-outcome--cancelled,
-.voice-latency-outcome--failed {
+.voice-latency-outcome--failed,
+.voice-latency-outcome--discarded {
   color: var(--accent-pink);
 }
 

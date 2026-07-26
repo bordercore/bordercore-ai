@@ -14,7 +14,7 @@ interface UseVADOptions {
   audioMotionRef: React.RefObject<AudioMotionAnalyzer | null>;
   micStreamRef: React.MutableRefObject<MediaStreamAudioSourceNode | null>;
   connectStream: (stream: MediaStream) => void;
-  onSpeechResult: (text: string, voiceTurnId?: string) => void;
+  onSpeechResult: (text: string, voiceTurnId?: string) => boolean;
   onBargeIn: () => void;
   onVoiceTurnStart: () => string;
   onSpeechEnded: (turnId: string | null) => void;

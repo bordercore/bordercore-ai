@@ -111,6 +111,7 @@ that met the configured positive-speech threshold.
 - **Interrupted**: VAD barge-in stopped the response
 - **Cancelled**: The response was manually stopped or replaced
 - **Failed**: ASR, LLM, or TTS encountered an error
+- **Discarded**: ASR returned empty, non-speech, or known boilerplate text
 - **Misfire**: VAD detected a possible start but rejected the short segment
 - **Active**: The turn is still underway
 

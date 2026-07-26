@@ -21,7 +21,7 @@ NUMBER_FIELDS = {
     "vadConfirmationLatencyMs",
     "vadEndpointDelayMs",
 }
-OUTCOMES = {"completed", "interrupted", "cancelled", "failed", "misfire"}
+OUTCOMES = {"completed", "interrupted", "cancelled", "failed", "discarded", "misfire"}
 SOURCES = {"vad", "manual"}
 SEGMENT_NUMBER_FIELDS = {
     "id",

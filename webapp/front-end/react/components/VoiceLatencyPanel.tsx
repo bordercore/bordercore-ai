@@ -31,7 +31,7 @@ export default function VoiceLatencyPanel({ turns }: VoiceLatencyPanelProps) {
       if (candidate.outcome !== "active") counts[candidate.outcome] += 1;
       return counts;
     },
-    { completed: 0, interrupted: 0, cancelled: 0, failed: 0, misfire: 0 }
+    { completed: 0, interrupted: 0, cancelled: 0, failed: 0, discarded: 0, misfire: 0 }
   );
   const rows = [
     ["ASR", durationBetween(turn.speechEndedAt, turn.transcriptionReadyAt)],
@@ -86,6 +86,7 @@ export default function VoiceLatencyPanel({ turns }: VoiceLatencyPanelProps) {
         <span>{outcomes.interrupted} interrupted</span>
         <span>{outcomes.cancelled} cancelled</span>
         <span>{outcomes.failed} failed</span>
+        <span>{outcomes.discarded} discarded</span>
         <span>{outcomes.misfire} VAD misfires</span>
       </div>
     </div>
