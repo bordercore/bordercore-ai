@@ -6,6 +6,9 @@ import AudioMotionAnalyzer from "audiomotion-analyzer";
 // Declare global vad type from CDN script
 declare const vad: any;
 
+const VAD_ASSET_BASE = "https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.29/dist/";
+const ONNX_WASM_BASE = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/";
+
 interface UseVADOptions {
   audioMotionRef: React.RefObject<AudioMotionAnalyzer | null>;
   micStreamRef: React.MutableRefObject<MediaStreamAudioSourceNode | null>;
@@ -52,6 +55,16 @@ export default function useVAD(options: UseVADOptions) {
 
   const startVAD = useCallback(async () => {
     vadRef.current = await vad.MicVAD.new({
+      model: "v5",
+      baseAssetPath: VAD_ASSET_BASE,
+      onnxWASMBasePath: ONNX_WASM_BASE,
+      // Pin the documented detector defaults so a future library update
+      // cannot silently change turn timing or sensitivity.
+      positiveSpeechThreshold: 0.3,
+      negativeSpeechThreshold: 0.25,
+      redemptionMs: 1400,
+      preSpeechPadMs: 800,
+      minSpeechMs: 400,
       onSpeechStart: () => {
         voiceTurnIdRef.current = onVoiceTurnStart();
         bargeInConfirmedRef.current = false;

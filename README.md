@@ -120,7 +120,9 @@ voice activity detection can stop the recording automatically. VAD also
 supports voice barge-in: speaking while an answer is being generated or read
 aloud stops the active TTS playback and requests, aborts generation, and marks
 the partial assistant response as interrupted. The next request is told that
-the interrupted response may not have been fully heard.
+the interrupted response may not have been fully heard. Browser VAD uses the
+Silero V5 model through pinned `vad-web` and ONNX Runtime versions so runtime
+updates do not silently change turn detection.
 
 ### Voice latency diagnostics
 
