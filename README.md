@@ -146,7 +146,7 @@ The controls sidebar shows timing for the latest manual or VAD voice turn:
   speech threshold. Short detections rejected by VAD are counted as misfires.
 - **VAD confirmation** measures tentative speech start to confirmed speech.
 - **VAD endpoint** measures the delay from the last speech-positive frame to
-  the committed end of the user turn. The current silence window is 900 ms.
+  the committed end of the user turn. The default silence window is 900 ms.
 
 Each turn has a stable ID across ASR, LLM streaming, and TTS. Completed,
 interrupted, cancelled, failed, and VAD-misfire turns are counted separately.
@@ -392,7 +392,8 @@ Toggle features on and off:
 
 ### Preferences menu
 
-The hamburger menu to the upper-right lets you adjust:
+The hamburger menu to the upper-right organizes preferences into **General**,
+**Appearance**, and **VAD** tabs. General includes:
 
 - **Speech Recognition Idle Timeout**: Unloads Whisper after 5, 15, 30, or 60
   idle minutes, or keeps it resident with no timeout. The default is 15
@@ -406,6 +407,9 @@ The hamburger menu to the upper-right lets you adjust:
   readiness state.
 - **Voice**: Select a built-in voice or cloning profile reported by the active
   TTS server.
+
+Appearance includes:
+
 - **Visualization**: Choose the primary thinking/audio visualization.
 - **GPU Telemetry**: Choose the GPU activity visualization.
 - **Waiting Animation**: Choose the animation shown while waiting for a
@@ -414,6 +418,11 @@ The hamburger menu to the upper-right lets you adjust:
 - **Panel Opacity**: Transparency of UI panels.
 - **Starfield**: Toggle floating particle effects.
 - **Cursor Effect**: Toggle animated streaks that follow the cursor (with density and speed sub-controls).
+
+VAD includes bounded controls for speech-start and speech-end confidence,
+end-of-turn silence, minimum accepted speech, and pre-speech padding. Changes
+are stored in the browser and automatically restart an enabled VAD after a
+short debounce. **Reset VAD defaults** restores the tested configuration.
 
 # Tests
 

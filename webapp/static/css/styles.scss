@@ -1280,6 +1280,59 @@ body {
   font-size: 0.7rem;
 }
 
+.preferences-tabs {
+  display: grid;
+  padding: 0.2rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.65rem;
+  margin-bottom: 1rem;
+  background: rgb(0 0 0 / 18%);
+  gap: 0.2rem;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.preferences-tab {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+
+  &.is-active {
+    border-color: var(--border-accent);
+    background: rgb(0 234 255 / 10%);
+    color: var(--accent-cyan);
+  }
+}
+
+.preferences-reset {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.5rem;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.75rem;
+
+  &:hover {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+}
+
 // ─── Sliders ─────────────────────────────────────────────────
 .custom-slider {
   display: flex;

@@ -27,8 +27,8 @@ misfire can be discarded without interrupting the assistant.
 ### VAD endpoint
 
 Time from the final speech-positive Silero frame until VAD commits the end of
-the utterance. The current redemption window is 900 ms, reduced from the
-library default of 1.4 seconds.
+the utterance. The default redemption window is 900 ms, reduced from the
+library default of 1.4 seconds. It can be adjusted in Preferences under VAD.
 
 - Around 900–1050 ms is expected because inference frames and callback
   scheduling add a small amount of overhead

@@ -2,6 +2,7 @@ import { useRef, useCallback, useEffect } from "react";
 import { encodeWAV } from "../utils/audio";
 import axios from "axios";
 import AudioMotionAnalyzer from "audiomotion-analyzer";
+import { VadConfig } from "../utils/vadConfig";
 
 // Declare global vad type from CDN script
 declare const vad: any;
@@ -24,6 +25,7 @@ interface UseVADOptions {
   onVadConfirmed: (turnId: string | null) => void;
   onVadComplete: (turnId: string | null) => void;
   onVadMisfire: (turnId: string | null) => void;
+  config: VadConfig;
   setNotice: (notice: string) => void;
 }
 
@@ -43,10 +45,12 @@ export default function useVAD(options: UseVADOptions) {
     onVadConfirmed,
     onVadComplete,
     onVadMisfire,
+    config,
     setNotice,
   } = options;
 
   const vadRef = useRef<any>(null);
+  const vadGenerationRef = useRef(0);
   const bargeInConfirmedRef = useRef(false);
   const voiceTurnIdRef = useRef<string | null>(null);
 
@@ -58,21 +62,23 @@ export default function useVAD(options: UseVADOptions) {
   }, [onBargeIn, onVadConfirmed]);
 
   const startVAD = useCallback(async () => {
-    vadRef.current = await vad.MicVAD.new({
+    const generation = ++vadGenerationRef.current;
+    if (vadRef.current) vadRef.current.pause();
+    const instance = await vad.MicVAD.new({
       model: "v5",
       baseAssetPath: VAD_ASSET_BASE,
       onnxWASMBasePath: ONNX_WASM_BASE,
       // Pin the documented detector defaults so a future library update
       // cannot silently change turn timing or sensitivity.
-      positiveSpeechThreshold: 0.3,
-      negativeSpeechThreshold: 0.25,
+      positiveSpeechThreshold: config.positiveSpeechThreshold,
+      negativeSpeechThreshold: config.negativeSpeechThreshold,
       // End turns promptly after sustained silence while retaining enough
       // room for natural pauses and hesitation.
-      redemptionMs: 900,
-      preSpeechPadMs: 800,
+      redemptionMs: config.redemptionMs,
+      preSpeechPadMs: config.preSpeechPadMs,
       // Keep short conversational utterances such as "Howdy" while still
       // rejecting clicks and other very brief transients.
-      minSpeechMs: 250,
+      minSpeechMs: config.minSpeechMs,
       onFrameProcessed: (probabilities: { isSpeech: number }) => {
         onVadFrame(voiceTurnIdRef.current, probabilities.isSpeech);
       },
@@ -129,6 +135,11 @@ export default function useVAD(options: UseVADOptions) {
         setNotice("");
       },
     });
+    if (generation !== vadGenerationRef.current) {
+      instance.pause();
+      return;
+    }
+    vadRef.current = instance;
 
     if (audioMotionRef.current) {
       audioMotionRef.current.gradient = "rainbow";
@@ -137,6 +148,7 @@ export default function useVAD(options: UseVADOptions) {
     vadRef.current.start();
   }, [
     audioMotionRef,
+    config,
     confirmBargeIn,
     connectStream,
     onAsrStarted,
@@ -152,6 +164,7 @@ export default function useVAD(options: UseVADOptions) {
   ]);
 
   const stopVAD = useCallback(() => {
+    vadGenerationRef.current += 1;
     bargeInConfirmedRef.current = false;
     if (audioMotionRef.current && micStreamRef.current) {
       audioMotionRef.current.disconnectInput(micStreamRef.current, true);

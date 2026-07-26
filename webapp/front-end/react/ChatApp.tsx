@@ -84,6 +84,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     setTtsVoice,
     asrIdleTimeoutMinutes,
     setAsrIdleTimeoutMinutes,
+    vadConfig,
+    setVadConfig,
     cursorEffect,
     setCursorEffect,
     cursorDensity,
@@ -252,8 +254,11 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     onVadConfirmed: voiceMetrics.markVadConfirmed,
     onVadComplete: voiceMetrics.finalizeVad,
     onVadMisfire: turnId => voiceMetrics.finish(turnId, "misfire"),
+    config: vadConfig,
     setNotice,
   });
+  const { startVAD, stopVAD } = vadHook;
+  const handleListen = audioHook.handleListen;
 
   const handleSensorData = useCallback(
     (data: any) => {
@@ -327,22 +332,34 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
 
     if (prev.speech2text !== switches.speech2text) {
       if (switches.speech2text) {
-        audioHook.handleListen(true);
+        handleListen(true);
       } else {
-        audioHook.handleListen(false);
+        handleListen(false);
       }
     }
 
     if (prev.vad !== switches.vad) {
       if (switches.vad) {
-        vadHook.startVAD();
+        startVAD();
       } else {
-        vadHook.stopVAD();
+        stopVAD();
       }
     }
 
     prevSwitchesRef.current = switches;
-  }, [switches]);
+  }, [handleListen, startVAD, stopVAD, switches]);
+
+  const previousVadConfigRef = useRef(vadConfig);
+  useEffect(() => {
+    if (previousVadConfigRef.current === vadConfig) return;
+    previousVadConfigRef.current = vadConfig;
+    if (!switches.vad) return;
+    const restartTimer = window.setTimeout(() => {
+      stopVAD();
+      startVAD();
+    }, 300);
+    return () => window.clearTimeout(restartTimer);
+  }, [switches.vad, vadConfig, startVAD, stopVAD]);
 
   // --- Mount effects ---
   useEffect(() => {
@@ -1101,6 +1118,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           onRefreshTtsCapabilities={ttsCapabilities.refresh}
           asrIdleTimeoutMinutes={asrIdleTimeoutMinutes}
           onAsrIdleTimeoutChange={setAsrIdleTimeoutMinutes}
+          vadConfig={vadConfig}
+          onVadConfigChange={setVadConfig}
           voiceList={ttsCapabilities.voices}
           visualization={visualization}
           onVisualizationChange={setVisualization}

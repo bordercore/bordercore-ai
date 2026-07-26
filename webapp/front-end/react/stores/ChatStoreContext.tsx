@@ -7,6 +7,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
+import { loadVadConfig, saveVadConfig, VadConfig } from "../utils/vadConfig";
 
 export interface ChatMessage {
   id: number;
@@ -139,6 +140,8 @@ interface ChatStoreContextType {
   setTtsVoice: (voice: string) => void;
   asrIdleTimeoutMinutes: number | null;
   setAsrIdleTimeoutMinutes: (minutes: number | null) => void;
+  vadConfig: VadConfig;
+  setVadConfig: React.Dispatch<React.SetStateAction<VadConfig>>;
   cursorEffect: boolean;
   setCursorEffect: (enabled: boolean) => void;
   cursorDensity: number;
@@ -250,6 +253,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
     const value = Number(saved);
     return Number.isFinite(value) && value > 0 ? value : 15;
   });
+  const [vadConfig, setVadConfig] = useState<VadConfig>(loadVadConfig);
   const [cursorEffect, setCursorEffect] = useState<boolean>(() =>
     typeof window !== "undefined" ? window.localStorage.getItem("cursorEffect") !== "false" : true
   );
@@ -329,6 +333,9 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   useEffect(() => {
     window.localStorage.setItem("ttsHost", ttsHost);
   }, [ttsHost]);
+  useEffect(() => {
+    saveVadConfig(vadConfig);
+  }, [vadConfig]);
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState<any>("");
   const [clipboard, setClipboard] = useState<ClipboardData | null>(null);
@@ -404,6 +411,8 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       setTtsVoice,
       asrIdleTimeoutMinutes,
       setAsrIdleTimeoutMinutes,
+      vadConfig,
+      setVadConfig,
       cursorEffect,
       setCursorEffect,
       cursorDensity,
@@ -476,6 +485,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       ttsHost,
       ttsVoice,
       asrIdleTimeoutMinutes,
+      vadConfig,
       cursorEffect,
       cursorDensity,
       cursorSpeed,
