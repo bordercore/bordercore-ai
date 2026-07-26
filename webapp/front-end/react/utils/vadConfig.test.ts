@@ -36,4 +36,11 @@ describe("VAD configuration", () => {
     }
     expect(identifyVadPreset({ ...DEFAULT_VAD_CONFIG, redemptionMs: 1100 })).toBe("custom");
   });
+
+  it("provides usage guidance for every preset", () => {
+    for (const preset of Object.values(VAD_PRESETS)) {
+      expect(preset.bestFor.length).toBeGreaterThan(20);
+      expect(preset.tradeoff.length).toBeGreaterThan(20);
+    }
+  });
 });

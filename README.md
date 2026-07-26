@@ -430,8 +430,9 @@ end-of-turn silence, minimum accepted speech, and pre-speech padding. Changes
 are stored in the browser and automatically restart an enabled VAD after a
 short debounce. Responsive, Balanced, Patient Speaker, and Noisy Environment
 presets provide known starting points; changing an individual control selects
-Custom automatically. **Reset VAD defaults** restores the Balanced
-configuration. The controls sidebar shows the active VAD state, preset,
+Custom automatically. Each preset includes guidance about its best use case
+and responsiveness or detection tradeoff. **Reset VAD defaults** restores the
+Balanced configuration. The controls sidebar shows the active VAD state, preset,
 timings, confidence, and the reason a segment was discarded. **Copy
 diagnostics** copies the current configuration and latest turn data as JSON for
 troubleshooting.

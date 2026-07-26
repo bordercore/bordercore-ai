@@ -141,6 +141,7 @@ export default function PreferencesMenu({
     });
   };
   const vadPreset = identifyVadPreset(vadConfig);
+  const vadPresetDefinition = vadPreset === "custom" ? null : VAD_PRESETS[vadPreset];
 
   return (
     <div id="menu">
@@ -532,8 +533,15 @@ export default function PreferencesMenu({
               Changes are saved in this browser and applied automatically when VAD is running.
             </div>
             <div>
-              <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
-                Preset
+              <div className="pref-label vad-preset-label" style={{ marginBottom: "0.4rem" }}>
+                <span>Preset</span>
+                <button className="vad-preset-tooltip" type="button" aria-label="About VAD presets">
+                  ?
+                  <span role="tooltip">
+                    Presets tune how quickly speech starts and ends. Begin with Balanced, then
+                    choose a specialized preset if turns feel clipped, slow, or noise-triggered.
+                  </span>
+                </button>
               </div>
               <select
                 className="waiting-animation-select"
@@ -547,18 +555,31 @@ export default function PreferencesMenu({
                 {(
                   Object.entries(VAD_PRESETS) as [VadPreset, (typeof VAD_PRESETS)[VadPreset]][]
                 ).map(([value, preset]) => (
-                  <option key={value} value={value}>
+                  <option
+                    key={value}
+                    value={value}
+                    title={`${preset.bestFor} Tradeoff: ${preset.tradeoff}`}
+                  >
                     {preset.label}
                   </option>
                 ))}
                 {vadPreset === "custom" && <option value="custom">Custom</option>}
               </select>
-              <div className="pref-hint" style={{ marginTop: "0.35rem" }}>
-                {vadPreset === "responsive" && "Fast turn endings for quick exchanges."}
-                {vadPreset === "balanced" && "Tested defaults for typical conversations."}
-                {vadPreset === "patient" && "Allows longer pauses and hesitation."}
-                {vadPreset === "noisy" && "Stricter detection for persistent background noise."}
-                {vadPreset === "custom" && "One or more controls differ from a preset."}
+              <div className="vad-preset-guidance" aria-live="polite">
+                {vadPresetDefinition ? (
+                  <>
+                    <div>
+                      <strong>Best for:</strong> {vadPresetDefinition.bestFor}
+                    </div>
+                    <div>
+                      <strong>Tradeoff:</strong> {vadPresetDefinition.tradeoff}
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <strong>Custom:</strong> One or more controls differ from a preset.
+                  </div>
+                )}
               </div>
             </div>
             <div>

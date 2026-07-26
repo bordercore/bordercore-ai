@@ -8,6 +8,13 @@ export interface VadConfig {
 
 export type VadPreset = "responsive" | "balanced" | "patient" | "noisy";
 
+export interface VadPresetDefinition {
+  label: string;
+  bestFor: string;
+  tradeoff: string;
+  config: VadConfig;
+}
+
 export const DEFAULT_VAD_CONFIG: VadConfig = {
   positiveSpeechThreshold: 0.3,
   negativeSpeechThreshold: 0.25,
@@ -16,9 +23,11 @@ export const DEFAULT_VAD_CONFIG: VadConfig = {
   minSpeechMs: 250,
 };
 
-export const VAD_PRESETS: Record<VadPreset, { label: string; config: VadConfig }> = {
+export const VAD_PRESETS: Record<VadPreset, VadPresetDefinition> = {
   responsive: {
     label: "Responsive",
+    bestFor: "Quick back-and-forth conversation in a quiet room.",
+    tradeoff: "May end a turn during a short pause or accept a brief sound.",
     config: {
       positiveSpeechThreshold: 0.3,
       negativeSpeechThreshold: 0.25,
@@ -29,10 +38,14 @@ export const VAD_PRESETS: Record<VadPreset, { label: string; config: VadConfig }
   },
   balanced: {
     label: "Balanced",
+    bestFor: "Everyday conversation with typical pauses and background sound.",
+    tradeoff: "Slightly slower than Responsive, but less likely to cut you off.",
     config: DEFAULT_VAD_CONFIG,
   },
   patient: {
     label: "Patient Speaker",
+    bestFor: "Deliberate speech, hesitation, dictation, or longer mid-sentence pauses.",
+    tradeoff: "Waits longer before submitting each turn.",
     config: {
       positiveSpeechThreshold: 0.3,
       negativeSpeechThreshold: 0.25,
@@ -43,6 +56,8 @@ export const VAD_PRESETS: Record<VadPreset, { label: string; config: VadConfig }
   },
   noisy: {
     label: "Noisy Environment",
+    bestFor: "Rooms with fans, music, traffic, or persistent background voices.",
+    tradeoff: "Quiet or very short speech may be missed.",
     config: {
       positiveSpeechThreshold: 0.5,
       negativeSpeechThreshold: 0.35,
