@@ -139,10 +139,13 @@ The controls sidebar shows timing for the latest manual or VAD voice turn:
 - **TTS RTF** is synthesis time divided by generated audio duration. Values
   below `1.0×` mean synthesis is faster than real time.
 - **Queue / buffer** reports peak sentence queue depth and scheduled audio.
+- **VAD confidence / speech frames** reports average and peak Silero speech
+  probability plus the proportion of analyzed frames above the configured
+  speech threshold. Short detections rejected by VAD are counted as misfires.
 
 Each turn has a stable ID across ASR, LLM streaming, and TTS. Completed,
-interrupted, cancelled, and failed turns are counted separately. A structured
-summary is written to the browser console and the server log as
+interrupted, cancelled, failed, and VAD-misfire turns are counted separately.
+A structured summary is written to the browser console and the server log as
 `voice_turn_metrics`, providing a future integration point for
 Prometheus/OpenTelemetry. These summaries contain timings and counters only;
 audio, transcripts, prompts, and model responses are not included.

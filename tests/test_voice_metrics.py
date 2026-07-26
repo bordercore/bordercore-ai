@@ -17,6 +17,10 @@ def complete_payload():
         "maxQueueDepth": 3,
         "maxBufferedAudioMs": 1200,
         "ttsSegmentCount": 2,
+        "vadFrameCount": 20,
+        "vadSpeechFrameCount": 15,
+        "vadAverageSpeechProbability": 0.68,
+        "vadPeakSpeechProbability": 0.97,
         "ttsSegments": [
             {
                 "id": 1,
@@ -46,6 +50,7 @@ def test_normalize_voice_metrics_allows_only_expected_fields():
         ("outcome", "active"),
         ("totalDurationMs", -1),
         ("ttsRealTimeFactor", float("inf")),
+        ("vadPeakSpeechProbability", 1.01),
     ],
 )
 def test_normalize_voice_metrics_rejects_invalid_values(field, value):

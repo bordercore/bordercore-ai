@@ -22,6 +22,10 @@ const completedTurn: VoiceTurnMetric = {
   outcome: "completed",
   maxQueueDepth: 3,
   maxBufferedAudioMs: 1200,
+  vadFrameCount: 20,
+  vadSpeechFrameCount: 15,
+  vadAverageSpeechProbability: 0.68,
+  vadPeakSpeechProbability: 0.97,
   ttsSegments: [
     {
       id: 1,
@@ -64,6 +68,10 @@ describe("voice metrics", () => {
       ttsRealTimeFactor: 0.25,
       maxQueueDepth: 3,
       maxBufferedAudioMs: 1200,
+      vadFrameCount: 20,
+      vadSpeechFrameCount: 15,
+      vadAverageSpeechProbability: 0.68,
+      vadPeakSpeechProbability: 0.97,
       ttsSegmentCount: 2,
       ttsSegments: [
         {

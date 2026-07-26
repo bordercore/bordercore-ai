@@ -20,6 +20,9 @@ interface UseVADOptions {
   onAsrStarted: (turnId: string | null) => void;
   onTranscriptionReady: (turnId: string | null) => void;
   onVoiceTurnFailed: (turnId: string | null) => void;
+  onVadFrame: (turnId: string | null, speechProbability: number) => void;
+  onVadComplete: (turnId: string | null) => void;
+  onVadMisfire: (turnId: string | null) => void;
   setNotice: (notice: string) => void;
 }
 
@@ -35,6 +38,9 @@ export default function useVAD(options: UseVADOptions) {
     onAsrStarted,
     onTranscriptionReady,
     onVoiceTurnFailed,
+    onVadFrame,
+    onVadComplete,
+    onVadMisfire,
     setNotice,
   } = options;
 
@@ -64,7 +70,12 @@ export default function useVAD(options: UseVADOptions) {
       negativeSpeechThreshold: 0.25,
       redemptionMs: 1400,
       preSpeechPadMs: 800,
-      minSpeechMs: 400,
+      // Keep short conversational utterances such as "Howdy" while still
+      // rejecting clicks and other very brief transients.
+      minSpeechMs: 250,
+      onFrameProcessed: (probabilities: { isSpeech: number }) => {
+        onVadFrame(voiceTurnIdRef.current, probabilities.isSpeech);
+      },
       onSpeechStart: () => {
         voiceTurnIdRef.current = onVoiceTurnStart();
         bargeInConfirmedRef.current = false;
@@ -86,6 +97,8 @@ export default function useVAD(options: UseVADOptions) {
         // cannot accidentally cancel the next response.
         confirmBargeIn();
         const turnId = voiceTurnIdRef.current;
+        onVadComplete(turnId);
+        voiceTurnIdRef.current = null;
         onSpeechEnded(turnId);
         onAsrStarted(turnId);
         setNotice("");
@@ -110,6 +123,18 @@ export default function useVAD(options: UseVADOptions) {
             window.setTimeout(() => setNotice(""), 2000);
           });
       },
+      onVADMisfire: () => {
+        const turnId = voiceTurnIdRef.current;
+        onVadComplete(turnId);
+        onVadMisfire(turnId);
+        voiceTurnIdRef.current = null;
+        if (bargeInTimerRef.current !== null) {
+          window.clearTimeout(bargeInTimerRef.current);
+          bargeInTimerRef.current = null;
+        }
+        bargeInConfirmedRef.current = false;
+        setNotice("");
+      },
     });
 
     if (audioMotionRef.current) {
@@ -127,6 +152,9 @@ export default function useVAD(options: UseVADOptions) {
     onTranscriptionReady,
     onVoiceTurnFailed,
     onVoiceTurnStart,
+    onVadComplete,
+    onVadFrame,
+    onVadMisfire,
     setNotice,
   ]);
 

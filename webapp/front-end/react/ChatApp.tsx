@@ -248,6 +248,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     onAsrStarted: voiceMetrics.markAsrStarted,
     onTranscriptionReady: voiceMetrics.markTranscriptionReady,
     onVoiceTurnFailed: turnId => voiceMetrics.finish(turnId, "failed"),
+    onVadFrame: voiceMetrics.recordVadFrame,
+    onVadComplete: voiceMetrics.finalizeVad,
+    onVadMisfire: turnId => voiceMetrics.finish(turnId, "misfire"),
     setNotice,
   });
 

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type VoiceTurnOutcome = "active" | "completed" | "interrupted" | "cancelled" | "failed";
+export type VoiceTurnOutcome =
+  | "active"
+  | "completed"
+  | "interrupted"
+  | "cancelled"
+  | "failed"
+  | "misfire";
 export type VoiceTurnSource = "vad" | "manual";
 
 export interface TtsSegmentMetric {
@@ -26,6 +32,10 @@ export interface VoiceTurnMetric {
   outcome: VoiceTurnOutcome;
   maxQueueDepth: number;
   maxBufferedAudioMs: number;
+  vadFrameCount: number;
+  vadSpeechFrameCount: number;
+  vadAverageSpeechProbability: number | null;
+  vadPeakSpeechProbability: number | null;
   ttsSegments: TtsSegmentMetric[];
 }
 
@@ -62,6 +72,10 @@ export function summarizeVoiceTurn(turn: VoiceTurnMetric) {
     ttsRealTimeFactor: averageTtsRealTimeFactor(turn),
     maxQueueDepth: turn.maxQueueDepth,
     maxBufferedAudioMs: turn.maxBufferedAudioMs,
+    vadFrameCount: turn.vadFrameCount,
+    vadSpeechFrameCount: turn.vadSpeechFrameCount,
+    vadAverageSpeechProbability: turn.vadAverageSpeechProbability,
+    vadPeakSpeechProbability: turn.vadPeakSpeechProbability,
     ttsSegmentCount: turn.ttsSegments.length,
     ttsSegments: turn.ttsSegments.map(segment => {
       const synthesisDurationMs = durationBetween(segment.requestedAt, segment.completedAt);
@@ -87,6 +101,12 @@ export default function useVoiceMetrics() {
   const markedEventsRef = useRef(new Set<string>());
   const finishedTurnsRef = useRef(new Set<string>());
   const queueMaximumsRef = useRef(new Map<string, { depth: number; bufferedAudioMs: number }>());
+  const vadSamplesRef = useRef(
+    new Map<
+      string,
+      { frameCount: number; speechFrameCount: number; probabilityTotal: number; peak: number }
+    >()
+  );
 
   useEffect(() => {
     for (const turn of turns) {
@@ -126,6 +146,10 @@ export default function useVoiceMetrics() {
       outcome: "active",
       maxQueueDepth: 0,
       maxBufferedAudioMs: 0,
+      vadFrameCount: 0,
+      vadSpeechFrameCount: 0,
+      vadAverageSpeechProbability: null,
+      vadPeakSpeechProbability: null,
       ttsSegments: [],
     };
     setTurns(previous => [...previous.slice(-9), turn]);
@@ -206,6 +230,39 @@ export default function useVoiceMetrics() {
     [update]
   );
 
+  const recordVadFrame = useCallback((turnId: string | null, speechProbability: number) => {
+    if (!turnId || !Number.isFinite(speechProbability)) return;
+    const probability = Math.max(0, Math.min(1, speechProbability));
+    const samples = vadSamplesRef.current.get(turnId) || {
+      frameCount: 0,
+      speechFrameCount: 0,
+      probabilityTotal: 0,
+      peak: 0,
+    };
+    samples.frameCount += 1;
+    if (probability >= 0.3) samples.speechFrameCount += 1;
+    samples.probabilityTotal += probability;
+    samples.peak = Math.max(samples.peak, probability);
+    vadSamplesRef.current.set(turnId, samples);
+  }, []);
+
+  const finalizeVad = useCallback(
+    (turnId: string | null) => {
+      if (!turnId) return;
+      const samples = vadSamplesRef.current.get(turnId);
+      vadSamplesRef.current.delete(turnId);
+      if (!samples) return;
+      update(turnId, turn => {
+        turn.vadFrameCount = samples.frameCount;
+        turn.vadSpeechFrameCount = samples.speechFrameCount;
+        turn.vadAverageSpeechProbability =
+          samples.frameCount > 0 ? samples.probabilityTotal / samples.frameCount : null;
+        turn.vadPeakSpeechProbability = samples.frameCount > 0 ? samples.peak : null;
+      });
+    },
+    [update]
+  );
+
   return {
     turns,
     beginTurn,
@@ -226,6 +283,8 @@ export default function useVoiceMetrics() {
         audioDurationMs,
       }),
     recordQueue,
+    recordVadFrame,
+    finalizeVad,
     finish,
   };
 }

@@ -31,7 +31,7 @@ export default function VoiceLatencyPanel({ turns }: VoiceLatencyPanelProps) {
       if (candidate.outcome !== "active") counts[candidate.outcome] += 1;
       return counts;
     },
-    { completed: 0, interrupted: 0, cancelled: 0, failed: 0 }
+    { completed: 0, interrupted: 0, cancelled: 0, failed: 0, misfire: 0 }
   );
   const rows = [
     ["ASR", durationBetween(turn.speechEndedAt, turn.transcriptionReadyAt)],
@@ -62,12 +62,29 @@ export default function VoiceLatencyPanel({ turns }: VoiceLatencyPanelProps) {
         <strong>
           {turn.maxQueueDepth} / {milliseconds(turn.maxBufferedAudioMs)}
         </strong>
+        <span>VAD confidence</span>
+        <strong>
+          {turn.vadAverageSpeechProbability === null
+            ? "—"
+            : `${Math.round(turn.vadAverageSpeechProbability * 100)}% avg / ${Math.round(
+                (turn.vadPeakSpeechProbability ?? 0) * 100
+              )}% peak`}
+        </strong>
+        <span>VAD speech frames</span>
+        <strong>
+          {turn.vadFrameCount
+            ? `${turn.vadSpeechFrameCount} / ${turn.vadFrameCount} (${Math.round(
+                (turn.vadSpeechFrameCount / turn.vadFrameCount) * 100
+              )}%)`
+            : "—"}
+        </strong>
       </div>
       <div className="voice-latency-counts" aria-label="Voice turn outcomes this session">
         <span>{outcomes.completed} complete</span>
         <span>{outcomes.interrupted} interrupted</span>
         <span>{outcomes.cancelled} cancelled</span>
         <span>{outcomes.failed} failed</span>
+        <span>{outcomes.misfire} VAD misfires</span>
       </div>
     </div>
   );

@@ -14,8 +14,12 @@ NUMBER_FIELDS = {
     "maxQueueDepth",
     "maxBufferedAudioMs",
     "ttsSegmentCount",
+    "vadFrameCount",
+    "vadSpeechFrameCount",
+    "vadAverageSpeechProbability",
+    "vadPeakSpeechProbability",
 }
-OUTCOMES = {"completed", "interrupted", "cancelled", "failed"}
+OUTCOMES = {"completed", "interrupted", "cancelled", "failed", "misfire"}
 SOURCES = {"vad", "manual"}
 SEGMENT_NUMBER_FIELDS = {
     "id",
@@ -23,6 +27,10 @@ SEGMENT_NUMBER_FIELDS = {
     "synthesisDurationMs",
     "audioDurationMs",
     "realTimeFactor",
+}
+PROBABILITY_FIELDS = {
+    "vadAverageSpeechProbability",
+    "vadPeakSpeechProbability",
 }
 
 
@@ -58,6 +66,10 @@ def normalize_voice_metrics(payload: Any) -> dict[str, Any]:
     }
     for field in NUMBER_FIELDS:
         normalized[field] = _optional_nonnegative_number(payload.get(field), field)
+        if field in PROBABILITY_FIELDS:
+            value = normalized[field]
+            if value is not None and value > 1:
+                raise ValueError(f"Invalid {field}")
 
     segments = payload.get("ttsSegments")
     if not isinstance(segments, list) or len(segments) > 100:

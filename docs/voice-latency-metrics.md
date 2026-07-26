@@ -71,12 +71,25 @@ Peak pending sentence count and peak scheduled audio duration.
   less efficient and uses more memory
 - Bordercore AI currently limits scheduled audio to roughly eight seconds
 
+### VAD confidence / speech frames
+
+Average and peak Silero speech probability, followed by the number of frames
+that met the configured positive-speech threshold.
+
+- A high peak with very few speech frames often indicates a click, cough, or
+  other short transient
+- Consistently low averages during real speech suggest that the positive
+  threshold may be too strict for the microphone or environment
+- A growing misfire count means VAD detected a possible start but rejected the
+  segment for not meeting the 250 ms minimum speech duration
+
 ## Turn outcomes
 
 - **Completed**: Response and playback finished normally
 - **Interrupted**: VAD barge-in stopped the response
 - **Cancelled**: The response was manually stopped or replaced
 - **Failed**: ASR, LLM, or TTS encountered an error
+- **Misfire**: VAD detected a possible start but rejected the short segment
 - **Active**: The turn is still underway
 
 ## Diagnosing bottlenecks
