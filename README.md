@@ -428,7 +428,10 @@ Appearance includes:
 VAD includes bounded controls for speech-start and speech-end confidence,
 end-of-turn silence, minimum accepted speech, and pre-speech padding. Changes
 are stored in the browser and automatically restart an enabled VAD after a
-short debounce. **Reset VAD defaults** restores the tested configuration.
+short debounce. Responsive, Balanced, Patient Speaker, and Noisy Environment
+presets provide known starting points; changing an individual control selects
+Custom automatically. **Reset VAD defaults** restores the Balanced
+configuration.
 
 # Tests
 

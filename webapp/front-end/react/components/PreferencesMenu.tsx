@@ -7,7 +7,14 @@ import {
   WaitingAnimation,
 } from "../stores/ChatStoreContext";
 import { TtsCapabilityState } from "../utils/ttsCapabilities";
-import { DEFAULT_VAD_CONFIG, normalizeVadConfig, VadConfig } from "../utils/vadConfig";
+import {
+  DEFAULT_VAD_CONFIG,
+  identifyVadPreset,
+  normalizeVadConfig,
+  VadConfig,
+  VadPreset,
+  VAD_PRESETS,
+} from "../utils/vadConfig";
 
 const VISUALIZATION_OPTIONS: { value: VisualizationType; label: string }[] = [
   { value: "gpuOrb", label: "GPU Orb" },
@@ -133,6 +140,7 @@ export default function PreferencesMenu({
         : next;
     });
   };
+  const vadPreset = identifyVadPreset(vadConfig);
 
   return (
     <div id="menu">
@@ -522,6 +530,36 @@ export default function PreferencesMenu({
           <>
             <div className="pref-hint">
               Changes are saved in this browser and applied automatically when VAD is running.
+            </div>
+            <div>
+              <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+                Preset
+              </div>
+              <select
+                className="waiting-animation-select"
+                value={vadPreset}
+                onChange={event => {
+                  if (event.target.value === "custom") return;
+                  onVadConfigChange(VAD_PRESETS[event.target.value as VadPreset].config);
+                }}
+                aria-label="VAD preset"
+              >
+                {(
+                  Object.entries(VAD_PRESETS) as [VadPreset, (typeof VAD_PRESETS)[VadPreset]][]
+                ).map(([value, preset]) => (
+                  <option key={value} value={value}>
+                    {preset.label}
+                  </option>
+                ))}
+                {vadPreset === "custom" && <option value="custom">Custom</option>}
+              </select>
+              <div className="pref-hint" style={{ marginTop: "0.35rem" }}>
+                {vadPreset === "responsive" && "Fast turn endings for quick exchanges."}
+                {vadPreset === "balanced" && "Tested defaults for typical conversations."}
+                {vadPreset === "patient" && "Allows longer pauses and hesitation."}
+                {vadPreset === "noisy" && "Stricter detection for persistent background noise."}
+                {vadPreset === "custom" && "One or more controls differ from a preset."}
+              </div>
             </div>
             <div>
               <div className="pref-label">Speech Start Threshold</div>

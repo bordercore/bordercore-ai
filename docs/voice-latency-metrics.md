@@ -37,6 +37,20 @@ library default of 1.4 seconds. It can be adjusted in Preferences under VAD.
 - If natural mid-sentence pauses are submitted as separate turns, the
   redemption window is too aggressive for that speaker or environment
 
+### VAD presets
+
+Preferences provides four starting points:
+
+| Preset | Start / end | Silence | Minimum | Pre-pad |
+| --- | ---: | ---: | ---: | ---: |
+| Responsive | 0.30 / 0.25 | 600 ms | 200 ms | 650 ms |
+| Balanced | 0.30 / 0.25 | 900 ms | 250 ms | 800 ms |
+| Patient Speaker | 0.30 / 0.25 | 1500 ms | 250 ms | 800 ms |
+| Noisy Environment | 0.50 / 0.35 | 1000 ms | 350 ms | 800 ms |
+
+Changing any individual setting selects Custom automatically. Resetting VAD
+defaults restores Balanced.
+
 ### First token
 
 Time from sending the request until the LLM begins responding.

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_VAD_CONFIG, normalizeVadConfig } from "./vadConfig";
+import {
+  DEFAULT_VAD_CONFIG,
+  identifyVadPreset,
+  normalizeVadConfig,
+  VAD_PRESETS,
+} from "./vadConfig";
 
 describe("VAD configuration", () => {
   it("uses the conversational defaults when no configuration is saved", () => {
@@ -23,5 +28,12 @@ describe("VAD configuration", () => {
       preSpeechPadMs: 1500,
       minSpeechMs: 100,
     });
+  });
+
+  it("identifies each preset and treats manual changes as custom", () => {
+    for (const [name, preset] of Object.entries(VAD_PRESETS)) {
+      expect(identifyVadPreset(preset.config)).toBe(name);
+    }
+    expect(identifyVadPreset({ ...DEFAULT_VAD_CONFIG, redemptionMs: 1100 })).toBe("custom");
   });
 });
