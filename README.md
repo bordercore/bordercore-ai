@@ -35,6 +35,21 @@ timeout or can be released explicitly through the ASR API.
 
 Three TTS engines are supported: [Kokoro](https://kokorottsai.com/), [Chatterbox](https://github.com/resemble-ai/chatterbox), and [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base).
 
+On NVIDIA hosts, Qwen3-TTS uses
+[`faster-qwen3-tts`](https://github.com/andimarafioti/faster-qwen3-tts)
+with the qwentts.cpp GGML backend. It streams codec frames while a sentence
+is still being synthesized instead of waiting for the complete sentence.
+Install its inference packages into the configured Qwen environment with:
+
+```bash
+scripts/install_faster_qwen3_tts.sh
+```
+
+The installer intentionally uses `--no-deps`: Bordercore's main environment
+already supplies Qwen, PyTorch, Transformers, NumPy, SoundFile, and Hugging
+Face Hub, while the upstream package currently declares dependency versions
+that conflict with Bordercore's Python 3.12 environment.
+
 Assistant responses are normalized on a copy before being sent to any TTS
 engine; the Markdown displayed in chat is never changed. The ordered spoken-text
 pipeline:
@@ -409,8 +424,10 @@ The hamburger menu to the upper-right organizes preferences into **General**,
   temperature parameter so the selected model or provider uses its native
   behavior.
 - **Audio Speed**: Playback speed of the TTS audio.
-- **TTS Host**: Select the TTS server and view its discovered engine and
-  readiness state.
+- **TTS Engine**: Select Kokoro, Chatterbox, or Qwen3-TTS and view its
+  discovered identity and readiness. Managed engines sharing the deepvirtual
+  endpoint are switched through an allow-listed backend action and verified
+  before the selection becomes active.
 - **Voice**: Select a built-in voice or cloning profile reported by the active
   TTS server.
 

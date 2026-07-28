@@ -2,7 +2,7 @@
 Description=llama.cpp GGUF inference service
 After=network-online.target
 Wants=network-online.target
-Conflicts=vllm.service qwen3-tts.service chatterbox-tts.service
+Conflicts=vllm.service chatterbox-tts.service
 
 [Service]
 Type=simple

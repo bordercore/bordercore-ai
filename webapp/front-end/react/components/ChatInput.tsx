@@ -17,6 +17,7 @@ interface ChatInputProps {
   onStopGeneration: () => void;
   onClipboardClick: () => void;
   inputIsDisabled: boolean;
+  disabledReason?: string;
   showRegenerate: boolean;
   isGenerating: boolean;
   hasClipboard: boolean;
@@ -31,6 +32,7 @@ export default function ChatInput({
   onStopGeneration,
   onClipboardClick,
   inputIsDisabled,
+  disabledReason,
   showRegenerate,
   isGenerating,
   hasClipboard,
@@ -50,9 +52,11 @@ export default function ChatInput({
           onChange={e => onPromptChange(e.target.value)}
           id="prompt"
           type="text"
-          placeholder="Type your message..."
+          placeholder={disabledReason || "Type your message..."}
           onKeyDown={handleKeyDown}
           disabled={inputIsDisabled}
+          aria-describedby={disabledReason ? "chat-input-disabled-reason" : undefined}
+          title={disabledReason}
           autoComplete="off"
         />
 
@@ -94,6 +98,11 @@ export default function ChatInput({
           <FontAwesomeIcon icon={faPaperPlane} />
         </div>
       </div>
+      {disabledReason && (
+        <div id="chat-input-disabled-reason" className="chat-input-disabled-reason" role="status">
+          {disabledReason}
+        </div>
+      )}
     </form>
   );
 }

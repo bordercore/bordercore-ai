@@ -51,6 +51,7 @@ from modules.chatbot import CONTROL_VALUE, ChatBot
 from modules.model_manager import ModelManager
 from modules.music import MusicServiceError
 from modules.rag import RAG
+from modules.tts_manager import switch_tts_engine
 from modules.util import get_model_info
 from modules.voice_metrics import normalize_voice_metrics
 from modules.vllm_manager import (
@@ -454,6 +455,23 @@ def asr_config() -> ResponseReturnValue:
     asr_service: SpeechTranscriptionService = app.config["asr_service"]
     asr_service.set_idle_timeout(float(timeout) if timeout is not None else None)
     return jsonify(asr_service.status())
+
+
+@app.route("/tts/engine", methods=["POST"])
+def tts_engine() -> ResponseReturnValue:
+    """Switch an allow-listed TTS systemd service and verify its identity."""
+    payload = request.get_json(silent=True) or {}
+    engine = payload.get("engine")
+    if not isinstance(engine, str) or not engine.strip():
+        return jsonify({"status": "Error", "message": "engine is required"}), 400
+    try:
+        capabilities = switch_tts_engine(engine)
+    except ValueError as exc:
+        return jsonify({"status": "Error", "message": str(exc)}), 400
+    except (RuntimeError, TimeoutError, OSError) as exc:
+        logger.exception("Unable to switch TTS engine to %s", engine)
+        return jsonify({"status": "Error", "message": str(exc)}), 503
+    return jsonify({"status": "OK", "capabilities": capabilities})
 
 
 # Register any optional Flask Blueprints

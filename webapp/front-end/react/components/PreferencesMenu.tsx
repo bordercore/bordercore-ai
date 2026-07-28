@@ -49,8 +49,9 @@ interface PreferencesMenuProps {
   audioSpeed: number;
   onAudioSpeedChange: (value: number) => void;
   ttsHost: string;
-  onTtsHostChange: (value: string) => void;
-  ttsHostPresets: Array<{ label: string; host: string }>;
+  ttsManagedEngine: string;
+  onTtsPresetChange: (preset: TtsHostPreset) => void;
+  ttsHostPresets: TtsHostPreset[];
   ttsVoice: string;
   onTtsVoiceChange: (value: string) => void;
   ttsCapabilities: TtsCapabilityState;
@@ -80,6 +81,12 @@ interface PreferencesMenuProps {
   onStarfieldEnabledChange: (value: boolean) => void;
 }
 
+export interface TtsHostPreset {
+  label: string;
+  host: string;
+  managed_engine?: string;
+}
+
 export default function PreferencesMenu({
   show,
   temperature,
@@ -87,7 +94,8 @@ export default function PreferencesMenu({
   audioSpeed,
   onAudioSpeedChange,
   ttsHost,
-  onTtsHostChange,
+  ttsManagedEngine,
+  onTtsPresetChange,
   ttsHostPresets,
   ttsVoice,
   onTtsVoiceChange,
@@ -142,6 +150,9 @@ export default function PreferencesMenu({
   };
   const vadPreset = identifyVadPreset(vadConfig);
   const vadPresetDefinition = vadPreset === "custom" ? null : VAD_PRESETS[vadPreset];
+  const selectedTtsPreset = ttsHostPresets.findIndex(
+    preset => preset.host === ttsHost && (preset.managed_engine || "") === ttsManagedEngine
+  );
 
   return (
     <div id="menu">
@@ -259,25 +270,26 @@ export default function PreferencesMenu({
             </div>
             <div>
               <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
-                TTS Host
+                TTS Engine
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                 <select
                   className="w-full rounded-lg border border-border-subtle bg-bg-input px-3 py-2 text-sm text-txt-primary focus:border-accent-cyan focus:outline-none"
-                  value={ttsHost}
-                  onChange={e => onTtsHostChange(e.target.value)}
+                  value={selectedTtsPreset >= 0 ? String(selectedTtsPreset) : "custom"}
+                  onChange={event => {
+                    const preset = ttsHostPresets[Number(event.target.value)];
+                    if (preset) onTtsPresetChange(preset);
+                  }}
                 >
                   {ttsHostPresets.length === 0 && <option value="">(no presets configured)</option>}
-                  {ttsHost && !ttsHostPresets.some(p => p.host === ttsHost) && (
-                    <option value={ttsHost}>{ttsHost}</option>
-                  )}
-                  {ttsHostPresets.map(p => (
-                    <option key={p.host} value={p.host}>
+                  {ttsHost && selectedTtsPreset < 0 && <option value="custom">{ttsHost}</option>}
+                  {ttsHostPresets.map((p, index) => (
+                    <option key={`${p.host}:${p.managed_engine || index}`} value={index}>
                       {p.label}
                     </option>
                   ))}
                 </select>
-                <span className="pref-hint">Which TTS service to hit</span>
+                <span className="pref-hint">Switches managed engines when needed</span>
               </div>
               <div
                 className="pref-hint"
@@ -300,8 +312,8 @@ export default function PreferencesMenu({
                 <button
                   type="button"
                   onClick={onRefreshTtsCapabilities}
-                  aria-label="Refresh TTS server capabilities"
-                  title="Refresh TTS server capabilities"
+                  aria-label="Restart or refresh TTS engine"
+                  title="Restart or refresh TTS engine"
                   style={{
                     background: "transparent",
                     border: 0,

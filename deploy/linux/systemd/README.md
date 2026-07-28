@@ -14,6 +14,18 @@ The three TTS units listen on port 5001 and carry `Conflicts=` entries naming
 the other two, so starting one automatically stops the others (mutex). Only one
 TTS engine runs at a time by design.
 
+Before starting Qwen3-TTS for the first time, install its optimized GGML
+runtime into the service environment:
+
+```bash
+cd ~/dev/bordercoreai
+scripts/install_faster_qwen3_tts.sh
+```
+
+The Qwen service downloads and caches its Q8_0 talker and codec GGUF files on
+first startup. Its `/capabilities` identity includes the active backend and
+quantization, for example `qwen3-tts-ggml-q8_0`.
+
 ## Install
 
 Edit the files in this directory on wumpus; watchman syncs them to
@@ -288,9 +300,10 @@ systemctl --user stop qwen3-tts
   actually want to run on each host. Extra files on disk are harmless.
 - `Conflicts=` is an explicit mutex; the port 5001 binding is an implicit
   backstop — if somehow both tried to start, the second would fail on bind.
-- The vLLM unit has no `Conflicts=` relationship with the TTS units. Its 55%
-  GPU-memory ceiling is intentionally conservative, but concurrent peak loads
-  should still be monitored.
+- The vLLM unit has no `Conflicts=` relationship with the TTS units. The
+  llama.cpp unit can likewise coexist with the lightweight Qwen3 Q8 TTS unit,
+  but still conflicts with Chatterbox. Concurrent peak GPU-memory use should
+  be monitored when changing model profiles.
 - Add new checkpoints under the reviewed `vllm-profiles/` or
   `llama-cpp-profiles/` allow-lists. The switcher does not accept arbitrary
   model paths.

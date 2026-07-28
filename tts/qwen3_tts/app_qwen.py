@@ -2,12 +2,9 @@
 Qwen3-TTS Audio Generator Web Service
 
 Flask service that streams text-to-speech audio produced by
-Qwen3-TTS-12Hz-0.6B-Base. Long inputs are split by sentence and generated one
-at a time; the first chunk returns as soon as the first sentence is ready,
-and subsequent chunks are appended to the same WAV stream while later
-sentences generate. This collapses first-audio latency from "total
-generation time" to "first-sentence generation time" — see ``LATENCY.md`` for
-the profile.
+Qwen3-TTS-12Hz-0.6B-Base through faster-qwen3-tts and qwentts.cpp. Codec
+frames are returned while each sentence is still being generated, minimizing
+first-audio latency while retaining bounded per-sentence generation.
 
 Qwen3-TTS-Base requires reference audio to clone a voice. A matching
 transcript (``ref_text``) yields the best quality; when omitted the server
@@ -28,6 +25,7 @@ Usage:
 
 import argparse
 import logging
+import math
 import re
 import struct
 import time
@@ -35,10 +33,9 @@ from pathlib import Path
 from typing import Any, Iterator
 
 import numpy as np
-import torch
 from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
-from qwen_tts import Qwen3TTSModel
+from faster_qwen3_tts import FasterQwen3TTS
 
 try:
     from capabilities import build_tts_capabilities
@@ -182,6 +179,10 @@ parser.add_argument("--debug", dest="debug", action="store_true", default=False,
                     help="Enable Flask debug mode")
 parser.add_argument("--device", dest="device", default="cuda",
                     help="Device to use for inference (cuda/cpu)")
+parser.add_argument("--quant", dest="quant", default="Q8_0",
+                    help="GGUF quantization used by qwentts.cpp (default: Q8_0)")
+parser.add_argument("--streaming-chunk-size", dest="streaming_chunk_size", type=int, default=8,
+                    help="Codec frames emitted per streaming chunk (default: 8)")
 args = parser.parse_args()
 
 app = Flask(__name__)
@@ -193,12 +194,13 @@ AUDIO_PROMPT = args.audio_prompt
 LANGUAGE = normalize_language(args.language)
 DEBUG = args.debug
 DEVICE = args.device
+QUANT = args.quant
+STREAMING_CHUNK_SIZE = max(1, args.streaming_chunk_size)
 
-model = Qwen3TTSModel.from_pretrained(
+model = FasterQwen3TTS.from_pretrained(
     "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
-    device_map=DEVICE,
-    dtype=torch.bfloat16,
-    attn_implementation="flash_attention_2",
+    backend="ggml",
+    quant=QUANT,
 )
 
 
@@ -221,7 +223,7 @@ def get_capabilities() -> Response:
     default_voice = default_candidate if default_candidate in voices else None
     return jsonify(
         build_tts_capabilities(
-            engine="qwen3-tts",
+            engine=f"qwen3-tts-ggml-{QUANT.lower()}",
             sample_rate=24000,
             voices=voices,
             default_voice=default_voice,
@@ -236,13 +238,9 @@ def generate_tts_audio() -> Response:
     """
     **/ (GET)** – Generate text-to-speech audio using Qwen3-TTS.
 
-    The text is split into sentences and each sentence is synthesized
-    sequentially. The first sentence is generated synchronously (so
-    generation errors produce a clean 500 with CORS headers), then subsequent
-    sentences are streamed as raw PCM frames appended to a single
-    streaming-WAV body. The browser's ``<audio>`` element plays the stream
-    progressively, so first-audio latency drops from "total generation time"
-    to "first-sentence generation time".
+    The text is split into sentences and synthesized sequentially. Each
+    sentence yields codec-sized PCM chunks before the complete sentence is
+    ready, and all chunks are appended to one streaming-WAV response.
 
     Expected query parameters
     -------------------------
@@ -289,36 +287,57 @@ def generate_tts_audio() -> Response:
     base_kwargs: dict[str, Any] = {
         "language": language,
         "ref_audio": audio_prompt_path,
+        "chunk_size": STREAMING_CHUNK_SIZE,
+        "non_streaming_mode": True,
     }
     if ref_text:
         base_kwargs["ref_text"] = ref_text
     else:
-        base_kwargs["x_vector_only_mode"] = True
+        base_kwargs["xvec_only"] = True
 
     sentences = split_sentences(text)
     mode = "full_clone" if ref_text else "x_vector_only"
     req_start = time.perf_counter()
 
-    # Generate the first sentence synchronously so that a generation failure
-    # produces a proper 500 Response (with CORS headers from flask-cors)
-    # instead of truncating an already-streaming audio body.
+    def max_tokens_for(sentence: str) -> int:
+        """Bound runaway speech while leaving conversational text headroom."""
+        words = len(re.findall(r"\w+", sentence, flags=re.UNICODE))
+        characters = len(re.sub(r"\s+", "", sentence))
+        estimated_seconds = max(words / 2.5, characters / 15) + 1
+        estimated = math.ceil(estimated_seconds * 12.5 * 1.5)
+        aligned = math.ceil(estimated / STREAMING_CHUNK_SIZE) * STREAMING_CHUNK_SIZE
+        return min(512, max(64, aligned))
+
+    def sentence_chunks(sentence: str) -> Iterator[tuple[np.ndarray, int]]:
+        generator = model.generate_voice_clone_streaming(
+            text=sentence,
+            max_new_tokens=max_tokens_for(sentence),
+            **base_kwargs,
+        )
+        for chunk, sample_rate, _timing in generator:
+            audio = _audio_to_numpy(chunk)
+            if audio.size:
+                yield audio, int(sample_rate)
+
+    # Pull the first chunk before returning the response so startup and prompt
+    # errors remain ordinary HTTP 500 responses rather than truncated WAVs.
     t0 = time.perf_counter()
     try:
-        first_wavs, sample_rate = model.generate_voice_clone(
-            text=sentences[0], **base_kwargs
-        )
+        first_generator = sentence_chunks(sentences[0])
+        first_audio, sample_rate = next(first_generator)
+    except StopIteration:
+        return Response("TTS generation produced no audio", status=500, mimetype="text/plain")
     except Exception as exc:
-        logger.exception("Qwen3-TTS first-sentence generation failed: %s", exc)
+        logger.exception("Qwen3-TTS first-chunk generation failed: %s", exc)
         return Response(
             f"TTS generation failed: {exc}",
             status=500,
             mimetype="text/plain",
         )
-    first_audio = _audio_to_numpy(first_wavs[0])
     t_first = time.perf_counter() - t0
     logger.warning(
         "TTS stream start | sentences=%d chars=%d mode=%s | "
-        "first_gen=%.3fs first_audio=%.2fs sr=%d",
+        "first_chunk=%.3fs chunk_audio=%.2fs sr=%d",
         len(sentences),
         len(text),
         mode,
@@ -331,10 +350,24 @@ def generate_tts_audio() -> Response:
         yield streaming_wav_header(sample_rate)
         yield to_pcm16_bytes(first_audio)
         total_audio = len(first_audio) / sample_rate
+        for audio, chunk_sample_rate in first_generator:
+            if chunk_sample_rate != sample_rate:
+                logger.error("Qwen3-TTS sample rate changed within a response")
+                return
+            total_audio += len(audio) / sample_rate
+            yield to_pcm16_bytes(audio)
+
         for i, sent in enumerate(sentences[1:], start=2):
             t_sent = time.perf_counter()
             try:
-                wavs, _ = model.generate_voice_clone(text=sent, **base_kwargs)
+                generated_audio = 0.0
+                for audio, chunk_sample_rate in sentence_chunks(sent):
+                    if chunk_sample_rate != sample_rate:
+                        raise RuntimeError("sample rate changed within a response")
+                    duration = len(audio) / sample_rate
+                    generated_audio += duration
+                    total_audio += duration
+                    yield to_pcm16_bytes(audio)
             except Exception as exc:
                 # Can't signal an error after the header is sent; log and close.
                 logger.exception(
@@ -342,12 +375,10 @@ def generate_tts_audio() -> Response:
                     i, len(sentences), exc,
                 )
                 return
-            audio = _audio_to_numpy(wavs[0])
             dt = time.perf_counter() - t_sent
-            total_audio += len(audio) / sample_rate
             logger.warning(
                 "TTS stream chunk %d/%d | chars=%d gen=%.3fs audio=%.2fs",
-                i, len(sentences), len(sent), dt, len(audio) / sample_rate,
+                i, len(sentences), len(sent), dt, generated_audio,
             )
             yield to_pcm16_bytes(audio)
         logger.warning(

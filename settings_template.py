@@ -42,7 +42,16 @@ tts_do_not_speak_patterns: list[str] = [
 # cert and resolve to the host that's actually running the engine.
 tts_host_presets = [
     {"label": "Kokoro (wumpus)", "host": "https://kokoro-tts.bordercore.com:5001"},
-    {"label": "Chatterbox / Qwen3 (deepvirtual)", "host": "https://tts.bordercore.com:5001"},
+    {
+        "label": "Chatterbox (deepvirtual)",
+        "host": "https://tts.bordercore.com:5001",
+        "managed_engine": "chatterbox",
+    },
+    {
+        "label": "Qwen3-TTS (deepvirtual)",
+        "host": "https://tts.bordercore.com:5001",
+        "managed_engine": "qwen3",
+    },
 ]
 
 anthropic_api_key = ""

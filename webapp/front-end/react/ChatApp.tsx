@@ -39,6 +39,7 @@ import FileUpload from "./components/FileUpload";
 import ImagePreview from "./components/ImagePreview";
 import AudioPlayer from "./components/AudioPlayer";
 import PreferencesMenu from "./components/PreferencesMenu";
+import type { TtsHostPreset } from "./components/PreferencesMenu";
 import ToastContainer from "./components/Toast";
 
 import useStreamingChat from "./hooks/useStreamingChat";
@@ -157,6 +158,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   const [visibleNotice, setVisibleNotice] = useState("");
   const [activeSpokenSegment, setActiveSpokenSegment] = useState<ActiveSpokenSegment | null>(null);
   const [vadRuntimeState, setVadRuntimeState] = useState<VadRuntimeState>({ status: "off" });
+  const [ttsManagedEngine, setTtsManagedEngine] = useState(
+    () => window.localStorage.getItem("ttsManagedEngine") || ""
+  );
   const vadStartupFailedRef = useRef(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
@@ -256,6 +260,26 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     ttsHost,
     ttsVoice,
     setTtsVoice,
+  ]);
+
+  useEffect(() => {
+    if (ttsCapabilities.resolvedHost !== ttsHost || !ttsCapabilities.capabilities) return;
+    const reportedEngine = ttsCapabilities.capabilities.engine.toLowerCase();
+    const preset = (session.tts_host_presets || []).find(
+      (candidate: TtsHostPreset) =>
+        candidate.host === ttsHost &&
+        candidate.managed_engine &&
+        reportedEngine.startsWith(candidate.managed_engine)
+    );
+    if (!preset?.managed_engine || preset.managed_engine === ttsManagedEngine) return;
+    setTtsManagedEngine(preset.managed_engine);
+    window.localStorage.setItem("ttsManagedEngine", preset.managed_engine);
+  }, [
+    session.tts_host_presets,
+    ttsCapabilities.capabilities,
+    ttsCapabilities.resolvedHost,
+    ttsHost,
+    ttsManagedEngine,
   ]);
 
   const handleVadRuntimeState = useCallback(
@@ -546,6 +570,43 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       "",
       () => setTimeout(() => setShowProcessingModal(false), 500)
     );
+  }
+
+  async function handleTtsPresetChange(preset: TtsHostPreset) {
+    const managedEngine = preset.managed_engine || "";
+    if (managedEngine) {
+      setProcessingMessage(`Starting ${preset.label}...`);
+      setShowProcessingModal(true);
+      try {
+        const response = await axios.post("/tts/engine", { engine: managedEngine });
+        if (response.data?.status !== "OK") {
+          throw new Error(response.data?.message || "TTS engine switch failed");
+        }
+      } catch (error) {
+        console.error("Unable to switch TTS engine:", error);
+        setNotice(error instanceof Error ? error.message : "Unable to switch TTS engine");
+        setShowProcessingModal(false);
+        return;
+      }
+    }
+
+    setTtsHost(preset.host);
+    setTtsManagedEngine(managedEngine);
+    window.localStorage.setItem("ttsManagedEngine", managedEngine);
+    ttsCapabilities.refresh();
+    setShowProcessingModal(false);
+  }
+
+  function handleTtsCapabilitiesRefresh() {
+    const preset = (session.tts_host_presets || []).find(
+      (candidate: TtsHostPreset) =>
+        candidate.host === ttsHost && (candidate.managed_engine || "") === ttsManagedEngine
+    );
+    if (preset?.managed_engine) {
+      void handleTtsPresetChange(preset);
+      return;
+    }
+    ttsCapabilities.refresh();
   }
 
   function handleNewChat() {
@@ -1073,6 +1134,11 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               onStopGeneration={handleStopGeneration}
               onClipboardClick={handleClipboardClick}
               inputIsDisabled={inputIsDisabled || model.loaded === false}
+              disabledReason={
+                model.loaded === false
+                  ? "No chat model loaded. Choose a model from the Model menu to enable chat."
+                  : undefined
+              }
               showRegenerate={showRegenerate}
               isGenerating={isGenerating}
               hasClipboard={!!clipboard}
@@ -1165,12 +1231,13 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           audioSpeed={audioSpeed}
           onAudioSpeedChange={setAudioSpeed}
           ttsHost={ttsHost}
-          onTtsHostChange={setTtsHost}
+          ttsManagedEngine={ttsManagedEngine}
+          onTtsPresetChange={handleTtsPresetChange}
           ttsHostPresets={session.tts_host_presets || []}
           ttsVoice={ttsVoice}
           onTtsVoiceChange={setTtsVoice}
           ttsCapabilities={ttsCapabilities}
-          onRefreshTtsCapabilities={ttsCapabilities.refresh}
+          onRefreshTtsCapabilities={handleTtsCapabilitiesRefresh}
           asrIdleTimeoutMinutes={asrIdleTimeoutMinutes}
           onAsrIdleTimeoutChange={setAsrIdleTimeoutMinutes}
           vadConfig={vadConfig}
