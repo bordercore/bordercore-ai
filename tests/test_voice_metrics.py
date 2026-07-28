@@ -9,6 +9,7 @@ def complete_payload():
         "source": "vad",
         "outcome": "completed",
         "asrLatencyMs": 300,
+        "asrHeadStartMs": 0,
         "firstTokenLatencyMs": 180,
         "firstSentenceLatencyMs": 250,
         "firstAudioLatencyMs": 1100,

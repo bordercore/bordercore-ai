@@ -6,6 +6,7 @@ from typing import Any
 
 NUMBER_FIELDS = {
     "asrLatencyMs",
+    "asrHeadStartMs",
     "firstTokenLatencyMs",
     "firstSentenceLatencyMs",
     "firstAudioLatencyMs",

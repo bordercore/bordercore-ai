@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 import {
+  asrHeadStart,
   averageTtsRealTimeFactor,
   durationBetween,
   summarizeVoiceTurn,
@@ -121,6 +122,7 @@ export default function VoiceLatencyPanel({
   );
   const rows = [
     ["ASR", durationBetween(turn.speechEndedAt, turn.transcriptionReadyAt)],
+    ["ASR head start", asrHeadStart(turn)],
     ["VAD confirmation", durationBetween(turn.startedAt, turn.vadConfirmedAt)],
     ["VAD endpoint", turn.vadEndpointDelayMs],
     ["First token", durationBetween(turn.llmRequestedAt, turn.firstTokenAt)],

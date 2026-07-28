@@ -141,11 +141,21 @@ updates do not silently change turn detection. Speech must reach Silero's
 minimum confirmed duration before triggering barge-in, so rejected clicks,
 coughs, and other VAD misfires do not interrupt the assistant.
 
+VAD can start speech recognition speculatively during the end-of-turn silence
+window. The browser builds a provisional WAV directly from the 16 kHz frames
+already produced by `vad-web`, then reuses its transcript when Silero confirms
+the endpoint. If speech resumes, the provisional request is invalidated and a
+new one can start at the next likely endpoint; tentative transcripts never
+become chat messages. This overlaps ASR with the default 900 ms silence window
+without adding another model or consuming additional persistent VRAM.
+
 ### Voice latency diagnostics
 
 The controls sidebar shows timing for the latest manual or VAD voice turn:
 
 - **ASR** runs from detected speech end to the completed transcription.
+- **ASR head start** shows how much recognition ran before the endpoint was
+  confirmed; a positive value means speculative transcription was attempted.
 - **First token** runs from the LLM request to the first streamed response
   chunk.
 - **First sentence** runs from the first token to the first segment ready for
@@ -443,16 +453,19 @@ Appearance includes:
 - **Cursor Effect**: Toggle animated streaks that follow the cursor (with density and speed sub-controls).
 
 VAD includes bounded controls for speech-start and speech-end confidence,
-end-of-turn silence, minimum accepted speech, and pre-speech padding. Changes
-are stored in the browser and automatically restart an enabled VAD after a
-short debounce. Responsive, Balanced, Patient Speaker, and Noisy Environment
-presets provide known starting points; changing an individual control selects
-Custom automatically. Each preset includes guidance about its best use case
-and responsiveness or detection tradeoff. **Reset VAD defaults** restores the
-Balanced configuration. The controls sidebar shows the active VAD state, preset,
-timings, confidence, and the reason a segment was discarded. **Copy
-diagnostics** copies the current configuration and latest turn data as JSON for
-troubleshooting. VAD startup reports microphone permission, missing-device,
+end-of-turn silence, minimum accepted speech, pre-speech padding, and
+speculative transcription. The speculation delay determines how long a likely
+endpoint must remain quiet before ASR begins; it is always kept inside the
+configured endpoint window. Changes are stored in the browser and
+automatically restart an enabled VAD after a short debounce. Responsive,
+Balanced, Patient Speaker, and Noisy Environment presets provide known
+starting points; changing an individual control selects Custom automatically.
+Each preset includes guidance about its best use case and responsiveness or
+detection tradeoff. **Reset VAD defaults** restores the Balanced configuration.
+The controls sidebar shows the active VAD state, preset, timings, confidence,
+and the reason a segment was discarded. **Copy diagnostics** copies the
+current configuration and latest turn data as JSON for troubleshooting. VAD
+startup reports microphone permission, missing-device,
 device-in-use, secure-connection, and model-loading failures, turns the VAD
 switch back off, and includes the failure in copied diagnostics.
 

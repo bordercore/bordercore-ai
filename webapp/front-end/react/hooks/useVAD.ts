@@ -17,6 +17,25 @@ interface VadInstance {
   stream: MediaStream;
 }
 
+interface SpeculativeRequest {
+  controller: AbortController;
+  promise: Promise<string | null>;
+  revision: number;
+}
+
+const VAD_SAMPLE_RATE = 16000;
+
+function joinFrames(frames: Float32Array[]): Float32Array {
+  const length = frames.reduce((total, frame) => total + frame.length, 0);
+  const joined = new Float32Array(length);
+  let offset = 0;
+  for (const frame of frames) {
+    joined.set(frame, offset);
+    offset += frame.length;
+  }
+  return joined;
+}
+
 interface UseVADOptions {
   audioMotionRef: React.RefObject<AudioMotionAnalyzer | null>;
   micStreamRef: React.MutableRefObject<MediaStreamAudioSourceNode | null>;
@@ -62,6 +81,50 @@ export default function useVAD(options: UseVADOptions) {
   const vadGenerationRef = useRef(0);
   const bargeInConfirmedRef = useRef(false);
   const voiceTurnIdRef = useRef<string | null>(null);
+  const preSpeechFramesRef = useRef<Float32Array[]>([]);
+  const turnFramesRef = useRef<Float32Array[] | null>(null);
+  const silenceMsRef = useRef(0);
+  const speculationRevisionRef = useRef(0);
+  const speculativeRequestRef = useRef<SpeculativeRequest | null>(null);
+
+  const cancelSpeculation = useCallback(() => {
+    speculationRevisionRef.current += 1;
+    speculativeRequestRef.current?.controller.abort();
+    speculativeRequestRef.current = null;
+  }, []);
+
+  const transcribe = useCallback(
+    async (audio: Float32Array, turnId: string | null, signal?: AbortSignal): Promise<string> => {
+      const wavBuffer = encodeWAV(audio);
+      const blob = new Blob([wavBuffer], { type: "audio/wav" });
+      const formData = new FormData();
+      formData.append("audio", blob);
+      if (turnId) formData.append("voice_turn_id", turnId);
+      const response = await axios.post("/speech2text", formData, { signal });
+      return response.data.input;
+    },
+    []
+  );
+
+  const startSpeculation = useCallback(() => {
+    const frames = turnFramesRef.current;
+    if (!config.speculativeAsr || !bargeInConfirmedRef.current || !frames?.length) return;
+    if (speculativeRequestRef.current) return;
+
+    const controller = new AbortController();
+    const revision = ++speculationRevisionRef.current;
+    const turnId = voiceTurnIdRef.current;
+    onAsrStarted(turnId);
+    const promise = transcribe(joinFrames(frames), turnId, controller.signal)
+      .then(text => (revision === speculationRevisionRef.current ? text : null))
+      .catch(error => {
+        if (!axios.isCancel(error)) {
+          console.debug("Speculative speech-to-text request failed; using final audio:", error);
+        }
+        return null;
+      });
+    speculativeRequestRef.current = { controller, promise, revision };
+  }, [config.speculativeAsr, onAsrStarted, transcribe]);
 
   const confirmBargeIn = useCallback(() => {
     if (bargeInConfirmedRef.current) return;
@@ -91,12 +154,37 @@ export default function useVAD(options: UseVADOptions) {
         // Keep short conversational utterances such as "Howdy" while still
         // rejecting clicks and other very brief transients.
         minSpeechMs: config.minSpeechMs,
-        onFrameProcessed: (probabilities: { isSpeech: number }) => {
+        onFrameProcessed: (probabilities: { isSpeech: number }, frame: Float32Array) => {
           onVadFrame(voiceTurnIdRef.current, probabilities.isSpeech);
+          const frameCopy = frame.slice();
+          const frameMs = (frameCopy.length / VAD_SAMPLE_RATE) * 1000;
+          const turnFrames = turnFramesRef.current;
+
+          if (turnFrames) {
+            turnFrames.push(frameCopy);
+            if (probabilities.isSpeech > config.negativeSpeechThreshold) {
+              silenceMsRef.current = 0;
+              if (speculativeRequestRef.current) cancelSpeculation();
+            } else {
+              silenceMsRef.current += frameMs;
+              if (silenceMsRef.current >= config.speculationMs) startSpeculation();
+            }
+          } else {
+            const preSpeechFrames = preSpeechFramesRef.current;
+            preSpeechFrames.push(frameCopy);
+            const maxFrames = Math.max(1, Math.ceil(config.preSpeechPadMs / frameMs));
+            if (preSpeechFrames.length > maxFrames) {
+              preSpeechFrames.splice(0, preSpeechFrames.length - maxFrames);
+            }
+          }
         },
         onSpeechStart: () => {
+          cancelSpeculation();
           voiceTurnIdRef.current = onVoiceTurnStart();
           bargeInConfirmedRef.current = false;
+          turnFramesRef.current = preSpeechFramesRef.current.map(frame => frame.slice());
+          preSpeechFramesRef.current = [];
+          silenceMsRef.current = 0;
 
           setNotice("Listening...");
           if (audioMotionRef.current) {
@@ -107,39 +195,44 @@ export default function useVAD(options: UseVADOptions) {
         // Do not interrupt on tentative speech. Silero invokes this only after
         // the segment has accumulated minSpeechMs of speech-positive frames.
         onSpeechRealStart: confirmBargeIn,
-        onSpeechEnd: (audio: Float32Array) => {
+        onSpeechEnd: async (audio: Float32Array) => {
           // onSpeechRealStart should already have confirmed a valid segment.
           // Keep this as a safeguard for runtimes that omit that callback.
           confirmBargeIn();
           const turnId = voiceTurnIdRef.current;
+          const speculativeRequest = speculativeRequestRef.current;
+          speculativeRequestRef.current = null;
+          turnFramesRef.current = null;
+          silenceMsRef.current = 0;
           onVadComplete(turnId);
           voiceTurnIdRef.current = null;
           onSpeechEnded(turnId);
-          onAsrStarted(turnId);
-          setNotice("");
-          const wavBuffer = encodeWAV(audio);
-          const blob = new Blob([wavBuffer], { type: "audio/wav" });
-          const formData = new FormData();
-          formData.append("audio", blob);
-          if (turnId) formData.append("voice_turn_id", turnId);
           setNotice("Waiting for speech to text");
 
-          axios
-            .post("/speech2text", formData)
-            .then(response => {
-              onTranscriptionReady(turnId);
-              setNotice("");
-              onSpeechResult(response.data.input, turnId || undefined);
-            })
-            .catch(error => {
-              onVoiceTurnFailed(turnId);
-              console.error("VAD speech-to-text request failed:", error);
-              setNotice("Speech to text failed");
-              window.setTimeout(() => setNotice(""), 2000);
-            });
+          try {
+            let transcript =
+              speculativeRequest && speculativeRequest.revision === speculationRevisionRef.current
+                ? await speculativeRequest.promise
+                : null;
+            if (transcript === null) {
+              onAsrStarted(turnId);
+              transcript = await transcribe(audio, turnId);
+            }
+            onTranscriptionReady(turnId);
+            setNotice("");
+            onSpeechResult(transcript, turnId || undefined);
+          } catch (error) {
+            onVoiceTurnFailed(turnId);
+            console.error("VAD speech-to-text request failed:", error);
+            setNotice("Speech to text failed");
+            window.setTimeout(() => setNotice(""), 2000);
+          }
         },
         onVADMisfire: () => {
+          cancelSpeculation();
           const turnId = voiceTurnIdRef.current;
+          turnFramesRef.current = null;
+          silenceMsRef.current = 0;
           onVadComplete(turnId);
           onVadMisfire(turnId);
           voiceTurnIdRef.current = null;
@@ -168,6 +261,7 @@ export default function useVAD(options: UseVADOptions) {
     }
   }, [
     audioMotionRef,
+    cancelSpeculation,
     config,
     confirmBargeIn,
     connectStream,
@@ -182,10 +276,16 @@ export default function useVAD(options: UseVADOptions) {
     onVadMisfire,
     onRuntimeStateChange,
     setNotice,
+    startSpeculation,
+    transcribe,
   ]);
 
   const stopVAD = useCallback(() => {
     vadGenerationRef.current += 1;
+    cancelSpeculation();
+    turnFramesRef.current = null;
+    preSpeechFramesRef.current = [];
+    silenceMsRef.current = 0;
     bargeInConfirmedRef.current = false;
     if (audioMotionRef.current && micStreamRef.current) {
       audioMotionRef.current.disconnectInput(micStreamRef.current, true);
@@ -193,7 +293,7 @@ export default function useVAD(options: UseVADOptions) {
     if (vadRef.current) {
       vadRef.current.pause();
     }
-  }, [audioMotionRef, micStreamRef]);
+  }, [audioMotionRef, cancelSpeculation, micStreamRef]);
 
   useEffect(() => stopVAD, [stopVAD]);
 

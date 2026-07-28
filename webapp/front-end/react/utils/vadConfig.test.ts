@@ -27,6 +27,22 @@ describe("VAD configuration", () => {
       redemptionMs: 300,
       preSpeechPadMs: 1500,
       minSpeechMs: 100,
+      speculativeAsr: true,
+      speculationMs: 200,
+    });
+  });
+
+  it("keeps speculation inside the endpoint silence window", () => {
+    expect(
+      normalizeVadConfig({
+        ...DEFAULT_VAD_CONFIG,
+        redemptionMs: 600,
+        speculationMs: 900,
+        speculativeAsr: false,
+      })
+    ).toMatchObject({
+      speculativeAsr: false,
+      speculationMs: 500,
     });
   });
 

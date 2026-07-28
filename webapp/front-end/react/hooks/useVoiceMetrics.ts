@@ -47,6 +47,11 @@ export function durationBetween(start?: number, end?: number): number | null {
   return start === undefined || end === undefined ? null : Math.max(0, end - start);
 }
 
+export function asrHeadStart(turn: VoiceTurnMetric): number | null {
+  if (turn.asrStartedAt === undefined || turn.speechEndedAt === undefined) return null;
+  return Math.max(0, turn.speechEndedAt - turn.asrStartedAt);
+}
+
 export function averageTtsRealTimeFactor(turn: VoiceTurnMetric): number | null {
   const measured = turn.ttsSegments.filter(
     segment => segment.completedAt !== undefined && segment.audioDurationMs
@@ -67,6 +72,7 @@ export function summarizeVoiceTurn(turn: VoiceTurnMetric) {
     outcome: turn.outcome,
     outcomeReason: turn.outcomeReason ?? null,
     asrLatencyMs: durationBetween(turn.speechEndedAt, turn.transcriptionReadyAt),
+    asrHeadStartMs: asrHeadStart(turn),
     firstTokenLatencyMs: durationBetween(turn.llmRequestedAt, turn.firstTokenAt),
     firstSentenceLatencyMs: durationBetween(turn.firstTokenAt, turn.firstSentenceAt),
     firstAudioLatencyMs: durationBetween(

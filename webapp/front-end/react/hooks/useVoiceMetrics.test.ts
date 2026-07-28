@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  asrHeadStart,
   averageTtsRealTimeFactor,
   durationBetween,
   summarizeVoiceTurn,
@@ -57,6 +58,11 @@ describe("voice metrics", () => {
     expect(averageTtsRealTimeFactor(completedTurn)).toBe(0.25);
   });
 
+  it("reports only ASR work that began before the confirmed endpoint", () => {
+    expect(asrHeadStart(completedTurn)).toBe(0);
+    expect(asrHeadStart({ ...completedTurn, asrStartedAt: 200 })).toBe(300);
+  });
+
   it("produces a structured turn summary", () => {
     expect(summarizeVoiceTurn(completedTurn)).toEqual({
       turnId: "voice-1",
@@ -64,6 +70,7 @@ describe("voice metrics", () => {
       outcome: "completed",
       outcomeReason: null,
       asrLatencyMs: 300,
+      asrHeadStartMs: 0,
       firstTokenLatencyMs: 180,
       firstSentenceLatencyMs: 250,
       firstAudioLatencyMs: 1100,

@@ -4,6 +4,8 @@ export interface VadConfig {
   redemptionMs: number;
   preSpeechPadMs: number;
   minSpeechMs: number;
+  speculativeAsr: boolean;
+  speculationMs: number;
 }
 
 export type VadPreset = "responsive" | "balanced" | "patient" | "noisy";
@@ -21,6 +23,8 @@ export const DEFAULT_VAD_CONFIG: VadConfig = {
   redemptionMs: 900,
   preSpeechPadMs: 800,
   minSpeechMs: 250,
+  speculativeAsr: true,
+  speculationMs: 300,
 };
 
 export const VAD_PRESETS: Record<VadPreset, VadPresetDefinition> = {
@@ -34,6 +38,8 @@ export const VAD_PRESETS: Record<VadPreset, VadPresetDefinition> = {
       redemptionMs: 600,
       preSpeechPadMs: 650,
       minSpeechMs: 200,
+      speculativeAsr: true,
+      speculationMs: 200,
     },
   },
   balanced: {
@@ -52,6 +58,8 @@ export const VAD_PRESETS: Record<VadPreset, VadPresetDefinition> = {
       redemptionMs: 1500,
       preSpeechPadMs: 800,
       minSpeechMs: 250,
+      speculativeAsr: true,
+      speculationMs: 400,
     },
   },
   noisy: {
@@ -64,6 +72,8 @@ export const VAD_PRESETS: Record<VadPreset, VadPresetDefinition> = {
       redemptionMs: 1000,
       preSpeechPadMs: 800,
       minSpeechMs: 350,
+      speculativeAsr: true,
+      speculationMs: 400,
     },
   },
 };
@@ -87,12 +97,23 @@ export function normalizeVadConfig(value: Partial<VadConfig> | null | undefined)
     Math.round((positive - 0.05) * 100) / 100,
     bounded(value?.negativeSpeechThreshold, 0.05, 0.85, DEFAULT_VAD_CONFIG.negativeSpeechThreshold)
   );
+  const redemptionMs = bounded(value?.redemptionMs, 300, 3000, DEFAULT_VAD_CONFIG.redemptionMs);
   return {
     positiveSpeechThreshold: positive,
     negativeSpeechThreshold: Math.max(0.05, negative),
-    redemptionMs: bounded(value?.redemptionMs, 300, 3000, DEFAULT_VAD_CONFIG.redemptionMs),
+    redemptionMs,
     preSpeechPadMs: bounded(value?.preSpeechPadMs, 0, 1500, DEFAULT_VAD_CONFIG.preSpeechPadMs),
     minSpeechMs: bounded(value?.minSpeechMs, 100, 1000, DEFAULT_VAD_CONFIG.minSpeechMs),
+    speculativeAsr:
+      typeof value?.speculativeAsr === "boolean"
+        ? value.speculativeAsr
+        : DEFAULT_VAD_CONFIG.speculativeAsr,
+    speculationMs: bounded(
+      value?.speculationMs,
+      100,
+      Math.max(100, redemptionMs - 100),
+      Math.min(DEFAULT_VAD_CONFIG.speculationMs, redemptionMs - 100)
+    ),
   };
 }
 

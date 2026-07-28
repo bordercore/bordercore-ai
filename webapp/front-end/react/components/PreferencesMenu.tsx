@@ -631,6 +631,44 @@ export default function PreferencesMenu({
               <div className="pref-hint">Milliseconds of silence before submitting a turn.</div>
             </div>
             <div>
+              <div>
+                <div className="pref-label">Speculative Transcription</div>
+                <div className="pref-hint">
+                  Starts speech recognition during the silence window and discards it if you resume
+                  speaking.
+                </div>
+              </div>
+              <Switch
+                checked={vadConfig.speculativeAsr}
+                onChange={checked => updateVadConfig({ speculativeAsr: checked })}
+                aria-label="Speculative transcription"
+                onColor="#0a2a30"
+                onHandleColor="#00eaff"
+                offColor="#0c1230"
+                offHandleColor="#3a4060"
+                handleDiameter={18}
+                uncheckedIcon={false}
+                checkedIcon={false}
+                boxShadow="0 0 4px rgba(0,234,255,.3)"
+              />
+            </div>
+            {vadConfig.speculativeAsr && (
+              <div>
+                <div className="pref-label">Speculation Delay</div>
+                <Slider
+                  value={vadConfig.speculationMs}
+                  onChange={value => updateVadConfig({ speculationMs: value })}
+                  min={100}
+                  max={Math.max(100, vadConfig.redemptionMs - 100)}
+                  step={100}
+                  showInput
+                />
+                <div className="pref-hint">
+                  Milliseconds of likely end-of-turn silence before transcription starts.
+                </div>
+              </div>
+            )}
+            <div>
               <div className="pref-label">Minimum Speech</div>
               <Slider
                 value={vadConfig.minSpeechMs}
