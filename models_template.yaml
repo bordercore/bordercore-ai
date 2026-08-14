@@ -81,6 +81,16 @@ Qwen3.6-27B-GGUF-llama.cpp:
   thinking_control: chat_template_kwargs
   qwen_vision: true
   llama_cpp_profile: Qwen3.6-27B-GGUF
+Qwen3.8-27B-GGUF-llama.cpp:
+  name: Qwen3.8 27B GGUF
+  type: api
+  vendor: openai
+  base_url: http://127.0.0.1:8002/v1
+  api_key: not-needed
+  thinking: true
+  thinking_control: chat_template_kwargs
+  qwen_vision: true
+  llama_cpp_profile: Qwen3.8-27B-GGUF
 Ministral-3-14B-Instruct-2512-GGUF-llama.cpp:
   name: Ministral 3 14B Instruct
   type: api

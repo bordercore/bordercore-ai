@@ -71,9 +71,9 @@ The Docker image is pinned by digest and currently contains vLLM 0.25.0 and
 Transformers 5.13.0. The unit persists vLLM's compilation cache under
 `~/.cache/vllm` so subsequent starts avoid recompiling unchanged model graphs.
 
-The on-demand llama.cpp service exposes Qwen3.6 27B GGUF on
-`http://127.0.0.1:8002/v1`. It conflicts with vLLM and the deepvirtual GPU TTS
-units because the fully offloaded checkpoint uses about 17.7 GB. The shared
+The on-demand llama.cpp service exposes Qwen3.6 27B GGUF and Qwen3.8 27B
+GGUF on `http://127.0.0.1:8002/v1`. It conflicts with vLLM and the deepvirtual
+GPU TTS units because a fully offloaded 27B checkpoint uses about 17.7 GB. The shared
 `model-engine` command records the active engine, verifies the replacement's
 model identity and completion, and restores the previous engine after failure.
 
@@ -261,6 +261,28 @@ The model is selectable in Bordercore as `Qwen3.6 27B GGUF`. The processing
 dialog remains open until the target engine advertises the exact configured
 model and passes a deterministic completion. `/info` reconciles either managed
 endpoint, including switches performed from the command line.
+
+### Qwen3.8 27B GGUF managed profile
+
+Qwen3.8 27B follows the same exclusive-GPU llama.cpp pattern as Qwen3.6 27B.
+It is served from the `unsloth/Qwen3.8-27B-GGUF` Q4_K_M checkpoint with its
+F16 multimodal projector, stored under `~/model-trials/Qwen3.8-27B-GGUF`.
+The model is a native vision-language checkpoint with thinking enabled by
+default; the profile keeps the standard full GPU layer offload, one
+sequence, and an 8K context.
+
+| Check | Result |
+|-------|--------|
+| Model and projector disk size | 18 GB |
+| First managed vLLM-to-llama.cpp switch | 143 seconds |
+| Post-text-request VRAM | 18,674 MiB |
+| Text generation | 41 tokens per second |
+| Deterministic text | Passed (`Qwen3.8 ready`) |
+| Vision OCR | Passed (`BORDERCORE AI`) |
+| Thinking toggle | Passed (`reasoning_content` returned with `enable_thinking`) |
+| Restore switch to Qwen3 8B vLLM | 114 seconds |
+
+The model is selectable in Bordercore as `Qwen3.8 27B GGUF`.
 
 To stop vLLM and remove its container without affecting the model files or
 other GPU services:
