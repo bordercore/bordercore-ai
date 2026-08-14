@@ -7,8 +7,9 @@
 # certbot renews the cert on ec2 but cannot reach the home host that serves
 # the dashboard on :5010, so the renewed cert has to be pulled in. Run this on
 # the host that serves the dashboard (wumpus2018); on any other checkout it
-# just stages the cert files (no service to restart). Safe to re-run: it
-# no-ops when the local cert already matches ec2.
+# just stages the cert files (no service to restart). webapp/ssl is excluded
+# from the rsync mirror, so every host that needs the cert must run this
+# itself. Safe to re-run: it no-ops when the local cert already matches ec2.
 #
 #   scripts/renew-ai-cert.sh          # install if changed, else do nothing
 #   scripts/renew-ai-cert.sh --force  # reinstall + restart even if unchanged
@@ -69,8 +70,8 @@ install -m 644 "$TMP/crt" "$DEST/server.crt"
 install -m 600 "$TMP/key" "$DEST/server.key"
 echo "Installed new cert (backup of previous in $DEST/old/, suffix $ts)."
 
-# Restart every dashboard service that exists on this host. On the authoritative
-# checkout none exist, so the cert is simply staged for the next sync.
+# Restart every dashboard service that exists on this host. On checkouts
+# with no dashboard services the cert is simply staged.
 restarted=0
 for svc in $SERVICES; do
     if systemctl --user cat "$svc" >/dev/null 2>&1; then
