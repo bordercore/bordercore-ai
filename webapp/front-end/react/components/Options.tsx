@@ -6,9 +6,15 @@ interface OptionsProps {
   switches: Switches;
   onToggle: (key: keyof Switches) => void;
   onSensorToggle: () => void;
+  hermesEnabled: boolean;
 }
 
-export default function Options({ switches, onToggle, onSensorToggle }: OptionsProps) {
+export default function Options({
+  switches,
+  onToggle,
+  onSensorToggle,
+  hermesEnabled,
+}: OptionsProps) {
   return (
     <div className="options-grid">
       {/* Voice Features */}
@@ -75,6 +81,23 @@ export default function Options({ switches, onToggle, onSensorToggle }: OptionsP
           }
         />
       </div>
+
+      {hermesEnabled && (
+        <div className="option-group">
+          <div className="option-group-title">Agent</div>
+          <ToggleItem
+            label="Agent Memory"
+            checked={switches.hermesMemory}
+            onToggle={() => onToggle("hermesMemory")}
+            ariaLabel="Use Hermes memory with the selected model"
+            icon={
+              <svg viewBox="0 0 24 24">
+                <path d="M12 2a5 5 0 0 0-4.9 4H7a4 4 0 0 0-2.4 7.2A4.5 4.5 0 0 0 9 19h2v-7H8v-2h3V6h2v4h3v2h-3v7h2a4.5 4.5 0 0 0 4.4-5.8A4 4 0 0 0 17 6h-.1A5 5 0 0 0 12 2Z" />
+              </svg>
+            }
+          />
+        </div>
+      )}
 
       {/* Sensors */}
       <div className="option-group">

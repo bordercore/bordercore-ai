@@ -907,6 +907,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       speak: switches.text2speech,
       wolfram_alpha: switches.wolframAlpha,
       enable_thinking: switches.enableThinking,
+      hermes_memory: Boolean(settings.hermes_enabled) && switches.hermesMemory,
       visualization,
       url,
       ...args,
@@ -1189,6 +1190,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               switches={switches}
               onToggle={handleToggleSwitch}
               onSensorToggle={handleSensorToggle}
+              hermesEnabled={Boolean(settings.hermes_enabled)}
             />
             {gpuTelemetryVisualization === "neonPulseReactor" && (
               <NeonPulseReactor active={Boolean(model.loaded_local_models?.length)} />

@@ -23,6 +23,7 @@ export interface Switches {
   vad: boolean;
   wolframAlpha: boolean;
   enableThinking: boolean;
+  hermesMemory: boolean;
 }
 
 export type VisualizationType = "gpuOrb" | "thinkingIcon" | "nexus" | "waveform" | "sentinelOrb";
@@ -224,6 +225,10 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
     vad: false,
     wolframAlpha: false,
     enableThinking: session.enable_thinking !== undefined ? session.enable_thinking : false,
+    hermesMemory:
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("hermesMemory") === "true"
+        : false,
   });
   const [visualization, setVisualization] = useState<VisualizationType>(() =>
     loadVisualization(session.visualization || "gpuOrb")
@@ -336,6 +341,9 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   useEffect(() => {
     saveVadConfig(vadConfig);
   }, [vadConfig]);
+  useEffect(() => {
+    window.localStorage.setItem("hermesMemory", String(switches.hermesMemory));
+  }, [switches.hermesMemory]);
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState<any>("");
   const [clipboard, setClipboard] = useState<ClipboardData | null>(null);

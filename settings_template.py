@@ -58,6 +58,18 @@ anthropic_api_key = ""
 openai_api_key = ""
 govee_api_key = ""
 
+# Optional Hermes Agent backend. The key remains on the Bordercore server;
+# browsers continue to call Bordercore rather than connecting to Hermes.
+hermes_enabled = False
+hermes_base_url = "http://127.0.0.1:8642/v1"
+hermes_api_key = ""
+hermes_model = "hermes-agent"
+hermes_connect_timeout_seconds = 5
+hermes_memory_timeout_seconds = 30
+# These may instead be supplied through HERMES_ENABLED, HERMES_BASE_URL,
+# HERMES_API_KEY, HERMES_MODEL, and the corresponding timeout environment
+# variables. Environment variables take precedence over this file.
+
 music_api_host = ""
 music_uri = ""
 

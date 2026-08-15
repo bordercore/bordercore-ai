@@ -204,6 +204,43 @@ the clipboard while Vision mode is active.
 
 Built-in tools include Wolfram Alpha (math), weather lookup, Govee smart-light control, music playback, and Google Calendar. Additional tools can be exposed via [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers — see `MCP_SERVERS` in `settings_template.py`.
 
+## Hermes Agent memory
+
+Bordercore can optionally use
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) as a long-term
+memory sidecar. Hermes recalls relevant memories before inference and reviews
+completed exchanges for durable facts afterward. The model selected in the UI
+continues to generate every visible response through Bordercore's normal model
+and tool dispatcher.
+
+Enable the Hermes API server separately, keep it on a trusted loopback or
+private interface, and configure Bordercore:
+
+```python
+hermes_enabled = True
+hermes_base_url = "http://127.0.0.1:8642/v1"
+hermes_api_key = "replace-with-the-Hermes-API_SERVER_KEY"
+hermes_model = "hermes-agent"
+```
+
+The same values can be supplied as `HERMES_ENABLED`, `HERMES_BASE_URL`,
+`HERMES_API_KEY`, and `HERMES_MODEL` environment variables. Set
+`HERMES_MEMORY_TIMEOUT_SECONDS` to bound each recall or storage operation; it
+defaults to 30 seconds. Environment variables take precedence, allowing
+production deployments to keep the API key in an owner-only service
+environment file instead of `settings.py`.
+
+When configured, **Agent Memory** appears in the Controls panel. Enabling it
+does not change the selected model. Bordercore assigns an opaque, stable memory
+scope to the browser's server-side session and passes it using Hermes's
+`X-Hermes-Session-Key` header. Recall and storage failures are non-fatal: the
+selected model continues without memory. The Hermes API key is never sent to
+the browser.
+
+Hermes controls which memory provider and tools are active. Because its API
+may expose terminal, filesystem, browser, and other consequential tools, limit
+and configure those capabilities in Hermes before enabling Agent Memory.
+
 ## Thinking
 
 Supports some so-called "thinking" models, such as Qwen3.
