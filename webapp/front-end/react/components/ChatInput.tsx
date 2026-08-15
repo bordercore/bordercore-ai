@@ -52,7 +52,7 @@ export default function ChatInput({
           onChange={e => onPromptChange(e.target.value)}
           id="prompt"
           type="text"
-          placeholder={disabledReason || "Type your message..."}
+          placeholder="Type your message..."
           onKeyDown={handleKeyDown}
           disabled={inputIsDisabled}
           aria-describedby={disabledReason ? "chat-input-disabled-reason" : undefined}
