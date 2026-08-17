@@ -16,7 +16,6 @@ Usage:
 import argparse
 import hashlib
 import os
-import threading
 import time
 from typing import Iterator
 
@@ -27,8 +26,10 @@ from kokoro import KPipeline
 
 try:
     from capabilities import build_tts_capabilities
+    from inference_worker import InferenceWorker
 except ModuleNotFoundError:  # Imported as tts.kokoro_tts from the repository root.
     from tts.capabilities import build_tts_capabilities
+    from tts.inference_worker import InferenceWorker
 
 from .streaming_audio import (
     SAMPLE_RATE,
@@ -56,7 +57,12 @@ DEBUG = args.debug
 
 # Load the model
 pipeline = KPipeline(lang_code="a")  # <= make sure lang_code matches voice
-pipeline_lock = threading.Lock()
+
+# All synthesis runs here rather than on the per-request threads Flask's server
+# creates, which would otherwise strand about a megabyte of unreclaimable
+# per-thread CUDA state per request. Also serializes access to the shared
+# KPipeline, so two clients cannot drive the model concurrently.
+inference = InferenceWorker(name="kokoro-inference")
 
 KOKORO_VOICES = [
     "af_alloy", "af_aoede", "af_bella", "af_heart", "af_jessica",
@@ -125,12 +131,13 @@ def generate_tts_audio() -> Response:
             speed = TTS_SPEED
         speed = min(max(speed, 0.5), 2.0)
 
-        yield streaming_wav_header()
-        debug_audio: list[np.ndarray] = []
+        def synthesize() -> Iterator[bytes]:
+            """Drive the model, yielding one PCM buffer per Kokoro chunk.
 
-        # KPipeline is shared by all Flask requests. Serialize inference so two
-        # clients cannot mutate/use the underlying model concurrently.
-        with pipeline_lock:
+            Runs on the inference worker thread, so every torch/CUDA touch stays
+            off the request thread.
+            """
+            debug_audio: list[np.ndarray] = []
             generator = pipeline(
                 text,
                 voice=voice,
@@ -141,14 +148,23 @@ def generate_tts_audio() -> Response:
                 audio_data = chunk.squeeze().detach().cpu().numpy().astype(np.float32)
                 if DEBUG:
                     debug_audio.append(audio_data)
-                pcm = float_audio_to_pcm16(audio_data)
+                yield float_audio_to_pcm16(audio_data)
+
+            if DEBUG and debug_audio:
+                import soundfile as sf
+
+                sf.write(save_path, np.concatenate(debug_audio), SAMPLE_RATE, format="WAV")
+
+        yield streaming_wav_header()
+        pcm_chunks = inference.stream(synthesize)
+        try:
+            for pcm in pcm_chunks:
                 for offset in range(0, len(pcm), 4096):
                     yield pcm[offset : offset + 4096]
-
-        if DEBUG and debug_audio:
-            import soundfile as sf
-
-            sf.write(save_path, np.concatenate(debug_audio), SAMPLE_RATE, format="WAV")
+        finally:
+            # A client that disconnects mid-response abandons this generator;
+            # close explicitly so the worker is released now, not at collection.
+            pcm_chunks.close()
 
     return Response(stream_with_context(generate_audio_chunks()),
                     mimetype="audio/wav")

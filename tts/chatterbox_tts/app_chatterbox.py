@@ -35,8 +35,10 @@ from flask.typing import ResponseReturnValue
 
 try:
     from capabilities import build_tts_capabilities
+    from inference_worker import InferenceWorker
 except ModuleNotFoundError:  # Imported as tts.chatterbox_tts from the repository root.
     from tts.capabilities import build_tts_capabilities
+    from tts.inference_worker import InferenceWorker
 from chatterbox_tts.voice_profiles import (
     SUPPORTED_AUDIO_EXTENSIONS,
     list_profiles,
@@ -80,6 +82,12 @@ VOICE_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Load the model
 model = ChatterboxTurboTTS.from_pretrained(device=DEVICE)
+
+# All synthesis runs here rather than on the per-request threads Flask's server
+# creates, which would otherwise strand about a megabyte of unreclaimable
+# per-thread CUDA state per request. Also serializes access to the shared model,
+# so two clients cannot drive it concurrently.
+inference = InferenceWorker(name="chatterbox-inference")
 
 
 def available_voice_profiles() -> list[dict[str, int | str]]:
@@ -223,11 +231,13 @@ def generate_tts_audio() -> Response:
         Chatterbox-Turbo generates a single audio tensor which is written to
         an in-memory WAV buffer and streamed back to the caller.
         """
-        # Generate audio using Chatterbox-Turbo
-        audio_tensor = model.generate(text, audio_prompt_path=audio_prompt_path)
+        def synthesize() -> np.ndarray:
+            """Generate the utterance on the inference worker thread, keeping
+            every torch/CUDA touch off the request thread."""
+            audio_tensor = model.generate(text, audio_prompt_path=audio_prompt_path)
+            return audio_tensor.squeeze().cpu().numpy()
 
-        # Convert tensor to numpy array
-        audio_data = audio_tensor.squeeze().cpu().numpy()
+        audio_data = inference.run(synthesize)
 
         # Get sample rate from model
         sample_rate = model.sr

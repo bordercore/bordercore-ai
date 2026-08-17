@@ -39,8 +39,10 @@ from faster_qwen3_tts import FasterQwen3TTS
 
 try:
     from capabilities import build_tts_capabilities
+    from inference_worker import InferenceWorker
 except ModuleNotFoundError:  # Imported as tts.qwen3_tts from the repository root.
     from tts.capabilities import build_tts_capabilities
+    from tts.inference_worker import InferenceWorker
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 VOICES_DIR = REPO_ROOT / "voices"
@@ -203,6 +205,11 @@ model = FasterQwen3TTS.from_pretrained(
     quant=QUANT,
 )
 
+# All synthesis runs here rather than on the per-request threads Flask's server
+# creates, whose per-thread allocator state is never reclaimed. Also serializes
+# access to the shared model, so two clients cannot drive it concurrently.
+inference = InferenceWorker(name="qwen3-inference")
+
 
 def available_voices() -> list[str]:
     """Return extension-free voice names accepted by resolve_audio_prompt()."""
@@ -319,15 +326,36 @@ def generate_tts_audio() -> Response:
             if audio.size:
                 yield audio, int(sample_rate)
 
+    def synthesize() -> Iterator[tuple[np.ndarray, int]]:
+        """Yield every sentence's audio chunks in order.
+
+        Runs on the inference worker thread, so model inference never touches
+        the per-request threads Flask's server creates.
+        """
+        for index, sentence in enumerate(sentences, start=1):
+            t_sent = time.perf_counter()
+            generated_audio = 0.0
+            for audio, chunk_sample_rate in sentence_chunks(sentence):
+                generated_audio += len(audio) / chunk_sample_rate
+                yield audio, chunk_sample_rate
+            logger.warning(
+                "TTS sentence %d/%d | chars=%d gen=%.3fs audio=%.2fs",
+                index, len(sentences), len(sentence),
+                time.perf_counter() - t_sent, generated_audio,
+            )
+
+    chunks = inference.stream(synthesize)
+
     # Pull the first chunk before returning the response so startup and prompt
     # errors remain ordinary HTTP 500 responses rather than truncated WAVs.
     t0 = time.perf_counter()
     try:
-        first_generator = sentence_chunks(sentences[0])
-        first_audio, sample_rate = next(first_generator)
+        first_audio, sample_rate = next(chunks)
     except StopIteration:
+        chunks.close()
         return Response("TTS generation produced no audio", status=500, mimetype="text/plain")
     except Exception as exc:
+        chunks.close()
         logger.exception("Qwen3-TTS first-chunk generation failed: %s", exc)
         return Response(
             f"TTS generation failed: {exc}",
@@ -350,37 +378,21 @@ def generate_tts_audio() -> Response:
         yield streaming_wav_header(sample_rate)
         yield to_pcm16_bytes(first_audio)
         total_audio = len(first_audio) / sample_rate
-        for audio, chunk_sample_rate in first_generator:
-            if chunk_sample_rate != sample_rate:
-                logger.error("Qwen3-TTS sample rate changed within a response")
-                return
-            total_audio += len(audio) / sample_rate
-            yield to_pcm16_bytes(audio)
-
-        for i, sent in enumerate(sentences[1:], start=2):
-            t_sent = time.perf_counter()
-            try:
-                generated_audio = 0.0
-                for audio, chunk_sample_rate in sentence_chunks(sent):
-                    if chunk_sample_rate != sample_rate:
-                        raise RuntimeError("sample rate changed within a response")
-                    duration = len(audio) / sample_rate
-                    generated_audio += duration
-                    total_audio += duration
-                    yield to_pcm16_bytes(audio)
-            except Exception as exc:
-                # Can't signal an error after the header is sent; log and close.
-                logger.exception(
-                    "Qwen3-TTS sentence %d/%d failed mid-stream: %s",
-                    i, len(sentences), exc,
-                )
-                return
-            dt = time.perf_counter() - t_sent
-            logger.warning(
-                "TTS stream chunk %d/%d | chars=%d gen=%.3fs audio=%.2fs",
-                i, len(sentences), len(sent), dt, generated_audio,
-            )
-            yield to_pcm16_bytes(audio)
+        try:
+            for audio, chunk_sample_rate in chunks:
+                if chunk_sample_rate != sample_rate:
+                    logger.error("Qwen3-TTS sample rate changed within a response")
+                    return
+                total_audio += len(audio) / sample_rate
+                yield to_pcm16_bytes(audio)
+        except Exception as exc:
+            # Can't signal an error after the header is sent; log and close.
+            logger.exception("Qwen3-TTS generation failed mid-stream: %s", exc)
+            return
+        finally:
+            # A client that disconnects mid-response abandons this generator;
+            # close explicitly so the worker is released now, not at collection.
+            chunks.close()
         logger.warning(
             "TTS stream done | sentences=%d total_audio=%.2fs wall=%.3fs",
             len(sentences), total_audio, time.perf_counter() - req_start,
