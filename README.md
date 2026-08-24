@@ -8,6 +8,19 @@ Bordercore AI is a web-based AI chatbot and voice assistant supporting multiple 
 
 # Features
 
+## Conversation branches
+
+Create a separate conversation from any completed message or from the current
+tip without changing the original thread. The conversation header provides a
+quick branch switcher, while **Manage branches** opens the complete nested
+conversation tree for navigation, renaming, and deletion. New chats are kept as
+independent root conversations instead of replacing the current history.
+
+Conversation messages and per-branch drafts are stored in browser IndexedDB,
+so branches remain available after refreshing the page or restarting the
+backend. This storage is local to the current browser profile and is not synced
+between devices.
+
 ## Inference engines and providers
 
 | Engine or provider | Use | Models and formats |

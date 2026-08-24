@@ -39,6 +39,7 @@ import FileUpload from "./components/FileUpload";
 import ImagePreview from "./components/ImagePreview";
 import AudioPlayer from "./components/AudioPlayer";
 import PreferencesMenu from "./components/PreferencesMenu";
+import BranchNavigator from "./components/BranchNavigator";
 import type { TtsHostPreset } from "./components/PreferencesMenu";
 import ToastContainer from "./components/Toast";
 
@@ -53,6 +54,7 @@ import useVoiceMetrics from "./hooks/useVoiceMetrics";
 import { ActiveSpokenSegment, finishSpokenSegment } from "./utils/spokenHighlight";
 import { validateSpeechTranscript } from "./utils/speechTranscript";
 import { VadRuntimeState } from "./utils/vadRuntime";
+import { suggestedBranchTitle } from "./utils/conversations";
 
 interface ChatAppProps {
   session: any;
@@ -63,6 +65,13 @@ interface ChatAppProps {
 export default function ChatApp({ session, settings, controlValue }: ChatAppProps) {
   const store = useChatStore();
   const {
+    conversations,
+    activeConversation,
+    switchConversation,
+    createConversation,
+    createBranch,
+    renameConversation,
+    deleteConversation,
     chatHistory,
     setChatHistory,
     mode,
@@ -155,6 +164,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   const [processingMessage, setProcessingMessage] = useState("Processing...");
   const [showUnloadModal, setShowUnloadModal] = useState(false);
   const [showClipboardModal, setShowClipboardModal] = useState(false);
+  const [branchPointMessageId, setBranchPointMessageId] = useState<number | null>(null);
+  const [branchTitle, setBranchTitle] = useState("");
   const [visibleNotice, setVisibleNotice] = useState("");
   const [activeSpokenSegment, setActiveSpokenSegment] = useState<ActiveSpokenSegment | null>(null);
   const [vadRuntimeState, setVadRuntimeState] = useState<VadRuntimeState>({ status: "off" });
@@ -610,15 +621,66 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   }
 
   function handleNewChat() {
+    if (isGenerating) handleStopGeneration();
     audioHook.pauseAudio();
     latestAssistantIdRef.current = null;
     latestVoiceTurnIdRef.current = null;
     blockedAssistantIdsRef.current.clear();
-    setChatHistory([chatHistory[0]]);
+    createConversation();
     setClipboard(null);
     setUrl("");
     setError("");
     setVisionImage(null);
+  }
+
+  function resetConversationTransientState() {
+    audioHook.pauseAudio();
+    latestAssistantIdRef.current = null;
+    latestVoiceTurnIdRef.current = null;
+    blockedAssistantIdsRef.current.clear();
+    setClipboard(null);
+    setUrl("");
+    setError("");
+    setVisionImage(null);
+  }
+
+  function handleSwitchConversation(conversationId: string) {
+    if (conversationId === activeConversation.id) return;
+    if (isGenerating) handleStopGeneration();
+    resetConversationTransientState();
+    switchConversation(conversationId);
+  }
+
+  function openBranchDialog(messageId?: number) {
+    if (isGenerating) {
+      setNotice("Stop the current response before creating a branch");
+      return;
+    }
+    const branchPoint =
+      messageId ??
+      [...chatHistory]
+        .reverse()
+        .find(message => message.role !== "system" && message.content.trim())?.id;
+    if (!branchPoint) {
+      setNotice("Send a message before creating a branch");
+      return;
+    }
+    setBranchPointMessageId(branchPoint);
+    setBranchTitle(suggestedBranchTitle(chatHistory, branchPoint));
+  }
+
+  function handleCreateBranch() {
+    if (branchPointMessageId === null) return;
+    resetConversationTransientState();
+    createBranch(branchPointMessageId, branchTitle);
+    setBranchPointMessageId(null);
+    setBranchTitle("");
+  }
+
+  function handleDeleteConversation(conversationId: string) {
+    if (isGenerating) handleStopGeneration();
+    resetConversationTransientState();
+    deleteConversation(conversationId);
   }
 
   function handleSendMessage(message?: string, voiceTurnId?: string) {
@@ -1065,10 +1127,18 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
         {/* Left Panel — Chat */}
         <div className="panel-card chat-panel">
           <div className="chat-panel-header">
-            <span className="chat-panel-title">
+            <div className="chat-panel-title">
               <span className="status-dot online"></span>
-              Conversation
-            </span>
+              <BranchNavigator
+                conversations={conversations}
+                activeConversation={activeConversation}
+                disabled={isGenerating || chatHistory.length <= 1}
+                onSwitch={handleSwitchConversation}
+                onBranchTip={() => openBranchDialog()}
+                onRename={renameConversation}
+                onDelete={handleDeleteConversation}
+              />
+            </div>
             <div className="chat-panel-header-right">
               <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
                 {model.display_name || model.name || "No model loaded"}
@@ -1105,6 +1175,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               waitingAnimation={waitingAnimation}
               error={error}
               activeSpokenSegment={activeSpokenSegment}
+              onBranch={openBranchDialog}
+              branchingDisabled={isGenerating}
             />
             <ImagePreview visionImage={visionImage} imageSrc={imageSrc} />
           </div>
@@ -1132,6 +1204,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
               onSend={() => handleSendMessage()}
               onRegenerate={handleRegenerate}
               onNewChat={handleNewChat}
+              onBranch={() => openBranchDialog()}
               onStopGeneration={handleStopGeneration}
               onClipboardClick={handleClipboardClick}
               inputIsDisabled={inputIsDisabled || model.loaded === false}
@@ -1280,6 +1353,44 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
             <span className="sr-only">Loading...</span>
           </div>
         </div>
+      </Modal>
+
+      {/* Create Conversation Branch */}
+      <Modal
+        isOpen={branchPointMessageId !== null}
+        onClose={() => setBranchPointMessageId(null)}
+        size="sm"
+      >
+        <form
+          className="branch-create-form"
+          onSubmit={event => {
+            event.preventDefault();
+            handleCreateBranch();
+          }}
+        >
+          <span className="branch-drawer-kicker">New tangent</span>
+          <h2>Create conversation branch</h2>
+          <p>
+            The new conversation will inherit messages through the selected point. This conversation
+            will remain unchanged.
+          </p>
+          <label htmlFor="branch-title">Branch name</label>
+          <input
+            id="branch-title"
+            value={branchTitle}
+            onChange={event => setBranchTitle(event.target.value)}
+            autoFocus
+            maxLength={80}
+          />
+          <div className="branch-create-actions">
+            <button type="button" onClick={() => setBranchPointMessageId(null)}>
+              Cancel
+            </button>
+            <button type="submit" className="primary" disabled={!branchTitle.trim()}>
+              Create branch
+            </button>
+          </div>
+        </form>
       </Modal>
 
       {/* Unload Model Confirmation */}

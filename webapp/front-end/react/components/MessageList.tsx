@@ -13,6 +13,8 @@ interface MessageListProps {
   waitingAnimation: WaitingAnimation;
   error: any;
   activeSpokenSegment: ActiveSpokenSegment | null;
+  onBranch: (messageId: number) => void;
+  branchingDisabled: boolean;
 }
 
 const variantColorMap: Record<string, string> = {
@@ -27,6 +29,8 @@ export default function MessageList({
   waitingAnimation,
   error,
   activeSpokenSegment,
+  onBranch,
+  branchingDisabled,
 }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   useCodeCopyObserver(containerRef);
@@ -41,7 +45,13 @@ export default function MessageList({
   return (
     <div id="message-container" className="items-start" ref={containerRef}>
       {messages.map(message => (
-        <MessageItem key={message.id} message={message} activeSpokenSegment={activeSpokenSegment} />
+        <MessageItem
+          key={message.id}
+          message={message}
+          activeSpokenSegment={activeSpokenSegment}
+          onBranch={onBranch}
+          branchingDisabled={branchingDisabled}
+        />
       ))}
       {waiting && <WaitingIndicator animation={waitingAnimation} />}
       {error && (

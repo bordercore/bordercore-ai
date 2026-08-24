@@ -6,6 +6,7 @@ import {
   faCircleStop,
   faPaste,
   faPaperPlane,
+  faCodeBranch,
 } from "@fortawesome/free-solid-svg-icons";
 
 interface ChatInputProps {
@@ -14,6 +15,7 @@ interface ChatInputProps {
   onSend: () => void;
   onRegenerate: () => void;
   onNewChat: () => void;
+  onBranch: () => void;
   onStopGeneration: () => void;
   onClipboardClick: () => void;
   inputIsDisabled: boolean;
@@ -29,6 +31,7 @@ export default function ChatInput({
   onSend,
   onRegenerate,
   onNewChat,
+  onBranch,
   onStopGeneration,
   onClipboardClick,
   inputIsDisabled,
@@ -67,6 +70,9 @@ export default function ChatInput({
             </div>
             <div className="input-action" onClick={onNewChat} title="New Chat">
               <FontAwesomeIcon icon={faPlus} />
+            </div>
+            <div className="input-action" onClick={onBranch} title="Branch Conversation">
+              <FontAwesomeIcon icon={faCodeBranch} />
             </div>
           </>
         )}

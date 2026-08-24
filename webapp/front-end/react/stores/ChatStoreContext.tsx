@@ -8,6 +8,14 @@ import React, {
   ReactNode,
 } from "react";
 import { loadVadConfig, saveVadConfig, VadConfig } from "../utils/vadConfig";
+import {
+  branchConversation,
+  Conversation,
+  conversationDescendantIds,
+  createRootConversation,
+  loadConversationState,
+  saveConversationState,
+} from "../utils/conversations";
 
 export interface ChatMessage {
   id: number;
@@ -16,6 +24,10 @@ export interface ChatMessage {
   thinking?: string;
   interrupted?: boolean;
 }
+
+const INITIAL_MESSAGES: ChatMessage[] = [
+  { id: 1, content: "You are a helpful assistant.", role: "system" },
+];
 
 export interface Switches {
   text2speech: boolean;
@@ -117,6 +129,13 @@ export interface ClipboardData {
 }
 
 interface ChatStoreContextType {
+  conversations: Conversation[];
+  activeConversation: Conversation;
+  switchConversation: (conversationId: string) => void;
+  createConversation: () => void;
+  createBranch: (messageId: number, title: string) => void;
+  renameConversation: (conversationId: string, title: string) => void;
+  deleteConversation: (conversationId: string) => void;
   chatHistory: ChatMessage[];
   setChatHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   mode: string;
@@ -213,9 +232,27 @@ interface ChatStoreProviderProps {
 }
 
 export function ChatStoreProvider({ children, session }: ChatStoreProviderProps) {
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
-    { id: 1, content: "You are a helpful assistant.", role: "system" },
-  ]);
+  const [initialConversation] = useState(() => createRootConversation(INITIAL_MESSAGES));
+  const [conversations, setConversations] = useState<Conversation[]>([initialConversation]);
+  const [activeConversationId, setActiveConversationId] = useState(initialConversation.id);
+  const [conversationStorageReady, setConversationStorageReady] = useState(false);
+  const activeConversation =
+    conversations.find(conversation => conversation.id === activeConversationId) ??
+    conversations[0];
+
+  const setChatHistory = useCallback<React.Dispatch<React.SetStateAction<ChatMessage[]>>>(
+    update => {
+      setConversations(current =>
+        current.map(conversation => {
+          if (conversation.id !== activeConversationId) return conversation;
+          const messages = typeof update === "function" ? update(conversation.messages) : update;
+          return { ...conversation, messages, updatedAt: new Date().toISOString() };
+        })
+      );
+    },
+    [activeConversationId]
+  );
+  const chatHistory = activeConversation.messages;
   const [mode, setMode] = useState("Chat");
   const [model, setModel] = useState<ModelInfo>({} as ModelInfo);
   const [modelList, setModelList] = useState<ModelInfo[]>([]);
@@ -344,7 +381,19 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   useEffect(() => {
     window.localStorage.setItem("hermesMemory", String(switches.hermesMemory));
   }, [switches.hermesMemory]);
-  const [prompt, setPrompt] = useState("");
+  const prompt = activeConversation.draft;
+  const setPrompt = useCallback<React.Dispatch<React.SetStateAction<string>>>(
+    update => {
+      setConversations(current =>
+        current.map(conversation => {
+          if (conversation.id !== activeConversationId) return conversation;
+          const draft = typeof update === "function" ? update(conversation.draft) : update;
+          return { ...conversation, draft, updatedAt: new Date().toISOString() };
+        })
+      );
+    },
+    [activeConversationId]
+  );
   const [error, setError] = useState<any>("");
   const [clipboard, setClipboard] = useState<ClipboardData | null>(null);
   const [url, setUrl] = useState("");
@@ -371,6 +420,101 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
     return idRef.current;
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    loadConversationState()
+      .then(saved => {
+        if (cancelled || !saved?.conversations.length) return;
+        const activeExists = saved.conversations.some(
+          conversation => conversation.id === saved.activeConversationId
+        );
+        setConversations(saved.conversations);
+        setActiveConversationId(
+          activeExists ? saved.activeConversationId : saved.conversations[0].id
+        );
+        idRef.current = Math.max(
+          1,
+          ...saved.conversations.flatMap(conversation =>
+            conversation.messages.map(message => message.id)
+          )
+        );
+      })
+      .catch(error => console.error("Unable to restore conversations:", error))
+      .finally(() => {
+        if (!cancelled) setConversationStorageReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!conversationStorageReady) return;
+    const timeout = window.setTimeout(() => {
+      saveConversationState({ activeConversationId, conversations }).catch(error =>
+        console.error("Unable to save conversations:", error)
+      );
+    }, 200);
+    return () => window.clearTimeout(timeout);
+  }, [activeConversationId, conversations, conversationStorageReady]);
+
+  const switchConversation = useCallback(
+    (conversationId: string) => {
+      if (conversations.some(conversation => conversation.id === conversationId)) {
+        setActiveConversationId(conversationId);
+      }
+    },
+    [conversations]
+  );
+
+  const createConversation = useCallback(() => {
+    const conversation = createRootConversation(
+      INITIAL_MESSAGES,
+      `Conversation ${conversations.length + 1}`
+    );
+    setConversations(current => [...current, conversation]);
+    setActiveConversationId(conversation.id);
+  }, [conversations.length]);
+
+  const createBranch = useCallback(
+    (messageId: number, title: string) => {
+      const branch = branchConversation(activeConversation, messageId, title);
+      setConversations(current => [...current, branch]);
+      setActiveConversationId(branch.id);
+    },
+    [activeConversation]
+  );
+
+  const renameConversation = useCallback((conversationId: string, title: string) => {
+    const cleanTitle = title.trim();
+    if (!cleanTitle) return;
+    setConversations(current =>
+      current.map(conversation =>
+        conversation.id === conversationId
+          ? { ...conversation, title: cleanTitle, updatedAt: new Date().toISOString() }
+          : conversation
+      )
+    );
+  }, []);
+
+  const deleteConversation = useCallback(
+    (conversationId: string) => {
+      if (conversations.length === 1) return;
+      const removedIds = conversationDescendantIds(conversationId, conversations);
+      removedIds.add(conversationId);
+      const target = conversations.find(conversation => conversation.id === conversationId);
+      const remaining = conversations.filter(conversation => !removedIds.has(conversation.id));
+      setConversations(remaining);
+      if (removedIds.has(activeConversationId)) {
+        const parent = remaining.find(
+          conversation => conversation.id === target?.parentConversationId
+        );
+        setActiveConversationId((parent ?? remaining[0]).id);
+      }
+    },
+    [activeConversationId, conversations]
+  );
+
   const filteredChatHistory = useMemo(
     () => chatHistory.filter(x => x.role !== "system"),
     [chatHistory]
@@ -395,6 +539,13 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
 
   const value = useMemo(
     () => ({
+      conversations,
+      activeConversation,
+      switchConversation,
+      createConversation,
+      createBranch,
+      renameConversation,
+      deleteConversation,
       chatHistory,
       setChatHistory,
       mode,
@@ -481,7 +632,15 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       inputIsDisabled,
     }),
     [
+      conversations,
+      activeConversation,
+      switchConversation,
+      createConversation,
+      createBranch,
+      renameConversation,
+      deleteConversation,
       chatHistory,
+      setChatHistory,
       mode,
       model,
       modelList,
@@ -503,6 +662,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       sidebarCollapsed,
       waitingAnimation,
       prompt,
+      setPrompt,
       error,
       clipboard,
       url,

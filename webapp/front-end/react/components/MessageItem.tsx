@@ -1,4 +1,6 @@
 import React, { useRef } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCodeBranch } from "@fortawesome/free-solid-svg-icons";
 import { renderMarkdown } from "../utils/markdown";
 import { ChatMessage } from "../stores/ChatStoreContext";
 import {
@@ -11,13 +13,20 @@ import {
 interface MessageItemProps {
   message: ChatMessage;
   activeSpokenSegment: ActiveSpokenSegment | null;
+  onBranch: (messageId: number) => void;
+  branchingDisabled: boolean;
 }
 
 /**
  * Renders a single chat message with markdown.
  * Content is sanitized via DOMPurify in renderMarkdown() before rendering.
  */
-export default function MessageItem({ message, activeSpokenSegment }: MessageItemProps) {
+export default function MessageItem({
+  message,
+  activeSpokenSegment,
+  onBranch,
+  branchingDisabled,
+}: MessageItemProps) {
   // renderMarkdown() sanitizes HTML output with DOMPurify before returning
   const sanitizedHtml = renderMarkdown(message.content);
   const searchOffsetRef = useRef(0);
@@ -58,7 +67,7 @@ export default function MessageItem({ message, activeSpokenSegment }: MessageIte
   }
 
   return (
-    <div className={`chatbot-${message.role} flex items-baseline`}>
+    <div className={`chatbot-${message.role} chat-message flex items-baseline`}>
       <div className="role font-bold mr-2" style={{ minWidth: "1.5rem" }}>
         {message.role === "user" ? "You" : "AI"}
       </div>
@@ -75,6 +84,16 @@ export default function MessageItem({ message, activeSpokenSegment }: MessageIte
           </div>
         )}
       </div>
+      <button
+        type="button"
+        className="message-branch-action"
+        onClick={() => onBranch(message.id)}
+        disabled={branchingDisabled || (message.role === "assistant" && !message.content.trim())}
+        title="Branch conversation from here"
+        aria-label="Branch conversation from this message"
+      >
+        <FontAwesomeIcon icon={faCodeBranch} />
+      </button>
     </div>
   );
 }
