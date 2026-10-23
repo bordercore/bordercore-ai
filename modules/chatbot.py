@@ -38,7 +38,16 @@ import anthropic
 import openai
 import pysbd
 import requests
-import sounddevice  # Adding this eliminates an annoying warning
+
+try:
+    # Importing sounddevice initializes PortAudio early, which eliminates an
+    # annoying warning. On hosts without an audio server (CI runners, headless
+    # daemons) PortAudio 19.7+ raises PortAudioError instead, which is safe to
+    # ignore because nothing here uses sounddevice directly.
+    import sounddevice  # noqa: F401
+except Exception:
+    pass
+
 from http_constants.status import HttpStatus
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam

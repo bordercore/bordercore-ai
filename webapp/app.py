@@ -37,7 +37,15 @@ import openai
 import ffmpeg
 import numpy as np
 import requests
-import sounddevice  # Adding this eliminates an annoying warning
+
+try:
+    # Importing sounddevice initializes PortAudio early, which eliminates an
+    # annoying warning. Hosts without an audio server raise PortAudioError
+    # under PortAudio 19.7+; nothing here uses sounddevice directly.
+    import sounddevice  # noqa: F401
+except Exception:
+    pass
+
 from flask import (Flask, Request, Response, abort, jsonify, render_template,
                    request, session, stream_with_context)
 from flask.typing import ResponseReturnValue
