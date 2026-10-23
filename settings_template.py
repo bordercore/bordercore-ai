@@ -56,6 +56,8 @@ tts_host_presets = [
 
 anthropic_api_key = ""
 openai_api_key = ""
+# OpenRouter credentials stay on the backend. OPENROUTER_API_KEY overrides this.
+openrouter_api_key = ""
 govee_api_key = ""
 
 # Optional Hermes Agent backend. The key remains on the Bordercore server;

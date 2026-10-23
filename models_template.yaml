@@ -136,6 +136,12 @@ Qwen3-VL-8B-Instruct-AWQ-vLLM:
   api_key: not-needed
   qwen_vision: true
   vllm_profile: Qwen3-VL-8B-Instruct-AWQ
+# Use any OpenRouter chat model ID as the key (including provider/ prefixes).
+# Credentials come from OPENROUTER_API_KEY or settings.openrouter_api_key.
+openrouter/auto:
+  name: OpenRouter Auto
+  type: api
+  vendor: openrouter
 gpt-4o:
   name: ChatGPT-4o
   type: api

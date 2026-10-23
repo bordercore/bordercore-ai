@@ -30,6 +30,7 @@ between devices.
 | [Transformers](https://huggingface.co/docs/transformers/) | In-process non-AWQ model loading and speech recognition | Hugging Face text, vision, and Whisper-compatible checkpoints |
 | OpenAI-compatible APIs | Hosted or local API inference | OpenAI and compatible endpoints, including vLLM and API proxies |
 | Anthropic API | Hosted Claude inference | Anthropic models |
+| [OpenRouter](https://openrouter.ai/) | Hosted API inference with your own API key | Any OpenRouter chat model ID configured in `models.yaml` |
 
 AWQ checkpoints are served exclusively through vLLM; the application no longer
 loads them in-process with AutoAWQ. Managed profiles safely switch between the
@@ -366,8 +367,8 @@ example-model.gguf:
   or `llama2`; a tokenizer's built-in template takes precedence.
 - **type: api** identifies an API-backed model instead of an in-process local
   checkpoint.
-- **vendor** selects the API client: `openai` for OpenAI-compatible endpoints or
-  `anthropic` for Anthropic.
+- **vendor** selects the API client: `openai` for OpenAI-compatible endpoints,
+  `openrouter` for OpenRouter, or `anthropic` for Anthropic.
 - **base_url** and **api_key** override the configured OpenAI-compatible endpoint
   and credentials for that model.
 - **vllm_profile** connects a model entry to an allow-listed managed vLLM
@@ -376,7 +377,8 @@ example-model.gguf:
   llama.cpp profile.
 - **quantize: true** requests 4-bit bitsandbytes quantization for a compatible
   non-AWQ Transformers model; bitsandbytes must be installed separately.
-- **qwen_vision: true** enables Qwen vision request handling.
+- **qwen_vision: true** enables the Vision UI, including image input for
+  OpenAI-compatible and OpenRouter models that support it.
 - **thinking_control: chat_template_kwargs** sends the UI thinking toggle as a
   structured chat-template option. Qwen3.5 requires this instead of the legacy
   `/no_think` text command.
@@ -390,6 +392,44 @@ python3 -m webapp
 ```
 
 To access: https://localhost:5010/
+
+## OpenRouter models
+
+Set `openrouter_api_key` in the backend's `settings.py`, or supply
+`OPENROUTER_API_KEY` in the backend process environment. The environment variable
+takes precedence over the setting; a per-model `api_key` overrides both.
+OpenRouter credentials are separate from `openai_api_key` and are never included
+in the model metadata sent to the browser.
+
+Add entries to `models.yaml` using exact IDs from the
+[OpenRouter model catalog](https://openrouter.ai/models):
+
+```yaml
+openrouter/auto:
+  name: OpenRouter Auto
+  type: api
+  vendor: openrouter
+
+openai/gpt-4o:
+  name: GPT-4o via OpenRouter
+  type: api
+  vendor: openrouter
+  qwen_vision: true
+```
+
+Replace the YAML key with any OpenRouter chat model ID, including its provider
+prefix and any variant suffix. There is no built-in model allowlist. Restart
+the backend and refresh the page after changing model configuration; the
+entries appear in the existing model picker. No local weights are loaded.
+
+The client uses OpenRouter's
+[OpenAI-compatible streaming API](https://openrouter.ai/docs/quickstart) at
+`https://openrouter.ai/api/v1`. Set `qwen_vision: true` only for models that accept
+image input. For models with optional reasoning, `thinking: true` exposes the
+existing thinking toggle and forwards it as OpenRouter's `reasoning.enabled`.
+Models without that flag retain the provider's reasoning defaults. Chat displays
+the answer text; separate reasoning fields are not displayed. Model availability
+and supported capabilities depend on OpenRouter and the selected provider.
 
 ## Speech-recognition operations
 

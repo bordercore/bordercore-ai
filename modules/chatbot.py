@@ -89,7 +89,7 @@ model_info = get_model_info()
 class ChatBot():
     """
     ChatBot provides an interactive command-line interface to Luna, supporting
-    local LLMs, OpenAI, and Anthropic APIs, as well as TTS, STT, and various tools.
+    local LLMs, OpenAI, OpenRouter, and Anthropic APIs, plus TTS, STT, and tools.
     """
 
     ASSISTANT_NAME = "Luna"
@@ -621,9 +621,20 @@ class ChatBot():
         if not isinstance(messages, list):
             messages = [{"role": "user", "content": messages}]
 
+        model_vendor = ChatBot.get_model_attribute(self.model_name, "vendor")
+
+        # OpenRouter handles reasoning through its API, regardless of model family.
         # Qwen3.5 controls thinking through its chat template. Older Qwen
         # checkpoints use the /no_think text command instead.
-        if self._uses_chat_template_thinking():
+        if model_vendor == "openrouter":
+            if ChatBot.get_model_attribute(self.model_name, "thinking"):
+                args = dict(args)
+                extra_body = dict(args.get("extra_body") or {})
+                extra_body.setdefault(
+                    "reasoning", {"enabled": bool(self.args.get("enable_thinking", False))}
+                )
+                args["extra_body"] = extra_body
+        elif self._uses_chat_template_thinking():
             args = self._add_chat_template_thinking(args)
         elif self._is_qwen_model():
             enable_thinking = self.args.get("enable_thinking", False)
@@ -655,8 +666,7 @@ class ChatBot():
 
         self.context.add(messages, prune, "user", replace_context)
 
-        model_vendor = ChatBot.get_model_attribute(self.model_name, "vendor")
-        if model_vendor == "openai":
+        if model_vendor in {"openai", "openrouter"}:
             response = self.send_message_to_model_openai(args)
         elif model_vendor == "anthropic":
             response = self.send_message_to_model_anthropic(args)
@@ -669,7 +679,7 @@ class ChatBot():
 
     def send_message_to_model_openai(self, args: Dict[str, Any]) -> Iterator[str]:
         """
-        Send the current conversation context to OpenAI's ChatCompletion API and stream the response.
+        Stream the current context through an OpenAI-compatible chat API.
 
         Args:
             args: Additional keyword arguments for openai.ChatCompletion.create (e.g., temperature).
@@ -682,8 +692,22 @@ class ChatBot():
 
         model_base_url = ChatBot.get_model_attribute(self.model_name, "base_url")
         model_api_key = ChatBot.get_model_attribute(self.model_name, "api_key")
+        if ChatBot.get_model_attribute(self.model_name, "vendor") == "openrouter":
+            model_base_url = model_base_url or "https://openrouter.ai/api/v1"
+            model_api_key = (
+                model_api_key
+                or os.environ.get("OPENROUTER_API_KEY")
+                or getattr(settings, "openrouter_api_key", None)
+            )
+            if not model_api_key or not model_api_key.strip():
+                raise ValueError(
+                    "OpenRouter requires OPENROUTER_API_KEY or "
+                    "openrouter_api_key in settings.py"
+                )
+        else:
+            model_api_key = model_api_key or settings.openai_api_key
         client = OpenAI(
-            api_key=model_api_key or settings.openai_api_key,
+            api_key=model_api_key,
             base_url=model_base_url,
         )
 
@@ -709,7 +733,8 @@ class ChatBot():
                 if callable(close_stream):
                     close_stream()
                 break
-            if chunk.choices[0].delta.content:
+            # OpenRouter may send a final usage-only chunk with no choices.
+            if chunk.choices and chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content
 
     def send_message_to_model_anthropic(self, args: Dict[str, Any]) -> Generator[str, None, None]:
@@ -1346,7 +1371,7 @@ class ChatBot():
         Maps a list of model names to detailed model metadata dictionaries.
 
         For each model in the input list, looks up details in the `model_info` dictionary
-        and constructs a standardized representation. Includes all attributes from models.yaml.
+        and constructs public metadata, excluding server-side credentials.
 
         Args:
             model_list: A list of model identifier strings.
@@ -1355,7 +1380,7 @@ class ChatBot():
             A list of dictionaries, each containing keys:
                 - "model": the model identifier
                 - "name": the display name
-                - All other attributes from models.yaml (e.g., "type", "qwen_vision", "thinking", "vendor", etc.)
+                - Non-secret model attributes (e.g., "type", "qwen_vision", "thinking", "vendor")
         """
         models = []
         for x in model_list:
@@ -1372,9 +1397,9 @@ class ChatBot():
                     model_dict["name"] = os.path.basename(x)
                 else:
                     model_dict["name"] = x
-            # Include all other attributes from models.yaml
+            # This metadata is sent to the browser; credentials stay server-side.
             for key, value in model_data.items():
-                if key != "name":  # name is already set above
+                if key not in {"name", "api_key"}:
                     model_dict[key] = value
             models.append(model_dict)
         return models

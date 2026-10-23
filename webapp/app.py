@@ -719,7 +719,7 @@ def chat() -> Response:
 
     if "image" in request.form:
         prompt = message[-1]["content"]
-        if ChatBot.get_model_attribute(model_name, "vendor") == "openai":
+        if ChatBot.get_model_attribute(model_name, "vendor") in {"openai", "openrouter"}:
             message[-1]["content"] = [
                 {
                     "type": "image_url",
