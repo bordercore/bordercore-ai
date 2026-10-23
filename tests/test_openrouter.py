@@ -104,7 +104,7 @@ def test_model_picker_includes_openrouter_without_credentials(tmp_path):
         patch.dict("modules.chatbot.model_info", {
             "provider/model": {"name": "Router Model", "type": "api", "vendor": "openrouter", "api_key": "secret", "qwen_vision": True},
         }, clear=True),
-        patch("modules.chatbot.settings.model_dir", str(tmp_path)),
+        patch("modules.chatbot.settings.model_dir", str(tmp_path), create=True),
     ):
         assert ChatBot.get_model_list() == [{
             "model": "provider/model", "name": "Router Model", "type": "api",
@@ -125,13 +125,27 @@ def test_stream_cancellation_closes_response():
     response.close.assert_called_once_with()
 
 
+# webapp.app reads these at import and in before_request; CI's settings.py
+# defines only openai_api_key, so the test supplies them itself.
+APP_SETTINGS = {
+    "flask_secret_key": "test-secret",
+    "model_name": "provider/vision",
+    "tts_host": "",
+    "tts_voice": "voice.wav",
+}
+
+
 def test_openrouter_vision_chat_route():
     """The browser's image input reaches OpenRouter in image_url format."""
-    with patch("modules.model_manager.ModelManager.load"):
+    with (
+        patch.multiple("settings", create=True, **APP_SETTINGS),
+        patch("modules.model_manager.ModelManager.load"),
+    ):
         from webapp.app import app
 
     image_url = "data:image/png;base64,aW1hZ2U="
     with (
+        patch.multiple("settings", create=True, **APP_SETTINGS),
         patch.dict("modules.chatbot.model_info", {"provider/vision": {"vendor": "openrouter"}}),
         patch("webapp.app.generate_stream", return_value=iter(["OK"])) as generate,
         app.test_client() as client,
