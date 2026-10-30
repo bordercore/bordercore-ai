@@ -3,8 +3,8 @@
     "file": "assets/highlight.js-tT4pTLLQ.js",
     "name": "highlight.js"
   },
-  "_katex-BTvXRZlT.js": {
-    "file": "assets/katex-BTvXRZlT.js",
+  "_katex-9YTe8vPf.js": {
+    "file": "assets/katex-9YTe8vPf.js",
     "name": "katex"
   },
   "_markdown-it-D9jXLlIe.js": {
@@ -15,8 +15,8 @@
     "file": "assets/ogl-l0sNRNKZ.js",
     "name": "ogl"
   },
-  "_react-three-fiber.esm-DMx_0z8V.js": {
-    "file": "assets/react-three-fiber.esm-DMx_0z8V.js",
+  "_react-three-fiber.esm-DojY-GTg.js": {
+    "file": "assets/react-three-fiber.esm-DojY-GTg.js",
     "name": "react-three-fiber.esm",
     "imports": [
       "_three-Bnouvs2b.js",
@@ -29,14 +29,14 @@
     "name": "three"
   },
   "front-end/entries/chatbot.tsx": {
-    "file": "dist/js/chatbot-29k1qKo6.js",
+    "file": "dist/js/chatbot-DtB3JhKj.js",
     "name": "dist/js/chatbot",
     "src": "front-end/entries/chatbot.tsx",
     "isEntry": true,
     "imports": [
       "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-D9jXLlIe.js",
-      "_katex-BTvXRZlT.js",
+      "_katex-9YTe8vPf.js",
       "front-end/entries/styles-css.js"
     ],
     "dynamicImports": [
@@ -53,16 +53,16 @@
     ]
   },
   "front-end/entries/styles-css.js": {
-    "file": "dist/css/styles-vvDKo2y6.js",
+    "file": "dist/css/styles-C7ZMY2Qe.js",
     "name": "dist/css/styles",
     "src": "front-end/entries/styles-css.js",
     "isEntry": true,
     "css": [
-      "styles-DBvEGowN.css"
+      "styles-CcMpg8kG.css"
     ]
   },
   "front-end/react/components/CursorLines.tsx": {
-    "file": "assets/CursorLines-BDrg0m3o.js",
+    "file": "assets/CursorLines-BXyhYFYD.js",
     "name": "CursorLines",
     "src": "front-end/react/components/CursorLines.tsx",
     "isDynamicEntry": true,
@@ -70,42 +70,42 @@
       "front-end/entries/chatbot.tsx",
       "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-D9jXLlIe.js",
-      "_katex-BTvXRZlT.js",
+      "_katex-9YTe8vPf.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "front-end/react/components/CyberspaceFlythrough.tsx": {
-    "file": "assets/CyberspaceFlythrough-xVja94_d.js",
+    "file": "assets/CyberspaceFlythrough-RJemKuno.js",
     "name": "CyberspaceFlythrough",
     "src": "front-end/react/components/CyberspaceFlythrough.tsx",
     "isDynamicEntry": true,
     "imports": [
       "front-end/entries/chatbot.tsx",
-      "_react-three-fiber.esm-DMx_0z8V.js",
+      "_react-three-fiber.esm-DojY-GTg.js",
       "_three-Bnouvs2b.js",
       "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-D9jXLlIe.js",
-      "_katex-BTvXRZlT.js",
+      "_katex-9YTe8vPf.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "front-end/react/components/GpuOrb.tsx": {
-    "file": "assets/GpuOrb-BRk23TVq.js",
+    "file": "assets/GpuOrb-BLONcnVv.js",
     "name": "GpuOrb",
     "src": "front-end/react/components/GpuOrb.tsx",
     "isDynamicEntry": true,
     "imports": [
       "front-end/entries/chatbot.tsx",
-      "_react-three-fiber.esm-DMx_0z8V.js",
+      "_react-three-fiber.esm-DojY-GTg.js",
       "_three-Bnouvs2b.js",
       "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-D9jXLlIe.js",
-      "_katex-BTvXRZlT.js",
+      "_katex-9YTe8vPf.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "front-end/react/components/NexusViz.tsx": {
-    "file": "assets/NexusViz-3Tf70pr0.js",
+    "file": "assets/NexusViz-r-I5g-Ia.js",
     "name": "NexusViz",
     "src": "front-end/react/components/NexusViz.tsx",
     "isDynamicEntry": true,
@@ -113,12 +113,12 @@
       "front-end/entries/chatbot.tsx",
       "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-D9jXLlIe.js",
-      "_katex-BTvXRZlT.js",
+      "_katex-9YTe8vPf.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "front-end/react/components/Starfield.tsx": {
-    "file": "assets/Starfield-Cjt7VeGK.js",
+    "file": "assets/Starfield-CuS-5aj_.js",
     "name": "Starfield",
     "src": "front-end/react/components/Starfield.tsx",
     "isDynamicEntry": true,
@@ -126,12 +126,12 @@
       "front-end/entries/chatbot.tsx",
       "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-D9jXLlIe.js",
-      "_katex-BTvXRZlT.js",
+      "_katex-9YTe8vPf.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "front-end/react/components/WaveformViz.tsx": {
-    "file": "assets/WaveformViz-CkA_bEQ-.js",
+    "file": "assets/WaveformViz-Ce9EBqCp.js",
     "name": "WaveformViz",
     "src": "front-end/react/components/WaveformViz.tsx",
     "isDynamicEntry": true,
@@ -139,12 +139,12 @@
       "front-end/entries/chatbot.tsx",
       "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-D9jXLlIe.js",
-      "_katex-BTvXRZlT.js",
+      "_katex-9YTe8vPf.js",
       "front-end/entries/styles-css.js"
     ]
   },
   "local/optional.js": {
-    "file": "assets/optional-C9D8JuL1.js",
+    "file": "assets/optional-C1jK59_F.js",
     "name": "optional",
     "src": "local/optional.js",
     "isDynamicEntry": true,
@@ -152,7 +152,7 @@
       "front-end/entries/chatbot.tsx",
       "_highlight.js-tT4pTLLQ.js",
       "_markdown-it-D9jXLlIe.js",
-      "_katex-BTvXRZlT.js",
+      "_katex-9YTe8vPf.js",
       "front-end/entries/styles-css.js"
     ]
   }

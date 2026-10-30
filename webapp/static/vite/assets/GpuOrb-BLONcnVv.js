@@ -1,4 +1,4 @@
-import{u as g,j as e,r as u}from"../dist/js/chatbot-29k1qKo6.js";import{C as w,u as y}from"./react-three-fiber.esm-DMx_0z8V.js";import{A as h,B as b}from"./three-Bnouvs2b.js";import"./highlight.js-tT4pTLLQ.js";import"./markdown-it-D9jXLlIe.js";import"./katex-BTvXRZlT.js";import"../dist/css/styles-vvDKo2y6.js";const z=`
+import{u as g,j as e,r as u}from"../dist/js/chatbot-DtB3JhKj.js";import{C as w,u as y}from"./react-three-fiber.esm-DojY-GTg.js";import{A as h,B as b}from"./three-Bnouvs2b.js";import"./highlight.js-tT4pTLLQ.js";import"./markdown-it-D9jXLlIe.js";import"./katex-9YTe8vPf.js";import"../dist/css/styles-C7ZMY2Qe.js";const z=`
 vec3 mod289(vec3 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
 vec4 mod289(vec4 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
 vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }

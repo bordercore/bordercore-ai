@@ -37,7 +37,7 @@
     "axios": "^1.15.1",
     "dompurify": "^3.4.17",
     "highlight.js": "^11.9.0",
-    "katex": "^0.16.25",
+    "katex": "^0.19.1",
     "markdown-it": "^14.3.3",
     "media-chrome": "^3.2.3",
     "ogl": "^1.0.11",
@@ -69,5 +69,8 @@
     "stylelint-scss": "^7.0.0",
     "typescript-eslint": "^8.58.2",
     "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "katex": "$katex"
   }
 }
