@@ -86,7 +86,6 @@ export default defineConfig({
           "highlight.js": ["highlight.js"],
           "katex": ["katex"],
           "markdown-it": ["markdown-it"],
-          "ogl": ["ogl"],
           "three": ["three"],
         },
       },
