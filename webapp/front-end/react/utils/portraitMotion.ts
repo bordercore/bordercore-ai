@@ -3,8 +3,8 @@
  *
  * While active the face behaves like someone idly looking around: the eyes
  * dart to a new point of interest first, the head follows on a damped
- * spring, the gaze holds for a few seconds, and the lids blink at irregular
- * intervals. While idle the head settles to a slightly bowed rest pose and
+ * spring, the gaze holds for a few seconds, the lids blink at irregular
+ * intervals, and now and then a faint smile comes and goes. While idle the head settles to a slightly bowed rest pose and
  * the eyes stay closed, with only slow breathing left.
  *
  * The model is pure (no DOM, no three.js) and takes its randomness as an
@@ -26,6 +26,11 @@ export interface PortraitPose {
   /** Iris offset within the eye socket, each axis -1 to 1. */
   gazeX: number;
   gazeY: number;
+  /** Lift of each mouth corner into a thin smile, 0 (neutral) to 1. */
+  smileLeft: number;
+  smileRight: number;
+  /** How far the parted lips draw together, 0 (neutral) to 1. */
+  lipPress: number;
   /** Vertical breathing offset in scene units. */
   floatY: number;
 }
@@ -52,6 +57,18 @@ const LID_CLOSE_RATE = 4.5;
 const BLINK_MS = 170;
 const BLINK_INTERVAL_SEC = 3.4;
 const DOUBLE_BLINK_CHANCE = 0.18;
+
+// A faint smile surfaces now and then, holds briefly, and fades.
+// Responses are often over within a few seconds, so the first smile comes
+// soon after waking and later ones follow at short intervals.
+const SMILE_FIRST_MIN_DELAY_SEC = 1.2;
+const SMILE_FIRST_MAX_DELAY_SEC = 3.5;
+const SMILE_MIN_GAP_SEC = 3;
+const SMILE_MAX_GAP_SEC = 8;
+const SMILE_MIN_HOLD_SEC = 1.2;
+const SMILE_MAX_HOLD_SEC = 3;
+const SMILE_RISE_RATE = 2.4;
+const SMILE_FADE_RATE = 1.4;
 const BLINK_ON_GAZE_SHIFT_CHANCE = 0.4;
 
 interface Blink {
@@ -98,6 +115,17 @@ export function createPortraitMotion(random: () => number = Math.random): Portra
   let blinks: Blink[] = [];
   let nextBlinkAt = 0;
   let wasActive = false;
+
+  let smile = 0;
+  let smileGoal = 0;
+  // One corner leads a little, so the smile is never perfectly even.
+  let smileSkew = 0;
+  let smileEndsAt = 0;
+  let nextSmileAt = 0;
+
+  const scheduleSmile = (minDelay: number, maxDelay: number) => {
+    nextSmileAt = time + minDelay + random() * (maxDelay - minDelay);
+  };
 
   const queueBlink = (double: boolean) => {
     const duration = BLINK_MS / 1000;
@@ -147,9 +175,11 @@ export function createPortraitMotion(random: () => number = Math.random): Portra
       targetPitch = 0;
       nextGazeShiftAt = time + 0.9 + random() * 0.8;
       scheduleBlink();
+      scheduleSmile(SMILE_FIRST_MIN_DELAY_SEC, SMILE_FIRST_MAX_DELAY_SEC);
     }
     if (!active && wasActive) {
       blinks = [];
+      smileGoal = 0;
     }
     wasActive = active;
 
@@ -193,6 +223,24 @@ export function createPortraitMotion(random: () => number = Math.random): Portra
     }
     const lid = clamp(Math.max(restLid, blink), 0, 1);
 
+    if (active) {
+      if (smileGoal === 0 && time >= nextSmileAt) {
+        smileGoal = 0.45 + random() * 0.55;
+        smileSkew = (random() * 2 - 1) * 0.3;
+        smileEndsAt =
+          time + SMILE_MIN_HOLD_SEC + random() * (SMILE_MAX_HOLD_SEC - SMILE_MIN_HOLD_SEC);
+      } else if (smileGoal > 0 && time >= smileEndsAt) {
+        smileGoal = 0;
+        scheduleSmile(SMILE_MIN_GAP_SEC, SMILE_MAX_GAP_SEC);
+      }
+    }
+    smile = approach(smile, smileGoal, smileGoal > smile ? SMILE_RISE_RATE : SMILE_FADE_RATE, dt);
+
+    // The lips draw together with a smile, and shift faintly on their own
+    // in between so the mouth is never perfectly still.
+    const lipIdle = active ? 0.12 * (1 + Math.sin(time * 0.37 + 2.1) * Math.sin(time * 0.83)) : 0;
+    const lipPress = clamp(smile * 0.6 + lipIdle * (1 - restLid), 0, 1);
+
     const breathRate = active ? 1.4 : 0.9;
     return {
       yawDeg: yaw,
@@ -203,6 +251,9 @@ export function createPortraitMotion(random: () => number = Math.random): Portra
       lidRight: lid,
       gazeX,
       gazeY,
+      smileLeft: clamp(smile * (1 + smileSkew), 0, 1),
+      smileRight: clamp(smile * (1 - smileSkew), 0, 1),
+      lipPress,
       floatY: Math.sin(time * breathRate) * 0.014,
     };
   };

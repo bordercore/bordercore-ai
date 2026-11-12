@@ -66,6 +66,44 @@ describe("createPortraitMotion", () => {
     expect(Math.abs(pose.gazeX)).toBeLessThan(0.01);
   });
 
+  it("smiles faintly now and then while active, and never while idle", () => {
+    const motion = createPortraitMotion(seededRandom(6));
+    for (let i = 0; i < 600; i++) {
+      const pose = motion.step(DT, false);
+      expect(pose.smileLeft).toBe(0);
+      expect(pose.smileRight).toBe(0);
+      expect(pose.lipPress).toBe(0);
+    }
+
+    let smilingFrames = 0;
+    let peak = 0;
+    let peakInFirstFiveSeconds = 0;
+    const frames = 60 * 120;
+    for (let i = 0; i < frames; i++) {
+      const pose = motion.step(DT, true);
+      if (i < 60 * 5) {
+        peakInFirstFiveSeconds = Math.max(peakInFirstFiveSeconds, pose.smileLeft, pose.smileRight);
+      }
+      for (const value of [pose.smileLeft, pose.smileRight, pose.lipPress]) {
+        expect(value).toBeGreaterThanOrEqual(0);
+        expect(value).toBeLessThanOrEqual(1);
+      }
+      peak = Math.max(peak, pose.smileLeft, pose.smileRight);
+      if (Math.max(pose.smileLeft, pose.smileRight) > 0.2) smilingFrames++;
+    }
+    expect(peak).toBeGreaterThan(0.3);
+    // Short responses should still get to see one.
+    expect(peakInFirstFiveSeconds).toBeGreaterThan(0.2);
+    // Present, but most of the time her mouth is neutral.
+    expect(smilingFrames).toBeGreaterThan(0);
+    expect(smilingFrames / frames).toBeLessThan(0.5);
+
+    let pose = motion.step(DT, false);
+    for (let i = 0; i < 60 * 8; i++) pose = motion.step(DT, false);
+    expect(pose.smileLeft).toBeLessThan(0.01);
+    expect(pose.lipPress).toBeLessThan(0.01);
+  });
+
   it("tolerates long frame gaps without overshooting", () => {
     const motion = createPortraitMotion(seededRandom(5));
     for (let i = 0; i < 200; i++) {

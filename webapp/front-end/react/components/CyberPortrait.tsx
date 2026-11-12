@@ -157,13 +157,16 @@ void main() {
 
 // ─── Fragment shader ────────────────────────────────────────────
 // Blends the open-eye photograph with a closed-eye version of the same
-// frame, sweeping each lid down from the top of its socket.
+// frame, sweeping each lid down from the top of its socket, and warps the
+// mouth for faint lip movement.
 const fragmentShader = /* glsl */ `
 uniform sampler2D uMap;
 uniform sampler2D uClosedMap;
 uniform float uBlinkLeft;
 uniform float uBlinkRight;
 uniform vec2 uGazeOffset;
+uniform vec2 uSmile;
+uniform float uLipPress;
 uniform float uIrisGlow;
 uniform float uRimLight;
 
@@ -222,8 +225,31 @@ void evaluateEyeCurtain(
   openEyeMask = max(openEyeMask, openV * arch * (1.0 - smoothstep(0.15, 0.75, b)));
 }
 
+// Offset to add to a sample position so the photograph appears to move its
+// mouth: each corner is drawn up and slightly outward, and the parted lips
+// are drawn toward the line between them.
+vec2 mouthWarp(vec2 imgCoord) {
+  vec2 leftCorner = vec2(0.385, 0.735);
+  vec2 rightCorner = vec2(0.595, 0.715);
+  vec2 cornerRadius = vec2(0.055, 0.050);
+
+  vec2 dl = (imgCoord - leftCorner) / cornerRadius;
+  vec2 dr = (imgCoord - rightCorner) / cornerRadius;
+  vec2 lift = exp(-dot(dl, dl)) * uSmile.x * vec2(-0.004, -0.009)
+    + exp(-dot(dr, dr)) * uSmile.y * vec2(0.004, -0.009);
+
+  vec2 mouthCenter = vec2(0.490, 0.725);
+  float lipLineY = mouthCenter.y - 0.095 * (imgCoord.x - mouthCenter.x);
+  vec2 dm = (imgCoord - vec2(mouthCenter.x, lipLineY)) / vec2(0.085, 0.040);
+  float press = exp(-dot(dm, dm)) * uLipPress * 0.16 * (imgCoord.y - lipLineY);
+
+  // Moving the picture by an offset means sampling from the opposite side.
+  return vec2(-lift.x, -lift.y + press);
+}
+
 void main() {
   vec2 imgCoord = vec2(vUv.x, 1.0 - vUv.y);
+  vec2 warpedCoord = imgCoord + mouthWarp(imgCoord);
   float closedMix = 0.0;
   float movingLashLine = 0.0;
   float openEyeMask = 0.0;
@@ -238,14 +264,14 @@ void main() {
   );
 
   // Shift the iris within the open eye to follow the gaze.
-  vec2 openSampleCoord = imgCoord;
+  vec2 openSampleCoord = warpedCoord;
   if (openEyeMask > 0.01) {
     openSampleCoord -= uGazeOffset * openEyeMask * 0.012;
   }
   vec2 openUv = vec2(openSampleCoord.x, 1.0 - openSampleCoord.y);
 
   vec3 openCol = texture2D(uMap, openUv).rgb;
-  vec3 closedCol = texture2D(uClosedMap, vUv).rgb;
+  vec3 closedCol = texture2D(uClosedMap, vec2(warpedCoord.x, 1.0 - warpedCoord.y)).rgb;
   vec3 col = mix(openCol, closedCol, clamp(closedMix, 0.0, 1.0));
 
   if (movingLashLine > 0.001) {
@@ -373,6 +399,8 @@ export default function CyberPortrait({ size = 282, active = false }: CyberPortr
       uRollRad: { value: 0 },
       uSwayYawRad: { value: 0 },
       uGazeOffset: { value: new THREE.Vector2(0, 0) },
+      uSmile: { value: new THREE.Vector2(0, 0) },
+      uLipPress: { value: 0 },
       uIrisGlow: { value: 1.25 },
       uRimLight: { value: 1.15 },
     };
@@ -412,6 +440,8 @@ export default function CyberPortrait({ size = 282, active = false }: CyberPortr
       uniforms.uBlinkLeft.value = pose.lidLeft;
       uniforms.uBlinkRight.value = pose.lidRight;
       uniforms.uGazeOffset.value.set(pose.gazeX, pose.gazeY);
+      uniforms.uSmile.value.set(pose.smileLeft, pose.smileRight);
+      uniforms.uLipPress.value = pose.lipPress;
 
       renderer.render(scene, camera);
     };

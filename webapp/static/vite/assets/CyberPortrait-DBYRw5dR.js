@@ -1,4 +1,4 @@
-import{r as _,j as U}from"../dist/js/chatbot-KyomVGNA.js";import{W as Z,S as j,P as K,G as q,a as J,V as Q,M as $,T as ee,b as te,c as oe,N as ae,L as G}from"./three-orRY4Bzt.js";import"./highlight.js-tT4pTLLQ.js";import"./markdown-it-D9jXLlIe.js";import"./katex-9YTe8vPf.js";import"../dist/css/styles-CSmeZcdm.js";const se=13,ie=7,z=-8,le=3.2,ne=1.8,re=2.1,N=16,ce=7,fe=4.5,pe=170,ue=3.4,he=.18,me=.4;function L(t,e,a){return Math.max(e,Math.min(a,t))}function b(t,e,a,l){return t+(e-t)*(1-Math.exp(-a*l))}function de(t){const e=t<.38?Math.sin(t/.38*Math.PI*.5):Math.cos((t-.38)/.62*Math.PI*.5);return Math.pow(Math.max(0,e),.85)}function ge(t=Math.random){let e=0,a=0,l=z,o=0,c=0,g=0,r=0,f=0,h=0,u=0,m=0,n=1,p=[],C=0,y=!1;const E=M=>{const s=pe/1e3;M?(p.push({startSec:e,durationSec:s*.9}),p.push({startSec:e+s*1.15,durationSec:s})):p.push({startSec:e,durationSec:s})},x=()=>{C=e+Math.max(1.1,ue+(t()-.4)*2.4)},k=()=>{const M=r,s=f;t()<.3?(r=(t()-.5)*3,f=(t()-.5)*2):(r=(t()*2-1)*se,f=(t()*2-1)*ie),h=e+1.4+t()*t()*4.5,Math.hypot(r-M,f-s)>6&&t()<me&&(E(!1),x())};return{step:(M,s)=>{const i=L(M,0,.05);e+=i,s&&!y&&(r=0,f=0,h=e+.9+t()*.8,x()),!s&&y&&(p=[]),y=s;let w=0,R=z;s&&(e>=h&&k(),w=r+Math.sin(e*.53)*.7+Math.sin(e*1.31+1.7)*.3,R=f+Math.sin(e*.41+.6)*.5);const v=s?le:ne;o+=(v*v*(w-a)-2*v*o)*i,c+=(v*v*(R-l)-2*v*c)*i,a+=o*i,l+=c*i,g=b(g,a,re,i);const O=s?L(a/22+(w-a)/9,-1,1):0,H=s?L(-l/18-(R-l)/7,-1,1):0;u=b(u,O,N,i),m=b(m,H,N,i),n=b(n,s?0:1,s?ce:fe,i);let Y=0;if(s){e>=C&&n<.1&&(E(t()<he),x()),p=p.filter(S=>e-S.startSec<=S.durationSec);for(const S of p){const D=e-S.startSec;D>=0&&(Y=Math.max(Y,de(D/S.durationSec)))}}const A=L(Math.max(n,Y),0,1),W=s?1.4:.9;return{yawDeg:a,pitchDeg:l,rollDeg:a*.12,swayYawDeg:g,lidLeft:A,lidRight:A,gazeX:u,gazeY:m,floatY:Math.sin(e*W)*.014}}}}const ve="/static/img/cyber-portrait-open.jpg",Me="/static/img/cyber-portrait-closed.jpg",X=1024/801,F=3.15,we=F/X,I=200,ye=.85,P=Math.PI/180;function d(t,e,a,l,o,c,g){const r=t-a,f=e-l,h=Math.cos(g),u=Math.sin(g),m=r*h+f*u,n=-r*u+f*h,p=m*m/(o*o)+n*n/(c*c);return p>16?0:Math.exp(-p)}function T(t,e,a){const l=Math.max(0,Math.min(1,(a-t)/(e-t)));return l*l*(3-2*l)}function xe(t,e){const a=(t-.495)/.52,l=(e-.46)/.56;let o=.36*Math.exp(-.55*(a*a+l*l));o+=.11*d(t,e,.49,.48,.26,.34,-.03),o+=.055*d(t,e,.495,.865,.095,.065,0),o+=.055*d(t,e,.485,.155,.34,.13,-.04),o+=.032*d(t,e,.32,.275,.11,.04,.06),o+=.034*d(t,e,.61,.245,.11,.04,-.1),o+=.05*d(t,e,.285,.485,.12,.1,.18),o+=.052*d(t,e,.655,.465,.12,.1,-.18);const c=T(.26,.54,e),g=.468-.008*c,r=.062+.022*c,f=(t-g)/r,h=Math.exp(-Math.pow((e-.445)/.115,2));o+=.075*Math.exp(-f*f)*h,o+=.07*d(t,e,.462,.528,.068,.058,0),o+=.048*d(t,e,.484,.69,.095,.038,-.04),o+=.055*d(t,e,.486,.752,.092,.042,-.04),o+=.028*d(t,e,.318,.362,.068,.045,.05),o+=.028*d(t,e,.612,.336,.07,.045,-.08);const u=T(.86,.98,e),m=(t-.495)/.22,n=Math.exp(-m*m*1.2);o=o*(1-.38*u)+.06*n*u;const p=Math.pow((t-.5)*2,4),C=Math.pow((e-.5)*2,4);return o*Math.exp(-.35*(p+C))-.18}const Ce=`
+import{r as z,j as oe}from"../dist/js/chatbot-DQb4K9hI.js";import{W as ae,S as se,P as ie,G as le,a as ne,V as X,M as re,T as ce,b as pe,c as ue,N as fe,L as F}from"./three-orRY4Bzt.js";import"./highlight.js-tT4pTLLQ.js";import"./markdown-it-D9jXLlIe.js";import"./katex-9YTe8vPf.js";import"../dist/css/styles-DQElkeND.js";const he=13,me=7,O=-8,de=3.2,ve=1.8,ge=2.1,H=16,Me=7,we=4.5,Ce=170,Ee=3.4,ye=.18,Se=1.2,xe=3.5,Re=3,Le=8,W=1.2,_e=3,ke=2.4,Pe=1.4,Ae=.4;function R(t,e,a){return Math.max(e,Math.min(a,t))}function b(t,e,a,i){return t+(e-t)*(1-Math.exp(-a*i))}function be(t){const e=t<.38?Math.sin(t/.38*Math.PI*.5):Math.cos((t-.38)/.62*Math.PI*.5);return Math.pow(Math.max(0,e),.85)}function Ye(t=Math.random){let e=0,a=0,i=O,o=0,c=0,g=0,n=0,p=0,h=0,f=0,m=0,s=1,u=[],L=0,S=!1,C=0,M=0,x=0,k=0,P=0;const d=(y,l)=>{P=e+y+t()*(l-y)},r=y=>{const l=Ce/1e3;y?(u.push({startSec:e,durationSec:l*.9}),u.push({startSec:e+l*1.15,durationSec:l})):u.push({startSec:e,durationSec:l})},E=()=>{L=e+Math.max(1.1,Ee+(t()-.4)*2.4)},Y=()=>{const y=n,l=p;t()<.3?(n=(t()-.5)*3,p=(t()-.5)*2):(n=(t()*2-1)*he,p=(t()*2-1)*me),h=e+1.4+t()*t()*4.5,Math.hypot(n-y,p-l)>6&&t()<Ae&&(r(!1),E())};return{step:(y,l)=>{const w=R(y,0,.05);e+=w,l&&!S&&(n=0,p=0,h=e+.9+t()*.8,E(),d(Se,xe)),!l&&S&&(u=[],M=0),S=l;let B=0,G=O;l&&(e>=h&&Y(),B=n+Math.sin(e*.53)*.7+Math.sin(e*1.31+1.7)*.3,G=p+Math.sin(e*.41+.6)*.5);const _=l?de:ve;o+=(_*_*(B-a)-2*_*o)*w,c+=(_*_*(G-i)-2*_*c)*w,a+=o*w,i+=c*w,g=b(g,a,ge,w);const J=l?R(a/22+(B-a)/9,-1,1):0,Q=l?R(-i/18-(G-i)/7,-1,1):0;f=b(f,J,H,w),m=b(m,Q,H,w),s=b(s,l?0:1,l?Me:we,w);let N=0;if(l){e>=L&&s<.1&&(r(t()<ye),E()),u=u.filter(A=>e-A.startSec<=A.durationSec);for(const A of u){const V=e-A.startSec;V>=0&&(N=Math.max(N,be(V/A.durationSec)))}}const T=R(Math.max(s,N),0,1);l&&(M===0&&e>=P?(M=.45+t()*.55,x=(t()*2-1)*.3,k=e+W+t()*(_e-W)):M>0&&e>=k&&(M=0,d(Re,Le))),C=b(C,M,M>C?ke:Pe,w);const $=l?.12*(1+Math.sin(e*.37+2.1)*Math.sin(e*.83)):0,ee=R(C*.6+$*(1-s),0,1),te=l?1.4:.9;return{yawDeg:a,pitchDeg:i,rollDeg:a*.12,swayYawDeg:g,lidLeft:T,lidRight:T,gazeX:f,gazeY:m,smileLeft:R(C*(1+x),0,1),smileRight:R(C*(1-x),0,1),lipPress:ee,floatY:Math.sin(e*te)*.014}}}}const Ie="/static/img/cyber-portrait-open.jpg",De="/static/img/cyber-portrait-closed.jpg",K=1024/801,q=3.15,Be=q/K,U=200,Ge=.85,I=Math.PI/180;function v(t,e,a,i,o,c,g){const n=t-a,p=e-i,h=Math.cos(g),f=Math.sin(g),m=n*h+p*f,s=-n*f+p*h,u=m*m/(o*o)+s*s/(c*c);return u>16?0:Math.exp(-u)}function Z(t,e,a){const i=Math.max(0,Math.min(1,(a-t)/(e-t)));return i*i*(3-2*i)}function Ne(t,e){const a=(t-.495)/.52,i=(e-.46)/.56;let o=.36*Math.exp(-.55*(a*a+i*i));o+=.11*v(t,e,.49,.48,.26,.34,-.03),o+=.055*v(t,e,.495,.865,.095,.065,0),o+=.055*v(t,e,.485,.155,.34,.13,-.04),o+=.032*v(t,e,.32,.275,.11,.04,.06),o+=.034*v(t,e,.61,.245,.11,.04,-.1),o+=.05*v(t,e,.285,.485,.12,.1,.18),o+=.052*v(t,e,.655,.465,.12,.1,-.18);const c=Z(.26,.54,e),g=.468-.008*c,n=.062+.022*c,p=(t-g)/n,h=Math.exp(-Math.pow((e-.445)/.115,2));o+=.075*Math.exp(-p*p)*h,o+=.07*v(t,e,.462,.528,.068,.058,0),o+=.048*v(t,e,.484,.69,.095,.038,-.04),o+=.055*v(t,e,.486,.752,.092,.042,-.04),o+=.028*v(t,e,.318,.362,.068,.045,.05),o+=.028*v(t,e,.612,.336,.07,.045,-.08);const f=Z(.86,.98,e),m=(t-.495)/.22,s=Math.exp(-m*m*1.2);o=o*(1-.38*f)+.06*s*f;const u=Math.pow((t-.5)*2,4),L=Math.pow((e-.5)*2,4);return o*Math.exp(-.35*(u+L))-.18}const ze=`
 uniform float uDepthScale;
 uniform float uBlinkLeft;
 uniform float uBlinkRight;
@@ -59,12 +59,14 @@ void main() {
   vNormalView = normalize(normalMatrix * normalize(R * normal));
   gl_Position = projectionMatrix * mvPosition;
 }
-`,Re=`
+`,Te=`
 uniform sampler2D uMap;
 uniform sampler2D uClosedMap;
 uniform float uBlinkLeft;
 uniform float uBlinkRight;
 uniform vec2 uGazeOffset;
+uniform vec2 uSmile;
+uniform float uLipPress;
 uniform float uIrisGlow;
 uniform float uRimLight;
 
@@ -123,8 +125,31 @@ void evaluateEyeCurtain(
   openEyeMask = max(openEyeMask, openV * arch * (1.0 - smoothstep(0.15, 0.75, b)));
 }
 
+// Offset to add to a sample position so the photograph appears to move its
+// mouth: each corner is drawn up and slightly outward, and the parted lips
+// are drawn toward the line between them.
+vec2 mouthWarp(vec2 imgCoord) {
+  vec2 leftCorner = vec2(0.385, 0.735);
+  vec2 rightCorner = vec2(0.595, 0.715);
+  vec2 cornerRadius = vec2(0.055, 0.050);
+
+  vec2 dl = (imgCoord - leftCorner) / cornerRadius;
+  vec2 dr = (imgCoord - rightCorner) / cornerRadius;
+  vec2 lift = exp(-dot(dl, dl)) * uSmile.x * vec2(-0.004, -0.009)
+    + exp(-dot(dr, dr)) * uSmile.y * vec2(0.004, -0.009);
+
+  vec2 mouthCenter = vec2(0.490, 0.725);
+  float lipLineY = mouthCenter.y - 0.095 * (imgCoord.x - mouthCenter.x);
+  vec2 dm = (imgCoord - vec2(mouthCenter.x, lipLineY)) / vec2(0.085, 0.040);
+  float press = exp(-dot(dm, dm)) * uLipPress * 0.16 * (imgCoord.y - lipLineY);
+
+  // Moving the picture by an offset means sampling from the opposite side.
+  return vec2(-lift.x, -lift.y + press);
+}
+
 void main() {
   vec2 imgCoord = vec2(vUv.x, 1.0 - vUv.y);
+  vec2 warpedCoord = imgCoord + mouthWarp(imgCoord);
   float closedMix = 0.0;
   float movingLashLine = 0.0;
   float openEyeMask = 0.0;
@@ -139,14 +164,14 @@ void main() {
   );
 
   // Shift the iris within the open eye to follow the gaze.
-  vec2 openSampleCoord = imgCoord;
+  vec2 openSampleCoord = warpedCoord;
   if (openEyeMask > 0.01) {
     openSampleCoord -= uGazeOffset * openEyeMask * 0.012;
   }
   vec2 openUv = vec2(openSampleCoord.x, 1.0 - openSampleCoord.y);
 
   vec3 openCol = texture2D(uMap, openUv).rgb;
-  vec3 closedCol = texture2D(uClosedMap, vUv).rgb;
+  vec3 closedCol = texture2D(uClosedMap, vec2(warpedCoord.x, 1.0 - warpedCoord.y)).rgb;
   vec3 col = mix(openCol, closedCol, clamp(closedMix, 0.0, 1.0));
 
   if (movingLashLine > 0.001) {
@@ -193,4 +218,4 @@ void main() {
 
   gl_FragColor = vec4(col * alphaMask, alphaMask);
 }
-`;function Ee(){const t=new te(F,we,I,I),e=t.attributes.position,a=t.attributes.uv,l=new Float32Array(e.count);for(let o=0;o<e.count;o++){const c=xe(a.getX(o),1-a.getY(o));l[o]=c,e.setZ(o,c)}return t.setAttribute("aBaseDepth",new oe(l,1)),t.computeVertexNormals(),t}function V(t,e){return t.loadAsync(e).then(a=>(a.colorSpace=ae,a.minFilter=G,a.magFilter=G,a.generateMipmaps=!1,a))}function Ye({size:t=282,active:e=!1}){const a=_.useRef(null),l=_.useRef(e);l.current=e;const o=t,c=Math.round(t/X);return _.useEffect(()=>{const g=a.current;if(!g)return;let r;try{r=new Z({canvas:g,antialias:!0,alpha:!0})}catch{return}r.setPixelRatio(Math.min(window.devicePixelRatio||1,2)),r.setSize(o,c,!1),r.setClearColor(0,0);const f=new j,h=new K(34,o/c,.1,100);h.position.set(0,.03,4.25),h.lookAt(0,.02,0);const u=new q;f.add(u);const m=Ee(),n={uMap:{value:null},uClosedMap:{value:null},uDepthScale:{value:ye},uBlinkLeft:{value:1},uBlinkRight:{value:1},uYawRad:{value:0},uPitchRad:{value:0},uRollRad:{value:0},uSwayYawRad:{value:0},uGazeOffset:{value:new Q(0,0)},uIrisGlow:{value:1.25},uRimLight:{value:1.15}},p=new J({vertexShader:Ce,fragmentShader:Re,uniforms:n,transparent:!0,premultipliedAlpha:!0});u.add(new $(m,p));const C=ge(),y=[];let E=!1,x=0,k=performance.now();const B=s=>{x=requestAnimationFrame(B);const i=C.step((s-k)/1e3,l.current);k=s;const w=i.yawDeg*P,R=i.pitchDeg*P,v=i.rollDeg*P;u.rotation.set(R*.18,w*.18,v*.22),u.position.y=i.floatY,n.uYawRad.value=w*.82,n.uPitchRad.value=R*.82,n.uRollRad.value=v*.78,n.uSwayYawRad.value=i.swayYawDeg*P*.82,n.uBlinkLeft.value=i.lidLeft,n.uBlinkRight.value=i.lidRight,n.uGazeOffset.value.set(i.gazeX,i.gazeY),r.render(f,h)},M=new ee;return Promise.all([V(M,ve),V(M,Me)]).then(([s,i])=>{if(y.push(s,i),E){y.forEach(w=>w.dispose());return}n.uMap.value=s,n.uClosedMap.value=i,k=performance.now(),x=requestAnimationFrame(B)}).catch(s=>{console.error("Cyber Portrait textures failed to load",s)}),()=>{E=!0,cancelAnimationFrame(x),y.forEach(s=>s.dispose()),m.dispose(),p.dispose(),r.dispose()}},[o,c]),U.jsx("canvas",{ref:a,className:"cyber-portrait",style:{width:o,height:c},"aria-busy":e?"true":"false",role:"img","aria-label":e?"AI working":"AI idle"})}export{Ye as default};
+`;function Ve(){const t=new pe(q,Be,U,U),e=t.attributes.position,a=t.attributes.uv,i=new Float32Array(e.count);for(let o=0;o<e.count;o++){const c=Ne(a.getX(o),1-a.getY(o));i[o]=c,e.setZ(o,c)}return t.setAttribute("aBaseDepth",new ue(i,1)),t.computeVertexNormals(),t}function j(t,e){return t.loadAsync(e).then(a=>(a.colorSpace=fe,a.minFilter=F,a.magFilter=F,a.generateMipmaps=!1,a))}function Ze({size:t=282,active:e=!1}){const a=z.useRef(null),i=z.useRef(e);i.current=e;const o=t,c=Math.round(t/K);return z.useEffect(()=>{const g=a.current;if(!g)return;let n;try{n=new ae({canvas:g,antialias:!0,alpha:!0})}catch{return}n.setPixelRatio(Math.min(window.devicePixelRatio||1,2)),n.setSize(o,c,!1),n.setClearColor(0,0);const p=new se,h=new ie(34,o/c,.1,100);h.position.set(0,.03,4.25),h.lookAt(0,.02,0);const f=new le;p.add(f);const m=Ve(),s={uMap:{value:null},uClosedMap:{value:null},uDepthScale:{value:Ge},uBlinkLeft:{value:1},uBlinkRight:{value:1},uYawRad:{value:0},uPitchRad:{value:0},uRollRad:{value:0},uSwayYawRad:{value:0},uGazeOffset:{value:new X(0,0)},uSmile:{value:new X(0,0)},uLipPress:{value:0},uIrisGlow:{value:1.25},uRimLight:{value:1.15}},u=new ne({vertexShader:ze,fragmentShader:Te,uniforms:s,transparent:!0,premultipliedAlpha:!0});f.add(new re(m,u));const L=Ye(),S=[];let C=!1,M=0,x=performance.now();const k=d=>{M=requestAnimationFrame(k);const r=L.step((d-x)/1e3,i.current);x=d;const E=r.yawDeg*I,Y=r.pitchDeg*I,D=r.rollDeg*I;f.rotation.set(Y*.18,E*.18,D*.22),f.position.y=r.floatY,s.uYawRad.value=E*.82,s.uPitchRad.value=Y*.82,s.uRollRad.value=D*.78,s.uSwayYawRad.value=r.swayYawDeg*I*.82,s.uBlinkLeft.value=r.lidLeft,s.uBlinkRight.value=r.lidRight,s.uGazeOffset.value.set(r.gazeX,r.gazeY),s.uSmile.value.set(r.smileLeft,r.smileRight),s.uLipPress.value=r.lipPress,n.render(p,h)},P=new ce;return Promise.all([j(P,Ie),j(P,De)]).then(([d,r])=>{if(S.push(d,r),C){S.forEach(E=>E.dispose());return}s.uMap.value=d,s.uClosedMap.value=r,x=performance.now(),M=requestAnimationFrame(k)}).catch(d=>{console.error("Cyber Portrait textures failed to load",d)}),()=>{C=!0,cancelAnimationFrame(M),S.forEach(d=>d.dispose()),m.dispose(),u.dispose(),n.dispose()}},[o,c]),oe.jsx("canvas",{ref:a,className:"cyber-portrait",style:{width:o,height:c},"aria-busy":e?"true":"false",role:"img","aria-label":e?"AI working":"AI idle"})}export{Ze as default};
