@@ -38,7 +38,13 @@ export interface Switches {
   hermesMemory: boolean;
 }
 
-export type VisualizationType = "gpuOrb" | "thinkingIcon" | "nexus" | "waveform" | "sentinelOrb";
+export type VisualizationType =
+  | "gpuOrb"
+  | "thinkingIcon"
+  | "nexus"
+  | "waveform"
+  | "sentinelOrb"
+  | "cyberPortrait";
 
 export type GpuTelemetryVisualization =
   | "neonPulseReactor"
@@ -67,6 +73,7 @@ const VISUALIZATIONS: VisualizationType[] = [
   "nexus",
   "waveform",
   "sentinelOrb",
+  "cyberPortrait",
 ];
 
 function loadVisualization(fallback: VisualizationType): VisualizationType {

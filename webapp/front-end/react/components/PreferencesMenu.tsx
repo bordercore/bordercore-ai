@@ -22,6 +22,7 @@ const VISUALIZATION_OPTIONS: { value: VisualizationType; label: string }[] = [
   { value: "nexus", label: "Nexus" },
   { value: "waveform", label: "Waveform" },
   { value: "sentinelOrb", label: "Sentinel Orb" },
+  { value: "cyberPortrait", label: "Cyber Portrait" },
 ];
 
 const WAITING_ANIMATION_OPTIONS: { value: WaitingAnimation; label: string }[] = [

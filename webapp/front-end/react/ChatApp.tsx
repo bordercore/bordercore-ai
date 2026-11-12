@@ -31,6 +31,7 @@ import VoiceLatencyPanel from "./components/VoiceLatencyPanel";
 const GpuOrb = lazy(() => import("./components/GpuOrb"));
 const NexusViz = lazy(() => import("./components/NexusViz"));
 const WaveformViz = lazy(() => import("./components/WaveformViz"));
+const CyberPortrait = lazy(() => import("./components/CyberPortrait"));
 const CursorLines = lazy(() => import("./components/CursorLines"));
 const Starfield = lazy(() => import("./components/Starfield"));
 const CyberspaceFlythrough = lazy(() => import("./components/CyberspaceFlythrough"));
@@ -1260,6 +1261,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
                 {visualization === "gpuOrb" && <GpuOrb active={isGenerating} size={126} />}
                 {visualization === "nexus" && <NexusViz active={isGenerating} size={126} />}
                 {visualization === "waveform" && <WaveformViz active={isGenerating} size={126} />}
+                {visualization === "cyberPortrait" && (
+                  <CyberPortrait active={isGenerating} size={282} />
+                )}
               </Suspense>
               {visualization === "thinkingIcon" && (
                 <ThinkingIcon active={isGenerating} size={126} />

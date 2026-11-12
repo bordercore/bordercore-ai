@@ -540,7 +540,9 @@ The hamburger menu to the upper-right organizes preferences into **General**,
 
 Appearance includes:
 
-- **Visualization**: Choose the primary thinking/audio visualization.
+- **Visualization**: Choose the primary thinking/audio visualization. Cyber
+  Portrait shows a face that opens her eyes and looks around while a model is
+  generating, and rests with her eyes closed otherwise.
 - **GPU Telemetry**: Choose the GPU activity visualization.
 - **Waiting Animation**: Choose the animation shown while waiting for a
   response.
