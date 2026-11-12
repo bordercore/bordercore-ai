@@ -80,6 +80,9 @@ COLOR_RESET = "\033[0m"
 
 CONTROL_VALUE = "9574724975"
 
+# Effort levels offered for OpenRouter thinking models that do not list their own.
+DEFAULT_OPENROUTER_REASONING_EFFORTS = ("low", "medium", "high")
+
 seg = pysbd.Segmenter(language="en", clean=False)
 
 logger = logging.getLogger("whisper_mic")
@@ -636,12 +639,21 @@ class ChatBot():
         # Qwen3.5 controls thinking through its chat template. Older Qwen
         # checkpoints use the /no_think text command instead.
         if model_vendor == "openrouter":
-            if ChatBot.get_model_attribute(self.model_name, "thinking"):
+            # Models without the thinking flag always reason, so they take an
+            # effort level but no on/off switch.
+            can_toggle = bool(ChatBot.get_model_attribute(self.model_name, "thinking"))
+            enable_thinking = bool(self.args.get("enable_thinking", False))
+            reasoning: Dict[str, Any] = {"enabled": enable_thinking} if can_toggle else {}
+            effort = self.args.get("reasoning_effort")
+            if (
+                (enable_thinking or not can_toggle)
+                and effort in ChatBot.get_reasoning_efforts(self.model_name)
+            ):
+                reasoning["effort"] = effort
+            if reasoning:
                 args = dict(args)
                 extra_body = dict(args.get("extra_body") or {})
-                extra_body.setdefault(
-                    "reasoning", {"enabled": bool(self.args.get("enable_thinking", False))}
-                )
+                extra_body.setdefault("reasoning", reasoning)
                 args["extra_body"] = extra_body
         elif self._uses_chat_template_thinking():
             args = self._add_chat_template_thinking(args)
@@ -1306,6 +1318,30 @@ class ChatBot():
         return None
 
     @staticmethod
+    def get_reasoning_efforts(model_name: str | None) -> List[str]:
+        """
+        Returns the reasoning effort levels that may be requested for a model.
+
+        Effort levels only apply to OpenRouter models. A model's
+        `reasoning_efforts` list names the levels its provider accepts; models
+        that expose the thinking toggle without such a list get the defaults.
+
+        Args:
+            model_name: The name of the model to look up.
+
+        Returns:
+            The selectable effort levels, or an empty list if the model has none.
+        """
+        if ChatBot.get_model_attribute(model_name, "vendor") != "openrouter":
+            return []
+        configured = ChatBot.get_model_attribute(model_name, "reasoning_efforts")
+        if isinstance(configured, list):
+            return [str(effort) for effort in configured]
+        if ChatBot.get_model_attribute(model_name, "thinking"):
+            return list(DEFAULT_OPENROUTER_REASONING_EFFORTS)
+        return []
+
+    @staticmethod
     def get_model_list() -> List[Dict[str, Any]]:
         """
         Retrieves and returns a sorted list of available models, including both local and API-based ones.
@@ -1390,12 +1426,13 @@ class ChatBot():
                 - "model": the model identifier
                 - "name": the display name
                 - Non-secret model attributes (e.g., "type", "qwen_vision", "thinking", "vendor")
+                - "reasoning_efforts": selectable effort levels, when the model has any
         """
         models = []
         for x in model_list:
             model_data = model_info.get(x, {})
             # Start with the model identifier
-            model_dict = {"model": x}
+            model_dict: Dict[str, Any] = {"model": x}
             # Add the name, defaulting to the model identifier if not specified
             # For nested paths, use just the filename (basename) as the default display name
             if "name" in model_data:
@@ -1410,6 +1447,9 @@ class ChatBot():
             for key, value in model_data.items():
                 if key not in {"name", "api_key"}:
                     model_dict[key] = value
+            reasoning_efforts = ChatBot.get_reasoning_efforts(x)
+            if reasoning_efforts:
+                model_dict["reasoning_efforts"] = reasoning_efforts
             models.append(model_dict)
         return models
 

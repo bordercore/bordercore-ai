@@ -718,6 +718,7 @@ def chat() -> Response:
     wolfram_alpha = request.form.get("wolfram_alpha", "false").lower() == "true"
     url = request.form.get("url", None)
     enable_thinking = request.form.get("enable_thinking", "false").lower() == "true"
+    reasoning_effort = request.form.get("reasoning_effort") or None
     hermes_memory = request.form.get("hermes_memory", "false").lower() == "true"
 
     visualization = request.form.get("visualization", "")
@@ -762,7 +763,8 @@ def chat() -> Response:
         temperature=temperature,
         wolfram_alpha=wolfram_alpha,
         url=url,
-        enable_thinking=enable_thinking
+        enable_thinking=enable_thinking,
+        reasoning_effort=reasoning_effort,
     )
     on_complete = None
     if memory_client is not None:

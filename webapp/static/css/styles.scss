@@ -1453,6 +1453,33 @@ body {
   font-size: 0.8rem;
 }
 
+// Compact select that sits in a toggle row in place of the switch.
+.option-select {
+  max-width: 6.5rem;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.4rem;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.75rem;
+  outline: none;
+
+  &:hover:not(:disabled) {
+    border-color: var(--border-accent);
+  }
+
+  &:focus {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 2px rgb(0 234 255 / 15%);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+}
+
 // ─── Nexus Visualization ─────────────────────────────────────
 .nexus-viz {
   display: flex;

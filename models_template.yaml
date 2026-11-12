@@ -142,6 +142,18 @@ openrouter/auto:
   name: OpenRouter Auto
   type: api
   vendor: openrouter
+# This model always reasons, so it lists effort levels without a thinking toggle.
+z-ai/glm-5.3-flash:
+  name: GLM 5.3 Flash
+  type: api
+  vendor: openrouter
+  reasoning_efforts: [low, high, max]
+deepseek/deepseek-v4.1-flash-1017:
+  name: DeepSeek V4.1 Flash 1017
+  type: api
+  vendor: openrouter
+  thinking: true
+  reasoning_efforts: [low, high, max]
 gpt-4o:
   name: ChatGPT-4o
   type: api

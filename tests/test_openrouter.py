@@ -99,6 +99,74 @@ def test_openrouter_thinking_uses_api_without_changing_qwen_prompt(enabled):
     assert args == {"extra_body": {"provider": {"allow_fallbacks": False}}}
 
 
+@pytest.mark.parametrize(
+    "model, enabled, effort, expected",
+    [
+        ({}, True, "high", {"enabled": True, "effort": "high"}),
+        ({}, True, None, {"enabled": True}),
+        # Effort is meaningless while thinking is switched off.
+        ({}, False, "high", {"enabled": False}),
+        # Levels outside the model's allowed list are never forwarded.
+        ({}, True, "max", {"enabled": True}),
+        ({"reasoning_efforts": ["low", "max"]}, True, "max", {"enabled": True, "effort": "max"}),
+        ({"reasoning_efforts": ["low", "max"]}, True, "medium", {"enabled": True}),
+        # Always-reasoning models take an effort level regardless of the toggle,
+        # and are never sent an on/off flag.
+        ({"thinking": False, "reasoning_efforts": ["low", "max"]}, False, "low", {"effort": "low"}),
+        ({"thinking": False, "reasoning_efforts": ["low", "max"]}, True, "max", {"effort": "max"}),
+    ],
+)
+def test_openrouter_reasoning_effort_is_forwarded_when_allowed(model, enabled, effort, expected):
+    with patch.dict("modules.chatbot.model_info", {
+        "provider/model": {"vendor": "openrouter", "thinking": True, **model},
+    }):
+        bot = ChatBot(
+            model_name="provider/model", enable_thinking=enabled, reasoning_effort=effort
+        )
+        bot.send_message_to_model_openai = MagicMock(return_value=iter(()))
+        bot.send_message_to_model("Hi")
+
+    bot.send_message_to_model_openai.assert_called_once_with({
+        "extra_body": {"reasoning": expected},
+    })
+
+
+def test_reasoning_efforts_only_apply_to_openrouter_thinking_models():
+    with patch.dict("modules.chatbot.model_info", {
+        "router/default": {"vendor": "openrouter", "thinking": True},
+        "router/custom": {
+            "vendor": "openrouter", "thinking": True, "reasoning_efforts": ["low", "max"],
+        },
+        "router/plain": {"vendor": "openrouter"},
+        "router/always": {"vendor": "openrouter", "reasoning_efforts": ["low", "max"]},
+        "local/thinker": {"vendor": "openai", "thinking": True},
+    }):
+        assert ChatBot.get_reasoning_efforts("router/default") == ["low", "medium", "high"]
+        assert ChatBot.get_reasoning_efforts("router/custom") == ["low", "max"]
+        assert ChatBot.get_reasoning_efforts("router/plain") == []
+        assert ChatBot.get_reasoning_efforts("router/always") == ["low", "max"]
+        assert ChatBot.get_reasoning_efforts("local/thinker") == []
+        assert ChatBot.get_personal_model_names(["router/default", "router/plain"]) == [
+            {
+                "model": "router/default", "name": "default", "vendor": "openrouter",
+                "thinking": True, "reasoning_efforts": ["low", "medium", "high"],
+            },
+            {"model": "router/plain", "name": "plain", "vendor": "openrouter"},
+        ]
+
+
+@pytest.mark.parametrize("effort", [None, "medium"])
+def test_openrouter_always_reasoning_model_sends_nothing_without_a_valid_effort(effort):
+    with patch.dict("modules.chatbot.model_info", {
+        "provider/model": {"vendor": "openrouter", "reasoning_efforts": ["low", "max"]},
+    }):
+        bot = ChatBot(model_name="provider/model", enable_thinking=True, reasoning_effort=effort)
+        bot.send_message_to_model_openai = MagicMock(return_value=iter(()))
+        bot.send_message_to_model("Hi")
+
+    bot.send_message_to_model_openai.assert_called_once_with({})
+
+
 def test_model_picker_includes_openrouter_without_credentials(tmp_path):
     with (
         patch.dict("modules.chatbot.model_info", {

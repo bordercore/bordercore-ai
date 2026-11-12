@@ -427,6 +427,13 @@ The client uses OpenRouter's
 `https://openrouter.ai/api/v1`. Set `qwen_vision: true` only for models that accept
 image input. For models with optional reasoning, `thinking: true` exposes the
 existing thinking toggle and forwards it as OpenRouter's `reasoning.enabled`.
+Those models also get a **Thinking Effort** selector beside the toggle, which
+forwards the chosen level as `reasoning.effort` while thinking is on; **Default**
+leaves the level to the model. The selector offers `low`, `medium`, and `high`
+unless the entry lists the levels its provider accepts, for example
+`reasoning_efforts: [low, high, max]`. For a model that always reasons, set
+`reasoning_efforts` without `thinking: true`: the selector then stays active
+regardless of the toggle and no on/off flag is sent.
 Models without that flag retain the provider's reasoning defaults. Chat displays
 the answer text; separate reasoning fields are not displayed. Model availability
 and supported capabilities depend on OpenRouter and the selected provider.

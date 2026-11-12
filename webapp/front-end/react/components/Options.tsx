@@ -5,6 +5,13 @@ import { Switches } from "../stores/ChatStoreContext";
 interface OptionsProps {
   switches: Switches;
   onToggle: (key: keyof Switches) => void;
+  /** Effort levels the selected model accepts; the selector is hidden when empty. */
+  reasoningEfforts: string[];
+  /** Selected effort level, or null to use the model's default. */
+  reasoningEffort: string | null;
+  /** False while the selected model's thinking is switched off. */
+  reasoningEffortEnabled: boolean;
+  onReasoningEffortChange: (effort: string | null) => void;
   onSensorToggle: () => void;
   hermesEnabled: boolean;
 }
@@ -12,6 +19,10 @@ interface OptionsProps {
 export default function Options({
   switches,
   onToggle,
+  reasoningEfforts,
+  reasoningEffort,
+  reasoningEffortEnabled,
+  onReasoningEffortChange,
   onSensorToggle,
   hermesEnabled,
 }: OptionsProps) {
@@ -80,6 +91,32 @@ export default function Options({
             </svg>
           }
         />
+        {reasoningEfforts.length > 0 && (
+          <div className="toggle-item">
+            <div className="toggle-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M3 18h4v3H3v-3Zm7-6h4v9h-4v-9Zm7-8h4v17h-4V4Z" />
+              </svg>
+            </div>
+            <label className="toggle-label" htmlFor="reasoning-effort">
+              Thinking Effort
+            </label>
+            <select
+              id="reasoning-effort"
+              className="option-select"
+              value={reasoningEffort ?? ""}
+              onChange={event => onReasoningEffortChange(event.target.value || null)}
+              disabled={!reasoningEffortEnabled}
+            >
+              <option value="">Default</option>
+              {reasoningEfforts.map(effort => (
+                <option key={effort} value={effort}>
+                  {effort.charAt(0).toUpperCase() + effort.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {hermesEnabled && (

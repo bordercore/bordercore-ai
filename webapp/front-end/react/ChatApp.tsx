@@ -88,6 +88,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     setGpuTelemetryVisualization,
     temperature,
     setTemperature,
+    reasoningEffort,
+    setReasoningEffort,
     audioSpeed,
     setAudioSpeed,
     ttsHost,
@@ -508,10 +510,18 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     return result ? result[attribute] : "";
   }
 
+  // Effort levels the selected model accepts; empty when it has no effort control.
+  const reasoningEfforts: string[] = getModelAttribute(model.name, "reasoning_efforts") || [];
+  const activeReasoningEffort =
+    reasoningEffort !== null && reasoningEfforts.includes(reasoningEffort) ? reasoningEffort : null;
+  // Models without the thinking toggle always reason, so their effort level always applies.
+  const reasoningEffortApplies =
+    switches.enableThinking || !getModelAttribute(model.name, "thinking");
+
   function getModelIcon(m: ModelInfo) {
     const capabilities = [];
     if (m.qwen_vision) capabilities.push("\uD83D\uDC41\uFE0F");
-    if (m.thinking) capabilities.push("\uD83E\uDDE0");
+    if (m.thinking || m.reasoning_efforts?.length) capabilities.push("\uD83E\uDDE0");
     if (capabilities.length) return capabilities.join(" ");
     if (m.type === "api") return "\u2601\uFE0F";
     return "";
@@ -975,6 +985,9 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
       ...args,
     };
     if (temperature !== null) payload.temperature = temperature;
+    if (reasoningEffortApplies && activeReasoningEffort !== null) {
+      payload.reasoning_effort = activeReasoningEffort;
+    }
     if (voiceTurnId) payload.voice_turn_id = voiceTurnId;
 
     audioHook.startTTSResponse(
@@ -1262,6 +1275,10 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
             <Options
               switches={switches}
               onToggle={handleToggleSwitch}
+              reasoningEfforts={reasoningEfforts}
+              reasoningEffort={activeReasoningEffort}
+              reasoningEffortEnabled={reasoningEffortApplies}
+              onReasoningEffortChange={setReasoningEffort}
               onSensorToggle={handleSensorToggle}
               hermesEnabled={Boolean(settings.hermes_enabled)}
             />

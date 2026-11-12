@@ -117,6 +117,7 @@ export interface ModelInfo {
   model?: string;
   type?: string;
   thinking?: boolean;
+  reasoning_efforts?: string[];
   qwen_vision?: boolean | null;
   loaded?: boolean;
   loaded_local_models?: LoadedLocalModel[];
@@ -152,6 +153,8 @@ interface ChatStoreContextType {
   setGpuTelemetryVisualization: (v: GpuTelemetryVisualization) => void;
   temperature: number | null;
   setTemperature: (temp: number | null) => void;
+  reasoningEffort: string | null;
+  setReasoningEffort: (effort: string | null) => void;
   audioSpeed: number;
   setAudioSpeed: (speed: number) => void;
   ttsHost: string;
@@ -279,6 +282,11 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
     const value = Number(saved);
     return Number.isFinite(value) && value >= 0 && value <= 2 ? value : null;
   });
+  // null leaves the effort level up to the model's own default.
+  const [reasoningEffort, setReasoningEffort] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return window.localStorage.getItem("reasoningEffort") || null;
+  });
   const [audioSpeed, setAudioSpeed] = useState(session.audio_speed || 1);
   const [ttsHost, setTtsHost] = useState<string>(() => {
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("ttsHost") : null;
@@ -366,6 +374,10 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       temperature === null ? "default" : String(temperature)
     );
   }, [temperature]);
+  useEffect(() => {
+    if (reasoningEffort === null) window.localStorage.removeItem("reasoningEffort");
+    else window.localStorage.setItem("reasoningEffort", reasoningEffort);
+  }, [reasoningEffort]);
   useEffect(() => {
     window.localStorage.setItem(
       "asrIdleTimeoutMinutes",
@@ -562,6 +574,8 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       setGpuTelemetryVisualization,
       temperature,
       setTemperature,
+      reasoningEffort,
+      setReasoningEffort,
       audioSpeed,
       setAudioSpeed,
       ttsHost,
@@ -648,6 +662,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       visualization,
       gpuTelemetryVisualization,
       temperature,
+      reasoningEffort,
       audioSpeed,
       ttsHost,
       ttsVoice,
