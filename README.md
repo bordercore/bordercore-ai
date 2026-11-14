@@ -529,7 +529,8 @@ The hamburger menu to the upper-right organizes preferences into **General**,
 - **Temperature**: Choose Model default, Precise (0.2), Balanced (0.7),
   Creative (1.0), or a custom value from 0 to 2. Model default omits the
   temperature parameter so the selected model or provider uses its native
-  behavior.
+  behavior. Models that use the `anthropic` vendor always run at their
+  default, because current Claude models reject a temperature setting.
 - **Audio Speed**: Playback speed of the TTS audio.
 - **TTS Engine**: Select Kokoro, Chatterbox, or Qwen3-TTS and view its
   discovered identity and readiness. Managed engines sharing the deepvirtual

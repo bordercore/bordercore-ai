@@ -158,12 +158,12 @@ gpt-4o:
   name: ChatGPT-4o
   type: api
   vendor: openai
-claude-3-5-sonnet-20240620:
-  name: Claude 3.5 Sonnet
+claude-opus-5-5:
+  name: Claude Opus 5.5
   type: api
   vendor: anthropic
-claude-sonnet-4-20250514:
-  name: Claude Sonnet 4 (via CLIProxy)
+claude-sonnet-5-5:
+  name: Claude Sonnet 5.5 (via CLIProxy)
   type: api
   vendor: openai
   base_url: http://localhost:8317/v1

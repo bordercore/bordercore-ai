@@ -83,6 +83,10 @@ CONTROL_VALUE = "9574724975"
 # Effort levels offered for OpenRouter thinking models that do not list their own.
 DEFAULT_OPENROUTER_REASONING_EFFORTS = ("low", "medium", "high")
 
+# Output cap for Anthropic requests. Current Claude models always think, and
+# thinking tokens count against this limit along with the visible reply.
+ANTHROPIC_MAX_TOKENS = 64000
+
 seg = pysbd.Segmenter(language="en", clean=False)
 
 logger = logging.getLogger("whisper_mic")
@@ -791,13 +795,13 @@ class ChatBot():
         client = anthropic.Anthropic(
             api_key=settings.anthropic_api_key
         )
+        # Current Claude models reject sampling parameters such as
+        # temperature, so the configured temperature is not forwarded.
         request_args = dict(args)
-        if self.temperature is not None:
-            request_args.setdefault("temperature", self.temperature)
 
         response = client.messages.create(
             model=self.model_name,
-            max_tokens=1024,
+            max_tokens=ANTHROPIC_MAX_TOKENS,
             messages=messages,
             system=system,
             stream=True,
@@ -809,7 +813,8 @@ class ChatBot():
                 if callable(close_stream):
                     close_stream()
                 break
-            if chunk.type == "content_block_delta":
+            # Thinking and signature deltas carry no reply text.
+            if chunk.type == "content_block_delta" and chunk.delta.type == "text_delta":
                 yield chunk.delta.text
 
     def send_message_to_model_local_llm(
