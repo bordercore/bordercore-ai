@@ -14,6 +14,16 @@ def test_sort_models():
     ) == [{"name": "a"}, {"name": "d"}, {"name": "b"}, {"name": "e"}]
 
 
+def test_sort_models_by_id_with_duplicate_display_names():
+    """Local and API variants retain YAML order even with the same label."""
+    local = {"model": "qwen-local", "name": "Qwen"}
+    api = {"model": "qwen-api", "name": "Qwen"}
+    unknown = {"model": "discovered", "name": "Discovered"}
+    assert sort_models(
+        [unknown, local, api], ["qwen-api", "qwen-local"], key="model"
+    ) == [api, local, unknown]
+
+
 @pytest.fixture
 def strip_code_fences():
     """Fixture that returns a local function for stripping Markdown code fences from text."""

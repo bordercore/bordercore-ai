@@ -1412,7 +1412,8 @@ class ChatBot():
 
         return sort_models(
             model_list,
-            [v.get("name", None) for _, v in model_info.items()]
+            list(model_info),
+            key="model",
         )
 
     @staticmethod

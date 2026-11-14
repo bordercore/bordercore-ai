@@ -122,6 +122,11 @@ export interface LoadedLocalModel {
 export interface ModelInfo {
   name: string;
   model?: string;
+  provider?: string;
+  served_by?: string;
+  vendor?: string;
+  vllm_profile?: string;
+  llama_cpp_profile?: string;
   type?: string;
   thinking?: boolean;
   reasoning_efforts?: string[];

@@ -363,6 +363,19 @@ example-model.gguf:
 ```
 
 - **name** is the human-friendly label used in the UI.
+- **provider** identifies the model maker (for example, `OpenAI`, `Anthropic`,
+  or `Google`) and groups models under that heading in the picker. Keep the
+  YAML flat, with model IDs as top-level keys, and arrange entries in provider
+  sections. The picker follows their order, including model order within each
+  section; models without a provider appear under **Other** at the end.
+  The supplied order ranks models approximately strongest first within each
+  provider for general-purpose work, rather than speed or cost. Reorder YAML
+  entries to adjust this preference; OpenRouter Auto stays at the end because
+  it routes requests instead of identifying a fixed model.
+- **served_by** optionally names the serving service, such as `CLIProxy`, for
+  a badge beside the model name. Otherwise the picker uses managed runtime
+  profiles or the API vendor to show `vLLM`, `llama.cpp`, `OpenRouter`, `API`,
+  or `Local`. This display metadata does not change request routing.
 - **template** selects the fallback local-model chat template, such as `chatml`
   or `llama2`; a tokenizer's built-in template takes precedence.
 - **type: api** identifies an API-backed model instead of an in-process local
@@ -388,9 +401,14 @@ example-model.gguf:
 The template includes GPT-6.1 Sol, GPT-6.1 Terra, GPT-6 Luna, and GPT-6 Astra
 through CLIProxy. Copy the desired entries into the Git-ignored `models.yaml`
 and adjust `base_url` to your proxy host. For direct OpenAI API access, omit
-`base_url` and `api_key`, set `openai_api_key` in `settings.py`, and update the
-display names. Restart the backend after editing model configuration, then
+`base_url`, `api_key`, and `served_by`, and set `openai_api_key` in `settings.py`.
+Restart the backend after editing model configuration, then
 refresh the model picker.
+
+The picker searches model names, IDs, providers, and serving badges. Use the
+arrow keys to navigate results, Enter or Space to select a focused model, and
+Escape to close. Provider headings remain visible while scrolling; the local
+model unload action stays available while searching.
 
 For these GPT models, select **Model default** temperature to omit the sampling
 parameter when reasoning is enabled. The app's reasoning-effort selector

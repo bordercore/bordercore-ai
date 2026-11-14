@@ -34,24 +34,27 @@ def get_model_info() -> Dict[str, Any]:
 
 def sort_models(
     original_list: List[Dict[str, Any]],
-    sort_order: List[str]
+    sort_order: List[str],
+    *,
+    key: str = "name",
 ) -> List[Dict[str, Any]]:
     """
-    Sort a list of model dictionaries based on a predefined name order.
+    Sort model dictionaries by a field, preserving the order of unknown items.
 
     Items not in the sort order will be placed at the end, in original order.
 
     Args:
-        original_list: List of model dictionaries, each with a 'name' key.
-        sort_order: List of model names specifying the desired sort order.
+        original_list: Model dictionaries containing the selected key.
+        sort_order: Field values specifying the desired sort order.
+        key: Field to match against sort_order; use model for stable identifiers.
 
     Returns:
         List of model dictionaries sorted by the specified order.
     """
     sort_order_dict = {value: index for index, value in enumerate(sort_order)}
-    to_sort = [item for item in original_list if item["name"] in sort_order_dict]
-    to_keep = [item for item in original_list if item["name"] not in sort_order_dict]
-    sorted_items = sorted(to_sort, key=lambda x: sort_order_dict[x["name"]])
+    to_sort = [item for item in original_list if item[key] in sort_order_dict]
+    to_keep = [item for item in original_list if item[key] not in sort_order_dict]
+    sorted_items = sorted(to_sort, key=lambda x: sort_order_dict[x[key]])
     return sorted_items + to_keep
 
 
