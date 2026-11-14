@@ -385,6 +385,17 @@ example-model.gguf:
 - **do_sample: false** disables sampling via `temperature`, `top_p`, and `top_k`.
 - **add_bos_token: true** prepends a beginning-of-sequence token.
 
+The template includes GPT-6.1 Sol, GPT-6.1 Terra, GPT-6 Luna, and GPT-6 Astra
+through CLIProxy. Copy the desired entries into the Git-ignored `models.yaml`
+and adjust `base_url` to your proxy host. For direct OpenAI API access, omit
+`base_url` and `api_key`, set `openai_api_key` in `settings.py`, and update the
+display names. Restart the backend after editing model configuration, then
+refresh the model picker.
+
+For these GPT models, select **Model default** temperature to omit the sampling
+parameter when reasoning is enabled. The app's reasoning-effort selector
+currently applies only to OpenRouter models.
+
 To run:
 
 ```bash

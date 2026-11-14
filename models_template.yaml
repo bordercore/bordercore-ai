@@ -154,10 +154,32 @@ deepseek/deepseek-v4.1-flash-1017:
   vendor: openrouter
   thinking: true
   reasoning_efforts: [low, high, max]
-gpt-4o:
-  name: ChatGPT-4o
+# Adjust base_url for your CLIProxy host, or omit base_url and api_key to
+# use the OpenAI API with settings.openai_api_key.
+gpt-6.1-sol:
+  name: GPT 6.1 Sol (via CLIProxy)
   type: api
   vendor: openai
+  base_url: http://localhost:8317/v1
+  api_key: "not-needed"
+gpt-6.1-terra:
+  name: GPT 6.1 Terra (via CLIProxy)
+  type: api
+  vendor: openai
+  base_url: http://localhost:8317/v1
+  api_key: "not-needed"
+gpt-6-luna:
+  name: GPT 6 Luna (via CLIProxy)
+  type: api
+  vendor: openai
+  base_url: http://localhost:8317/v1
+  api_key: "not-needed"
+gpt-6-astra:
+  name: GPT 6 Astra (via CLIProxy)
+  type: api
+  vendor: openai
+  base_url: http://localhost:8317/v1
+  api_key: "not-needed"
 claude-opus-5-5:
   name: Claude Opus 5.5
   type: api
