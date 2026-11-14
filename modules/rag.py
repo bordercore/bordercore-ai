@@ -99,7 +99,7 @@ class RAG:
         sha1sum = self.get_sha1sum()
         try:
             self.collection = self.client.get_collection(sha1sum)
-        except chromadb.errors.InvalidCollectionException:
+        except chromadb.errors.NotFoundError:
             self.collection = self.client.create_collection(
                 name=sha1sum,
                 metadata={
