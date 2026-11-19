@@ -392,14 +392,17 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           handleTranscribeAudioUrl(pastedUrl);
         }
       },
-      [mode]
+      [mode, setPrompt]
     ),
     onLongText: useCallback((text: string, id: number) => {
       setClipboard({ content: text, id });
     }, []),
-    onShortText: useCallback((text: string) => {
-      setPrompt(prev => prev + text);
-    }, []),
+    onShortText: useCallback(
+      (text: string) => {
+        setPrompt(prev => prev + text);
+      },
+      [setPrompt]
+    ),
     getNextId: nextId,
   });
 
