@@ -70,6 +70,34 @@ claude-sonnet-5-5:
   api_key: "not-needed"
 
 # ── Google ──────────────────────────────────────────
+# Requires a CLIProxy instance with these Gemini models available.
+gemini-4-carbon:
+  name: Gemini 4 Carbon
+  provider: Google
+  served_by: CLIProxy
+  type: api
+  vendor: openai
+  base_url: http://localhost:8317/v1
+  api_key: "not-needed"
+
+gemini-4-neon:
+  name: Gemini 4 Neon
+  provider: Google
+  served_by: CLIProxy
+  type: api
+  vendor: openai
+  base_url: http://localhost:8317/v1
+  api_key: "not-needed"
+
+gemini-4-hydrogen:
+  name: Gemini 4 Hydrogen
+  provider: Google
+  served_by: CLIProxy
+  type: api
+  vendor: openai
+  base_url: http://localhost:8317/v1
+  api_key: "not-needed"
+
 Gemma-4-12B-QAT-W4A16-vLLM:
   name: Gemma 4 12B QAT
   provider: Google

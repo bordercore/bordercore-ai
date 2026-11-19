@@ -405,6 +405,12 @@ and adjust `base_url` to your proxy host. For direct OpenAI API access, omit
 Restart the backend after editing model configuration, then
 refresh the model picker.
 
+The template also includes [Gemini 4 Carbon, Neon, and Hydrogen](https://ai.google.dev/gemini-api/docs/models)
+through CLIProxy, ordered strongest first. These use the model IDs
+`gemini-4-carbon`, `gemini-4-neon`, and `gemini-4-hydrogen`. Your proxy must
+expose the chosen models in its `/v1/models` listing before you use them;
+adding an entry here does not enable Gemini access in CLIProxy.
+
 The picker searches model names, IDs, providers, and serving badges. Use the
 arrow keys to navigate results, Enter or Space to select a focused model, and
 Escape to close. Provider headings remain visible while scrolling; the local
