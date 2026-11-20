@@ -1182,22 +1182,29 @@ body {
 }
 
 .model-dropdown-menu {
-  position: absolute;
+  position: fixed;
   z-index: 1000;
-  top: 100%;
-  right: 0;
-  left: 0;
-  overflow: hidden;
+  display: flex;
+  overflow: auto;
+  box-sizing: border-box;
+  flex-direction: column;
   border: 1px solid var(--border-accent);
   border-radius: 0.65rem;
-  margin-top: 4px;
   background: var(--bg-surface-raised);
   box-shadow: 0 8px 32px rgb(0 0 0 / 50%);
 }
 
 .model-dropdown-options {
+  min-height: 0;
   max-height: min(360px, 45vh);
   overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.model-search,
+.model-search-empty,
+.model-unload-action {
+  flex-shrink: 0;
 }
 
 .model-search {
