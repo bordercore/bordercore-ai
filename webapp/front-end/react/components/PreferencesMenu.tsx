@@ -3,9 +3,11 @@ import Switch from "react-switch";
 import Slider from "./Slider";
 import {
   GpuTelemetryVisualization,
+  FaceQuality,
   VisualizationType,
   WaitingAnimation,
 } from "../stores/ChatStoreContext";
+import { FACES, isFaceId } from "../utils/faceConfigs";
 import { TtsCapabilityState } from "../utils/ttsCapabilities";
 import {
   DEFAULT_VAD_CONFIG,
@@ -23,6 +25,14 @@ const VISUALIZATION_OPTIONS: { value: VisualizationType; label: string }[] = [
   { value: "waveform", label: "Waveform" },
   { value: "sentinelOrb", label: "Sentinel Orb" },
   { value: "cyberPortrait", label: "Cyber Portrait" },
+  { value: "nova", label: "Nova" },
+  { value: "sable", label: "Sable" },
+];
+
+const FACE_QUALITY_OPTIONS: { value: FaceQuality; label: string }[] = [
+  { value: "low", label: "Low (no bloom)" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
 ];
 
 const WAITING_ANIMATION_OPTIONS: { value: WaitingAnimation; label: string }[] = [
@@ -64,6 +74,8 @@ interface PreferencesMenuProps {
   voiceList: string[];
   visualization: VisualizationType;
   onVisualizationChange: (value: VisualizationType) => void;
+  faceQuality: FaceQuality;
+  onFaceQualityChange: (value: FaceQuality) => void;
   gpuTelemetryVisualization: GpuTelemetryVisualization;
   onGpuTelemetryVisualizationChange: (value: GpuTelemetryVisualization) => void;
   waitingAnimation: WaitingAnimation;
@@ -109,6 +121,8 @@ export default function PreferencesMenu({
   voiceList,
   visualization,
   onVisualizationChange,
+  faceQuality,
+  onFaceQualityChange,
   gpuTelemetryVisualization,
   onGpuTelemetryVisualizationChange,
   waitingAnimation,
@@ -376,6 +390,25 @@ export default function PreferencesMenu({
                 ))}
               </select>
             </div>
+            {isFaceId(visualization) && (
+              <div>
+                <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
+                  {FACES[visualization].label} Quality
+                </div>
+                <select
+                  className="waiting-animation-select"
+                  value={faceQuality}
+                  onChange={e => onFaceQualityChange(e.target.value as FaceQuality)}
+                  aria-label={`${FACES[visualization].label} rendering quality`}
+                >
+                  {FACE_QUALITY_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <div className="pref-label" style={{ marginBottom: "0.4rem" }}>
                 GPU Telemetry

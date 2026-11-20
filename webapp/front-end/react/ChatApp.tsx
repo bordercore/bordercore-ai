@@ -6,6 +6,7 @@ import Modal from "./components/Modal";
 
 import { useChatStore, ModelInfo, Switches } from "./stores/ChatStoreContext";
 import { doGet, doPost } from "./utils/reactUtils";
+import { isFaceId } from "./utils/faceConfigs";
 import { convertBase64ToBytes } from "./utils/audio";
 import { animateCSS } from "./utils/animateCSS";
 import {
@@ -32,6 +33,7 @@ const GpuOrb = lazy(() => import("./components/GpuOrb"));
 const NexusViz = lazy(() => import("./components/NexusViz"));
 const WaveformViz = lazy(() => import("./components/WaveformViz"));
 const CyberPortrait = lazy(() => import("./components/CyberPortrait"));
+const ProjectedFace = lazy(() => import("./components/ProjectedFace"));
 const CursorLines = lazy(() => import("./components/CursorLines"));
 const Starfield = lazy(() => import("./components/Starfield"));
 const CyberspaceFlythrough = lazy(() => import("./components/CyberspaceFlythrough"));
@@ -42,6 +44,7 @@ import AudioPlayer from "./components/AudioPlayer";
 import PreferencesMenu from "./components/PreferencesMenu";
 import BranchNavigator from "./components/BranchNavigator";
 import type { TtsHostPreset } from "./components/PreferencesMenu";
+import type { ProjectedFaceHandle } from "./components/ProjectedFace";
 import ToastContainer from "./components/Toast";
 
 import useStreamingChat from "./hooks/useStreamingChat";
@@ -85,6 +88,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
     setSwitches,
     visualization,
     setVisualization,
+    faceQuality,
+    setFaceQuality,
     gpuTelemetryVisualization,
     setGpuTelemetryVisualization,
     temperature,
@@ -179,6 +184,7 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
   const menuRef = useRef<HTMLDivElement>(null);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const latestAssistantIdRef = useRef<number | null>(null);
+  const faceRef = useRef<ProjectedFaceHandle>(null);
   const latestVoiceTurnIdRef = useRef<string | null>(null);
   const blockedAssistantIdsRef = useRef(new Set<number>());
 
@@ -1017,6 +1023,10 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           return;
         }
         voiceMetrics.markFirstToken(voiceTurnId);
+        // Tell Nova or Sable how much visible text just arrived.
+        faceRef.current?.notifyChunk(
+          Math.max(0, cleanedContent.length - latestVisibleContent.length)
+        );
         latestVisibleContent = cleanedContent;
         audioHook.appendTTSResponse(cleanedContent);
         setChatHistory(prev => updateResponseContent(prev, assistantId, cleanedContent));
@@ -1267,6 +1277,15 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
                 {visualization === "cyberPortrait" && (
                   <CyberPortrait active={isGenerating} size={282} />
                 )}
+                {isFaceId(visualization) && (
+                  <ProjectedFace
+                    ref={faceRef}
+                    face={visualization}
+                    active={isGenerating}
+                    size={282}
+                    quality={faceQuality}
+                  />
+                )}
               </Suspense>
               {visualization === "thinkingIcon" && (
                 <ThinkingIcon active={isGenerating} size={126} />
@@ -1344,6 +1363,8 @@ export default function ChatApp({ session, settings, controlValue }: ChatAppProp
           voiceList={ttsCapabilities.voices}
           visualization={visualization}
           onVisualizationChange={setVisualization}
+          faceQuality={faceQuality}
+          onFaceQualityChange={setFaceQuality}
           gpuTelemetryVisualization={gpuTelemetryVisualization}
           onGpuTelemetryVisualizationChange={setGpuTelemetryVisualization}
           waitingAnimation={waitingAnimation}

@@ -44,7 +44,19 @@ export type VisualizationType =
   | "nexus"
   | "waveform"
   | "sentinelOrb"
-  | "cyberPortrait";
+  | "cyberPortrait"
+  | "nova"
+  | "sable";
+
+export type FaceQuality = "low" | "medium" | "high";
+
+const FACE_QUALITIES: FaceQuality[] = ["low", "medium", "high"];
+
+function loadFaceQuality(): FaceQuality {
+  if (typeof window === "undefined") return "medium";
+  const saved = window.localStorage.getItem("faceQuality");
+  return FACE_QUALITIES.includes(saved as FaceQuality) ? (saved as FaceQuality) : "medium";
+}
 
 export type GpuTelemetryVisualization =
   | "neonPulseReactor"
@@ -74,6 +86,8 @@ const VISUALIZATIONS: VisualizationType[] = [
   "waveform",
   "sentinelOrb",
   "cyberPortrait",
+  "nova",
+  "sable",
 ];
 
 function loadVisualization(fallback: VisualizationType): VisualizationType {
@@ -161,6 +175,8 @@ interface ChatStoreContextType {
   setSwitches: (switches: Switches) => void;
   visualization: VisualizationType;
   setVisualization: (v: VisualizationType) => void;
+  faceQuality: FaceQuality;
+  setFaceQuality: (v: FaceQuality) => void;
   gpuTelemetryVisualization: GpuTelemetryVisualization;
   setGpuTelemetryVisualization: (v: GpuTelemetryVisualization) => void;
   temperature: number | null;
@@ -285,6 +301,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   const [visualization, setVisualization] = useState<VisualizationType>(() =>
     loadVisualization(session.visualization || "gpuOrb")
   );
+  const [faceQuality, setFaceQuality] = useState<FaceQuality>(loadFaceQuality);
   const [gpuTelemetryVisualization, setGpuTelemetryVisualization] =
     useState<GpuTelemetryVisualization>(loadGpuTelemetryVisualization);
   const [temperature, setTemperature] = useState<number | null>(() => {
@@ -374,6 +391,9 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
   useEffect(() => {
     window.localStorage.setItem("visualization", visualization);
   }, [visualization]);
+  useEffect(() => {
+    window.localStorage.setItem("faceQuality", faceQuality);
+  }, [faceQuality]);
   useEffect(() => {
     window.localStorage.setItem("gpuTelemetryVisualization", gpuTelemetryVisualization);
   }, [gpuTelemetryVisualization]);
@@ -582,6 +602,8 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       setSwitches,
       visualization,
       setVisualization,
+      faceQuality,
+      setFaceQuality,
       gpuTelemetryVisualization,
       setGpuTelemetryVisualization,
       temperature,
@@ -672,6 +694,7 @@ export function ChatStoreProvider({ children, session }: ChatStoreProviderProps)
       modelList,
       switches,
       visualization,
+      faceQuality,
       gpuTelemetryVisualization,
       temperature,
       reasoningEffort,

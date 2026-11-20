@@ -1341,6 +1341,13 @@ body {
   justify-content: center;
 }
 
+// Nova and Sable render opaque so they can bloom; feather them into the
+// panel.
+.projected-face {
+  display: block;
+  mask-image: radial-gradient(ellipse 76% 76% at 50% 50%, #000 62%, transparent 100%);
+}
+
 // ─── Status / Notice ─────────────────────────────────────────
 .notice {
   color: var(--accent-cyan);

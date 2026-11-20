@@ -578,7 +578,13 @@ Appearance includes:
 
 - **Visualization**: Choose the primary thinking/audio visualization. Cyber
   Portrait shows a face that opens her eyes and looks around while a model is
-  generating, and rests with her eyes closed otherwise.
+  generating, and rests with her eyes closed otherwise. Nova and Sable are
+  rigged 3D heads that act out each query; see
+  [Nova and Sable](#nova-and-sable) below.
+- **Nova Quality** / **Sable Quality**: Shown while Nova or Sable is
+  selected; the two share one setting. Low drops the bloom pass and runs at
+  24 fps; Medium (the default) and High add bloom and antialiasing at 30 and
+  60 fps.
 - **GPU Telemetry**: Choose the GPU activity visualization.
 - **Waiting Animation**: Choose the animation shown while waiting for a
   response.
@@ -603,6 +609,96 @@ current configuration and latest turn data as JSON for troubleshooting. VAD
 startup reports microphone permission, missing-device,
 device-in-use, secure-connection, and model-loading failures, turns the VAD
 switch back off, and includes the failure in copied diagnostics.
+
+### Nova and Sable
+
+Nova and Sable are neon portraits that come to life for each query: Nova in
+dark blue, magenta and orange, Sable in deep blue with glowing eyes. Each is
+a reference picture projected onto a rigged 3D head: the picture supplies the
+look, and the head underneath lets her blink, speak, shift her gaze and turn
+a few degrees. They are one component (`ProjectedFace`) showing different
+faces, so they behave alike. Each follows the query:
+
+- **Submit**: her eyes open, she looks at you, and the first glyph sparks on.
+- **Waiting**: her gaze drifts away and neon glyphs grow denser the longer
+  the wait: the marks painted on her face draw themselves in, a constellation
+  joins up on one cheek, circuit traces grow from the temple along the jaw on
+  the other, columns of hex and katakana appear, and a scan line sweeps down
+  her face.
+- **Streaming**: each chunk of text sends a pulse down the traces and lifts
+  the glyphs' brightness. Reasoning that is hidden from the transcript counts
+  as waiting.
+- **Done**: the glyphs dissolve away, she returns to eye contact,
+  then closes her eyes and stops drawing until the next query.
+
+Rendering is kept light because it shares the machine with the model: the
+pixel ratio is capped, bloom runs at half resolution, the glyph texture is
+redrawn at a lower rate than the frame, and nothing is drawn while idle.
+
+While one of them is on screen she can be driven from the browser console
+through `window.nova` or `window.sable` (the same handle the component
+exposes as a React ref):
+
+```js
+nova.setState("waiting");   // "idle" | "submit" | "waiting" | "streaming" | "done"
+nova.setState(null);        // follow the chat again
+nova.blink();               // blink(true) for a double blink
+nova.lookAt(15, 5);         // yaw, pitch in degrees; lookAt(null) to release
+nova.setSpeak(0.6);         // lip activity 0..1; null returns them to rest
+nova.setGlyphIntensity(1);  // glyph density 0..1; null grows with time
+```
+
+Her mouth stays still unless driven with `setSpeak`. Two props on the
+component control it:
+
+- `mouthOpenness` sets how far her lips are parted at rest, from 1 (as in the
+  picture) to 0 (closed). The default, 0.25, is mostly closed.
+- `animateMouth`, off by default, makes her lips move by themselves: a slight
+  parting and silent muttering while she waits, and movement in time with the
+  text as it streams.
+
+Each face is described by two files in `webapp/scripts/faces/`: its
+reference picture (`nova.png`, `sable.jpg`) and a JSON file of marks made on
+that picture by hand (`nova.json`, `sable.json`): 52 facial landmarks, the
+two irises, and boxes around any glyphs painted on the skin. Two scripts in
+`webapp/scripts/` turn those into the assets the component loads, taking the
+face's name as their argument:
+
+- `prepare_face_picture.py` splits the picture into the two layers in
+  `webapp/static/img/` (`<face>.jpg`, `<face>-glyphs.jpg`): the picture with
+  its painted glyphs and irises removed, and the glyphs on their own. It
+  needs Pillow and NumPy.
+- `bake-face.mjs` builds `webapp/static/models/<face>.glb` from
+  [ICT-FaceKit](https://github.com/ICT-VGL/ICT-FaceKit) (MIT licence; the
+  notice is alongside the models). It fits the kit's head to the marked
+  landmarks, records where each vertex falls in the picture and how the eyes
+  must be turned for the drawn irises to cover the marked ones, and keeps the
+  kit's 53 expression shapes as morph targets under their ARKit names. It
+  downloads about 210 MB of source meshes into a cache directory (the system
+  temp directory by default; pass `--cache <dir>` to choose).
+
+```bash
+cd webapp
+python scripts/prepare_face_picture.py sable
+node scripts/bake-face.mjs sable
+```
+
+The marks are stored as fractions of the picture, so a higher-resolution
+copy of the same picture can replace the reference and only the first script
+needs to be run again.
+
+To add another face, put its picture and marks in `webapp/scripts/faces/`,
+run both scripts, and then register it: add an entry to `FACES` in
+`webapp/front-end/react/utils/faceConfigs.ts` (iris colours, which cheek the
+live constellation takes, and a few other settings that cannot be read off
+the picture), and add its name to `VisualizationType` and `VISUALIZATIONS` in
+`stores/ChatStoreContext.tsx` and to `VISUALIZATION_OPTIONS` in
+`components/PreferencesMenu.tsx`.
+[docs/projected-face-visualizations.md](docs/projected-face-visualizations.md)
+is the full recipe: how to choose and mark a picture, check the fit, tune
+the settings, and what to do when something looks wrong. Two helpers in
+`webapp/scripts/` support the marking: `face_grid.py` enlarges part of the
+picture under a pixel grid, and `face_fit_overlay.py` draws a fit over it.
 
 # Tests
 
